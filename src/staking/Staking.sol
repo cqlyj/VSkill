@@ -40,6 +40,7 @@ contract Staking {
     AggregatorV3Interface internal priceFeed;
 
     event Staked(address indexed staker, uint256 amount);
+    event Withdrawn(address indexed staker, uint256 amount);
 
     constructor(address _priceFeed) {
         priceFeed = AggregatorV3Interface(_priceFeed);
@@ -62,6 +63,7 @@ contract Staking {
         if (!success) {
             revert Staking__WithdrawFailed();
         }
+        emit Withdrawn(msg.sender, amountToWithdraw);
     }
 
     function stakeToBeTheVerifier() public payable {
