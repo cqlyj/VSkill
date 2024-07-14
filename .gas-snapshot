@@ -1,0 +1,4 @@
+StakingTest:testMinUsdAmountIsTwenty() (gas: 8355)
+StakingTest:testStakeOnlyIfEnoughUsd() (gas: 101608)
+StakingTest:testStakeRevertIfNotEnoughUsd() (gas: 22979)
+StakingTest:testStakeSuccessUpdatesVerifier() (gas: 103108)
