@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.24;
 
-import {Staking} from "../../src/staking/Staking.sol";
 import {Script} from "../../lib/forge-std/src/Script.sol";
 import {MockV3Aggregator} from "../../test/staking/mock/MockV3Aggregator.sol";
 
