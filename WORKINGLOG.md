@@ -42,4 +42,8 @@
 
 ### Plan for today: Staking module
 
+1.  Implement the stake(), withdrawStake() and stakeToBeTheVerifier() functions.
+2.  Add the deployments and tests for the staking module.
+3.  Update the README and documentation.
+
 ---
