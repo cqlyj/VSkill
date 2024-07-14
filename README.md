@@ -11,26 +11,25 @@
 
 3. **Rewards and Penalties:**
 
-   - **Rewards:** Verifiers who provide accurate and honest feedback receive rewards (tokens).
-   - **Penalties:** Verifiers who act maliciously or provide inaccurate feedback are penalized (reduced tokens or other penalties).
-   - **Reputation System:** A decentralized reputation protocol adjusts verifier rewards and penalties based on historical performance and community feedback.
+   - **Rewards:** Verifiers who provide accurate and honest feedback receive rewards (reputation and ethers).
+   - **Penalties:** Verifiers who act maliciously or provide inaccurate feedback are penalized (reduced reputation and ethers).
+   - **Reputation System:** Higher reputation increases the chances of being selected as a verifier.
 
 4. **Staking:**
 
-   - Verifiers are required to stake tokens to participate in the verification process.
+   - Verifiers are required to stake ethers to participate in the verification process.
    - Staking ensures verifiers are committed and deters malicious behavior.
-   - A quadratic staking model is used to cap the influence of large token holders.
 
 5. **Incentive Structure:**
 
-   - Issue tokens to incentivize participation in the system.
-   - Tokens can be used to increase chances of being selected as a verifier.
-   - Implement a dynamic token issuance model to balance the token economy, including periodic token burns or buybacks.
+   - Issue ethers and reputation to incentivize participation in the system.
+   - Reputation can be used to increase chances of being selected as a verifier.
 
 6. **NFT Issuance:**
    - Verified users receive an NFT as proof of their skills.
    - The NFT serves as a digital credential that can be used across platforms.
    - Integrate NFTs with other platforms and services where verified skills are valuable (e.g., job boards, freelance platforms).
+   - Verifiers can also earn NFTs based on their reputation and contributions to the system.
 
 ### To-Do List
 
@@ -48,22 +47,20 @@
 
    - Define the criteria for rewarding accurate verifiers.
    - Develop a penalty system for malicious or inaccurate verifiers.
-   - Implement a decentralized reputation protocol to adjust rewards and penalties.
 
 4. **Implement Staking:**
 
-   - Determine the amount of tokens required for staking.
-   - Define the rules for staking, including how stakes influence verifier selection.
-   - Introduce a quadratic staking model to limit the influence of large token holders.
+   - Determine the amount of ethers required for staking.
+   - Define the rules for staking.
 
 5. **Create an Incentive Structure:**
 
-   - Develop a token issuance plan to incentivize participation.
-   - Ensure the token distribution prevents centralization of power.
-   - Implement a dynamic token issuance model to manage the token economy.
+   - Develop a ethers issuance plan to incentivize participation.
+   - Ensure the reputation distribution prevents centralization of power.
 
 6. **Develop NFT Issuance:**
 
    - Design the NFTs to be issued as proof of skills.
    - Define the criteria for receiving an NFT upon successful verification.
    - Partner with existing platforms to integrate NFTs as recognized credentials.
+   - Establish a system for rewarding verifiers with NFTs based on their contributions.
