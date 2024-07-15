@@ -42,8 +42,17 @@
 
 ### Plan for today: Staking module
 
-1.  Implement the stake(), withdrawStake() and stakeToBeTheVerifier() functions.
+1.  Implement the `stake()`, `withdrawStake()` and `stakeToBeTheVerifier()` functions.
 2.  Add the deployments and tests for the staking module.
 3.  Update the README and documentation.
 
 ---
+
+### 2024/7/15
+
+**What I did today:**
+
+- Update and fix issues in the `stake()`, `withdrawStake()` and `stakeToBeTheVerifier()` functions.
+- Add the Interactions script for the staking module.
+- Add the integration tests for the staking module.
+- Add more unit tests for the staking module.
