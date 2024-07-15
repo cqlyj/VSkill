@@ -73,7 +73,10 @@ contract Staking {
         }
         emit Withdrawn(msg.sender, amountToWithdraw);
 
-        if (addressToMoneyStaked[msg.sender] < MIN_USD_AMOUNT) {
+        if (
+            addressToMoneyStaked[msg.sender].convertEthToUsd(priceFeed) <
+            MIN_USD_AMOUNT
+        ) {
             verifierToId[msg.sender] = 0;
             verifierCount--;
             emit LoseVerifier(msg.sender);
@@ -86,7 +89,8 @@ contract Staking {
         emit Staked(msg.sender, msg.value);
 
         if (
-            addressToMoneyStaked[msg.sender] >= MIN_USD_AMOUNT &&
+            addressToMoneyStaked[msg.sender].convertEthToUsd(priceFeed) >=
+            MIN_USD_AMOUNT &&
             verifierToId[msg.sender] == 0
         ) {
             verifierToId[msg.sender] = id;
