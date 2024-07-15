@@ -22,22 +22,12 @@ contract StakeToBeTheVerifierStaking is Script {
             block.chainid
         );
         console.log("Most recently deployed address: ", mostRecentlyDeployed);
-        vm.startBroadcast();
-        uint256 balanceBeforeStaking = address(mostRecentlyDeployed).balance;
         stakeToBeTheVerifierStaking(mostRecentlyDeployed);
-        uint256 balanceAfterStaking = address(mostRecentlyDeployed).balance;
-        console.log(
-            "Balance before staking: ",
-            balanceBeforeStaking,
-            " Balance after staking: ",
-            balanceAfterStaking
-        );
-        vm.stopBroadcast();
     }
 }
 
 contract WithdrawStakeStaking is Script {
-    uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
+    uint256 public MIN_USD_AMOUNT = 0.01 ether;
 
     function withdrawStakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
@@ -52,18 +42,7 @@ contract WithdrawStakeStaking is Script {
             block.chainid
         );
         console.log("Most recently deployed address: ", mostRecentlyDeployed);
-        vm.startBroadcast();
-        uint256 balanceBeforeWithdrawing = address(mostRecentlyDeployed)
-            .balance;
         withdrawStakeStaking(mostRecentlyDeployed);
-        uint256 balanceAfterWithdrawing = address(mostRecentlyDeployed).balance;
-        console.log(
-            "Balance before withdrawing: ",
-            balanceBeforeWithdrawing,
-            " Balance after withdrawing: ",
-            balanceAfterWithdrawing
-        );
-        vm.stopBroadcast();
     }
 }
 
@@ -83,16 +62,6 @@ contract StakeStaking is Script {
             block.chainid
         );
         console.log("Most recently deployed address: ", mostRecentlyDeployed);
-        vm.startBroadcast();
-        uint256 balanceBeforeStaking = address(mostRecentlyDeployed).balance;
         stakeStaking(mostRecentlyDeployed);
-        uint256 balanceAfterStaking = address(mostRecentlyDeployed).balance;
-        console.log(
-            "Balance before staking: ",
-            balanceBeforeStaking,
-            " Balance after staking: ",
-            balanceAfterStaking
-        );
-        vm.stopBroadcast();
     }
 }

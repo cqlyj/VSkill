@@ -1,3 +1,4 @@
+InteractionsTest:testInteractions() (gas: 3404964)
 StakingTest:testIdIsOneAfterDeployment() (gas: 10506)
 StakingTest:testMinUsdAmountIsTwenty() (gas: 8431)
 StakingTest:testSakeToBeTheVerifierSuccessUpdatesVerifier() (gas: 108670)
