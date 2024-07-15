@@ -10,8 +10,10 @@ contract StakeToBeTheVerifierStaking is Script {
     uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
 
     function stakeToBeTheVerifierStaking(address mostRecentlyDeployed) public {
+        vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
         staking.stakeToBeTheVerifier{value: MIN_USD_AMOUNT}();
+        vm.stopBroadcast();
     }
 
     function run() external {
@@ -38,8 +40,10 @@ contract WithdrawStakeStaking is Script {
     uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
 
     function withdrawStakeStaking(address mostRecentlyDeployed) public {
+        vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
         staking.withdrawStake(MIN_USD_AMOUNT);
+        vm.stopBroadcast();
     }
 
     function run() external {
@@ -67,8 +71,10 @@ contract StakeStaking is Script {
     uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
 
     function stakeStaking(address mostRecentlyDeployed) public {
+        vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
         staking.stake{value: MIN_USD_AMOUNT}();
+        vm.stopBroadcast();
     }
 
     function run() external {
