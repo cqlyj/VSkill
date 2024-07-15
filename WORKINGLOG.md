@@ -56,3 +56,4 @@
 - Add the Interactions script for the staking module.
 - Add the integration tests for the staking module.
 - Add more unit tests for the staking module.
+- Add Makefike for the staking module.
