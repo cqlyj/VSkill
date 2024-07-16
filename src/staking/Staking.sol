@@ -27,14 +27,14 @@ pragma solidity ^0.8.24;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "./PriceCoverter.sol";
 
-error Staking__NotEnoughMoneyStaked();
-error Staking__NotEnoughBalanceToWithdraw();
-error Staking__WithdrawFailed();
-error Staking__NotVerifier();
-error Staking__AlreadyVerifier();
-
 contract Staking {
     using PriceConverter for uint256;
+
+    error Staking__NotEnoughMoneyStaked();
+    error Staking__NotEnoughBalanceToWithdraw();
+    error Staking__WithdrawFailed();
+    error Staking__NotVerifier();
+    error Staking__AlreadyVerifier();
 
     uint256 private constant MIN_USD_AMOUNT = 20e18; // 20 USD
     uint256 private id; // If id is 0, then the address is not a verifier
