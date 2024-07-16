@@ -23,6 +23,7 @@ contract StakingTest is Test {
     AggregatorV3Interface priceFeed;
     uint256 public constant MIN_ETH_AMOUNT = 0.01 ether; // 0.01 * 2000 = 20 USD
     uint256 public constant INITIAL_BALANCE = 100 ether;
+    uint256 public constant MIN_USD_AMOUNT = 20e18;
     address public USER = makeAddr("user");
 
     function setUp() external {
@@ -53,11 +54,30 @@ contract StakingTest is Test {
 
     // stakeToBeTheVerifier
 
-    function testStakeToBeTheVerifierRevertIfNotEnoughUsd() external {
+    // modifier to skip tests if not local chain -> Just a simple way to skip tests
+    modifier skipFork() {
+        if (block.chainid != 31337) {
+            return;
+        }
+        _;
+    }
+
+    function testStakeToBeTheVerifierRevertIfNotEnoughUsd() external skipFork {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Staking.Staking__NotEnoughMoneyStaked.selector,
                 MIN_ETH_AMOUNT.convertEthToUsd(priceFeed),
+                0
+            )
+        );
+        staking.stakeToBeTheVerifier();
+    }
+
+    function testStakeToBeTheVerifierRevertIfNotEnoughUsdSepolia() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Staking.Staking__NotEnoughMoneyStaked.selector,
+                MIN_USD_AMOUNT,
                 0
             )
         );
