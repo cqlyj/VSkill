@@ -7,12 +7,12 @@ import {Staking} from "src/staking/Staking.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract StakeToBeTheVerifierStaking is Script {
-    uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
+    uint256 public constant MIN_ETH_AMOUNT = 0.01 ether;
 
     function stakeToBeTheVerifierStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.stakeToBeTheVerifier{value: MIN_USD_AMOUNT}();
+        staking.stakeToBeTheVerifier{value: MIN_ETH_AMOUNT}();
         vm.stopBroadcast();
     }
 
@@ -27,12 +27,12 @@ contract StakeToBeTheVerifierStaking is Script {
 }
 
 contract WithdrawStakeStaking is Script {
-    uint256 public MIN_USD_AMOUNT = 0.01 ether;
+    uint256 public MIN_ETH_AMOUNT = 0.01 ether;
 
     function withdrawStakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.withdrawStake(MIN_USD_AMOUNT);
+        staking.withdrawStake(MIN_ETH_AMOUNT);
         vm.stopBroadcast();
     }
 
@@ -47,12 +47,12 @@ contract WithdrawStakeStaking is Script {
 }
 
 contract StakeStaking is Script {
-    uint256 public constant MIN_USD_AMOUNT = 0.01 ether;
+    uint256 public constant MIN_ETH_AMOUNT = 0.01 ether;
 
     function stakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.stake{value: MIN_USD_AMOUNT}();
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopBroadcast();
     }
 

@@ -12,7 +12,7 @@ contract InteractionsTest is Test {
 
     function setUp() external {
         DeployStaking deployer = new DeployStaking();
-        staking = deployer.run();
+        (staking, ) = deployer.run();
     }
 
     function testInteractions() external {

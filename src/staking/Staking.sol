@@ -30,8 +30,11 @@ import {PriceConverter} from "../utils/PriceCoverter.sol";
 contract Staking {
     using PriceConverter for uint256;
 
-    error Staking__NotEnoughMoneyStaked();
-    error Staking__NotEnoughBalanceToWithdraw();
+    error Staking__NotEnoughMoneyStaked(
+        uint256 minUsdAmount,
+        uint256 currentStakeUsdAmount
+    );
+    error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
     error Staking__AlreadyVerifier();
@@ -64,7 +67,9 @@ contract Staking {
 
     function withdrawStake(uint256 amountToWithdraw) external {
         if (addressToMoneyStaked[msg.sender] < amountToWithdraw) {
-            revert Staking__NotEnoughBalanceToWithdraw();
+            revert Staking__NotEnoughBalanceToWithdraw(
+                addressToMoneyStaked[msg.sender]
+            );
         }
         addressToMoneyStaked[msg.sender] -= amountToWithdraw;
         (bool success, ) = msg.sender.call{value: amountToWithdraw}("");
@@ -102,7 +107,10 @@ contract Staking {
 
     function stakeToBeTheVerifier() public payable {
         if (msg.value.convertEthToUsd(priceFeed) < MIN_USD_AMOUNT) {
-            revert Staking__NotEnoughMoneyStaked();
+            revert Staking__NotEnoughMoneyStaked(
+                MIN_USD_AMOUNT,
+                msg.value.convertEthToUsd(priceFeed)
+            );
         }
         if (verifierToId[msg.sender] != 0) {
             revert Staking__AlreadyVerifier();

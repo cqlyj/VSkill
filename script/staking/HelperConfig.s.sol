@@ -11,7 +11,7 @@ contract HelperConfig is Script {
     }
 
     uint8 private constant DECIMALS = 8;
-    int256 private constant INITIAL_ANSWER = 3000e8;
+    int256 private constant INITIAL_ANSWER = 2000e8;
 
     NetworkConfig public activeNetworkConfig;
 

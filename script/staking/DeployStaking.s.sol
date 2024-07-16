@@ -7,12 +7,12 @@ import {Staking} from "../../src/staking/Staking.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract DeployStaking is Script {
-    function run() external returns (Staking) {
+    function run() external returns (Staking, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         address priceFeed = helperConfig.activeNetworkConfig();
         vm.startBroadcast();
         Staking staking = new Staking(priceFeed);
         vm.stopBroadcast();
-        return staking;
+        return (staking, helperConfig);
     }
 }
