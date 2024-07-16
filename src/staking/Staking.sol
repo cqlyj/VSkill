@@ -25,7 +25,7 @@
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceConverter} from "./PriceCoverter.sol";
+import {PriceConverter} from "../utils/PriceCoverter.sol";
 
 contract Staking {
     using PriceConverter for uint256;
