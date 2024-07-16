@@ -8,6 +8,7 @@ import {DeployStaking} from "script/staking/DeployStaking.s.sol";
 import {PriceConverter} from "src/utils/PriceCoverter.sol";
 import {HelperConfig} from "script/staking/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract StakingTest is Test {
     using PriceConverter for uint256;
@@ -122,6 +123,17 @@ contract StakingTest is Test {
         staking.stakeToBeTheVerifier{value: MIN_ETH_AMOUNT}();
     }
 
+    function testStakeToBeTheVerifierEmitsBothEvents() external {
+        vm.prank(USER);
+        vm.recordLogs();
+        staking.stakeToBeTheVerifier{value: MIN_ETH_AMOUNT}();
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 staker = entries[0].topics[1];
+        bytes32 verifier = entries[1].topics[2];
+        assertEq(staker, verifier);
+        assertEq(entries.length, 2);
+    }
+
     // withdrawStake
 
     function testWithdrawStakeRevertIfNotEnoughBalance() external {
@@ -197,6 +209,20 @@ contract StakingTest is Test {
         staking.withdrawStake(MIN_ETH_AMOUNT / 2);
     }
 
+    function testWithdrawStakeEmitsBothEventsIfNotEnoughBalance() external {
+        vm.prank(USER);
+        staking.stakeToBeTheVerifier{value: MIN_ETH_AMOUNT}();
+
+        vm.prank(USER);
+        vm.recordLogs();
+        staking.withdrawStake(MIN_ETH_AMOUNT / 2);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 staker = entries[0].topics[1];
+        bytes32 verifier = entries[1].topics[1];
+        assertEq(staker, verifier);
+        assertEq(entries.length, 2);
+    }
+
     // stake
 
     function testStakeUpdatesBalance() external {
@@ -230,6 +256,25 @@ contract StakingTest is Test {
         vm.expectEmit(true, true, false, false, address(staking));
         emit BecomeVerifier(1, USER);
         staking.stake{value: MIN_ETH_AMOUNT}();
+    }
+
+    function testStakeEmitsOnlyStakedEventIfNotEnoughBalance() external {
+        vm.prank(USER);
+        vm.recordLogs();
+        staking.stake{value: MIN_ETH_AMOUNT / 2}();
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        assertEq(entries.length, 1);
+    }
+
+    function testStakeEmitsBothEventsIfEnoughBalance() external {
+        vm.prank(USER);
+        vm.recordLogs();
+        staking.stake{value: MIN_ETH_AMOUNT}();
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 staker = entries[0].topics[1];
+        bytes32 verifier = entries[1].topics[2];
+        assertEq(staker, verifier);
+        assertEq(entries.length, 2);
     }
 
     // addressToMoneyStaked
