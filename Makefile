@@ -3,6 +3,11 @@
 
 build:; forge build
 
+compile:; forge compile
+
+coverage-report:
+	forge coverage --report debug > coverage.txt
+
 deploy-sepolia:
 	forge script script/staking/DeployStaking.s.sol:DeployStaking --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
 
