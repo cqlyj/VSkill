@@ -280,22 +280,15 @@ contract StakingTest is Test {
     // addressToMoneyStaked
 
     function testMultipleUsersCanTrackTheirMoneyStaked() external {
-        address anotherUser = makeAddr("anotherUser");
-        vm.deal(anotherUser, INITIAL_BALANCE);
-
-        vm.startPrank(USER);
-        staking.stake{value: MIN_ETH_AMOUNT / 2}();
-        vm.stopPrank();
-
-        vm.startPrank(anotherUser);
-        staking.stake{value: MIN_ETH_AMOUNT}();
-        vm.stopPrank();
-
-        uint256 balance = staking.getMoneyStaked(USER);
-        assertEq(balance, MIN_ETH_AMOUNT / 2);
-
-        uint256 anotherBalance = staking.getMoneyStaked(anotherUser);
-        assertEq(anotherBalance, MIN_ETH_AMOUNT);
+        for (uint160 i = 1; i < 10; i++) {
+            address user = address(i);
+            vm.deal(user, INITIAL_BALANCE);
+            vm.startPrank(user);
+            staking.stake{value: MIN_ETH_AMOUNT}();
+            vm.stopPrank();
+            uint256 balance = staking.getMoneyStaked(user);
+            assertEq(balance, MIN_ETH_AMOUNT);
+        }
     }
 
     // verifierToId
