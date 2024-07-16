@@ -282,10 +282,12 @@ contract StakingTest is Test {
     function testMultipleUsersCanTrackTheirMoneyStaked() external {
         for (uint160 i = 1; i < 10; i++) {
             address user = address(i);
-            vm.deal(user, INITIAL_BALANCE);
-            vm.startPrank(user);
+            // vm.deal(user, INITIAL_BALANCE);
+            // vm.startPrank(user);
+            // staking.stake{value: MIN_ETH_AMOUNT}();
+            // vm.stopPrank();
+            hoax(user, INITIAL_BALANCE);
             staking.stake{value: MIN_ETH_AMOUNT}();
-            vm.stopPrank();
             uint256 balance = staking.getMoneyStaked(user);
             assertEq(balance, MIN_ETH_AMOUNT);
         }
