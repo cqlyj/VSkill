@@ -67,9 +67,24 @@
 - Add more tests for the staking module -> test the events emitted.
 - Refactor the tests and staking contract.
 - Work on the User module:
+
   - How evidence composed of? -> IPFS hash and the domain of the skill. Such that the evidence can be distributed to the right verifiers. -> chainlink VRF.
   - What status can the evidence have? -> `Submitted`, `In Review`, `Accepted`, `Rejected`. -> Use chainlink automation to update the status.
   - How to store the evidence? -> IPFS hash, domain, status, and user address. -> Use a struct to store the evidence.
   - How to view the evidence? -> By user address. -> Use mappings to store the evidence.
   - Once the evidence is accepted, the corresponding NFT will be minted and sent to the user. -> Use OpenZeppelin ERC721 for NFTs. And chainlink automation to mint and send the NFT.
   - How the submission fee is calculated? -> Just a fixed fee for each submission. -> Use a constant variable for the fee. -> Who can change the fee? -> Only the owner of the contract. -> Use OpenZeppelin Ownable.
+
+  ***
+
+### 2024/7/17
+
+**What I did today:**
+
+- Implement the User module:
+
+  - Add the `submitEvidence()`, `changeSubmissionFee()`, `addMoreDomain()` and other helper, getter or unrealized functions.
+  - Add the deployments and tests for the User module.
+  - Update the `Makefile` and documentation.
+
+---
