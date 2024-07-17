@@ -86,5 +86,7 @@
   - Add the `submitEvidence()`, `changeSubmissionFee()`, `addMoreDomain()` and other helper, getter or unrealized functions.
   - Add the deployments and tests for the User module.
   - Update the `Makefile` and documentation.
+  - Add the Interactions script for the User module.
+  - Add the integration tests for the User module.
 
 ---
