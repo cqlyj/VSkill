@@ -25,6 +25,12 @@ deploy-staking-sepolia:
 deploy-staking-anvil:
 	@forge script script/staking/DeployStaking.s.sol:DeployStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
 
+deploy-user-sepolia:
+	@forge script script/user/DeployVSkill.s.sol:DeployVSkill --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+
+deploy-user-anvil:
+	@forge script script/user/DeployVSkill.s.sol:DeployVSkill --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
+
 stakeToBeTheVerifierStaking-anvil:
 	@forge script script/staking/Interactions.s.sol:StakeToBeTheVerifierStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
