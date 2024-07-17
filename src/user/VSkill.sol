@@ -36,6 +36,7 @@ contract VSkill is Ownable {
         uint256 submittedFeeInUsd
     );
     error VSkill__InvalidSkillDomain();
+    error VSkill__SkillDomainAlreadyExists();
 
     struct evidence {
         string evidenceIpfsHash;
@@ -109,6 +110,9 @@ contract VSkill is Ownable {
     }
 
     function addMoreSkills(string memory skillDomain) external onlyOwner {
+        if (_skillDomainAlreadyExists(skillDomain)) {
+            revert VSkill__SkillDomainAlreadyExists();
+        }
         skillDomains.push(skillDomain);
         emit SkillDomainAdded(skillDomain);
     }
@@ -136,6 +140,21 @@ contract VSkill is Ownable {
         return false;
     }
 
+    function _skillDomainAlreadyExists(
+        string memory skillDomain
+    ) internal view returns (bool) {
+        uint256 length = skillDomains.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(abi.encodePacked(skillDomains[i])) ==
+                keccak256(abi.encodePacked(skillDomain))
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // function _gainNFTAsProofOfSkill() internal {} // To be implemented and called once the evidence is approved by the verifier -> chainlink automation
 
     ///////////////////////////////
@@ -146,7 +165,7 @@ contract VSkill is Ownable {
         return submissionFeeInUsd;
     }
 
-    function getEvidencesByAddress(
+    function getAddressToEvidences(
         address _address
     ) external view returns (evidence[] memory) {
         return addressToEvidences[_address];
