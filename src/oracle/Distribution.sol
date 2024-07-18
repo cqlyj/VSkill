@@ -32,8 +32,10 @@ contract Distribution is VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface vrfCoordinator;
     bytes32 keyHash;
     uint32 callbackGasLimit;
-    uint16 requestConfirmations;
-    uint32 numWords;
+    uint16 requestConfirmations = 3;
+    uint32 numWords = 3;
+
+    uint256 requestId;
 
     uint256[] private randomWords;
 
@@ -47,22 +49,15 @@ contract Distribution is VRFConsumerBaseV2 {
         uint64 _subscriptionId,
         address _vrfCoordinator,
         bytes32 _keyHash,
-        uint32 _callbackGasLimit,
-        uint16 _requestConfirmations,
-        uint32 _numWords
+        uint32 _callbackGasLimit
     ) VRFConsumerBaseV2(_vrfCoordinator) {
         subscriptionId = _subscriptionId;
         vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
         keyHash = _keyHash;
         callbackGasLimit = _callbackGasLimit;
-        requestConfirmations = _requestConfirmations;
-        numWords = _numWords;
     }
 
-    function distributionRandomNumberForVerifiers()
-        external
-        returns (uint256 requestId)
-    {
+    function distributionRandomNumberForVerifiers() external {
         requestId = vrfCoordinator.requestRandomWords(
             keyHash,
             subscriptionId,
@@ -70,7 +65,6 @@ contract Distribution is VRFConsumerBaseV2 {
             callbackGasLimit,
             numWords
         );
-        return requestId;
     }
 
     function fulfillRandomWords(
