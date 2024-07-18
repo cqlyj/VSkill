@@ -4,11 +4,13 @@ help:
 	@echo "Usage: make <target>"
 
 install:
-	forge install OpenZeppelin/openzeppelin-contracts@5.0.2 --no-commit && forge install cyfrin/foundry-devops@0.2.2 --no-commit && forge install foundry-rs/forge-std@v1.9.1 --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@1.1.1 --no-commit
+	@forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit && forge install cyfrin/foundry-devops@0.2.2 --no-commit && forge install foundry-rs/forge-std@v1.9.1 --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@1.1.1 --no-commit
 
 build:; @forge build
 
 compile:; @forge compile
+
+snapshot:; @forge snapshot
 
 coverage-report:
 	@forge coverage --report debug > coverage-report.md
@@ -32,6 +34,12 @@ deploy-user-sepolia:
 
 deploy-user-anvil:
 	@forge script script/user/DeployVSkill.s.sol:DeployVSkill --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
+
+deploy-oracle-sepolia:
+	@forge script script/oracle/DeployDistribution.s.sol:DeployDistribution --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+
+deploy-oracle-anvil:
+	@forge script script/oracle/DeployDistribution.s.sol:DeployDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
 	
 # Staking module interactions
 
