@@ -31,11 +31,10 @@
 4. **Modules to be developed:**
 
    - User module: Allows users to submit evidence, view status, and receive feedback.
-   - Verifier module: Allows verifiers to assess evidence, provide feedback, and earn rewards.
+   - Verifier module: Allows verifiers to assess evidence, increase or decrease reputation, provide feedback, and earn rewards.
    - Oracle module: Distributes evidence to verifiers anonymously.
    - Reward module: Issues rewards to verifiers based on their contributions.
    - Penalty module: Penalizes verifiers for acting maliciously or providing inaccurate feedback.
-   - Reputation module: Tracks verifiers' reputation and history.
    - Staking module: Requires verifiers to stake ethers to participate in the verification process.
    - NFT module: Issues NFTs to verified users as proof of their skills.
    - Integration module: Integrates NFTs with other platforms and services.
@@ -88,5 +87,33 @@
   - Update the `Makefile` and documentation.
   - Add the Interactions script for the User module.
   - Add the integration tests for the User module.
+
+---
+
+### 2024/7/18
+
+**Thoughts:**
+
+- More thoughts about the verifier:
+  - What reputation is? -> A score that reflects the verifier's accuracy and honesty. -> Use a mapping to store the reputation.
+  - What reputation can do? -> Increase the chances of being selected as a verifier. -> Higher reputation means higher chances to be selected with chainlink VRF. Like if your reputation is 1, in the distribution of evidence, you will have 1 ticket. If your reputation is 2, you will have 2 tickets.
+  - How to increase reputation? -> Each time the evidence will be distributed to 3 verifiers. Each of them will have to set the status of the evidence to `rejected` or `accepted`. If all three of them gives out the same status, all of them will increase their reputation by 1. If not, the evidence will be distributed to another 3 verifiers until the status is the same. All those verifiers in the past verification process who gave out a different status will decrease their reputation by 1.
+  - How verifiers can earn rewards? -> Those verifiers who act maliciously or provide inaccurate feedback will be penalized. Together with those users who submit evidence will have to pay the submission fee. The rewards will come from both the penalized ethers and the submission fees. -> Those verifiers who provide accurate feedback will earn rewards. Higher reputation means higher rewards. But there should have a limit to the maximum rewards -> Mechanism to prevent the system from bankruptcy.
+  - Should we issue NFT to verifiers if they reach a high reputation? -> Yes, but the NFTs will be different from the NFTs issued to users. -> The NFTs will be used to prove the reputation of the verifiers. -> The NFTs will be minted and sent to the verifiers by the system.
+- Which modules will be coneected with the verifier module?
+  - `Oracle`, `Reward & Penalty`, `Staking`, `NFT`, `User`.
+- Integration is key to the success of the system.
+- After the Staking and User module. Which module should be the next priority and why? -> The `Oracle` module. Because the evidence should be distributed to the verifiers anonymously. -> The `Oracle` module will be responsible for this task.
+- What `Oracle` module should provide? Like three random numbers and serve as an interface for verifiers to get those numbers. Thus, the evidence will be distributed to the verifiers like: `verifierSelected1 = randomNumber1 % numberOfVerifiersWithReputation` and here should be a mechanism to prevent the same verifier to be selected multiple times.
+
+**What I did today:**
+
+- For `Oracle` module, now just implement the chainlink VRF to get three random numbers. -> `chainlink VRFV2`.
+- Add the distribution contract (oracle)
+- Add the deployments and tests for the Oracle module.
+- Update the `Makefile` and documentation.
+- Do a lot refactoring and implement chainlink VRFV2. Now it can generate three random numbers.
+- Add the Interactions script for the Oracle module.
+- Refactor the deloyments make it easy to create subscription and fund subscription, add consumer in one command.
 
 ---
