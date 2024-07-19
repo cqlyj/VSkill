@@ -117,3 +117,13 @@
 - Refactor the deloyments make it easy to create subscription and fund subscription, add consumer in one command.
 
 ---
+
+### 2024/7/19
+
+**ISSUE**
+
+- `make test-mainnet` will revert on the `Oracle` module. -> The `Oracle` module is not working properly. The `FundSubscription` function is not working properly.
+- Come back to the `Oracle` module and fix the issue.🟩
+
+**What I did today:**
+
