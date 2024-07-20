@@ -127,3 +127,12 @@
 
 **What I did today:**
 
+- Add [Issue](https://github.com/foundry-rs/foundry/issues/8475) to the `forge` repository.
+
+---
+
+### 2024/7/20
+
+**REST DAY🍻**
+
+---
