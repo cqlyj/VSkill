@@ -86,4 +86,32 @@ contract VSkillUserNft is ERC721 {
                 )
             );
     }
+
+    ///////////////////////////////
+    /////   Getter Functions   ////
+    ///////////////////////////////
+
+    function getTokenCounter() external view returns (uint256) {
+        return tokenCounter;
+    }
+
+    function getSkillDomains() external view returns (string[] memory) {
+        return skillDomains;
+    }
+
+    function getUserNftImageUris() external view returns (string[] memory) {
+        return userNftImageUris;
+    }
+
+    function getSkillDomainToUserNftImageUri(
+        string memory skillDomain
+    ) external view returns (string memory) {
+        return skillDomainToUserNftImageUri[skillDomain];
+    }
+
+    function getTokenIdToSkillDomain(
+        uint256 tokenId
+    ) external view returns (string memory) {
+        return tokenIdToSkillDomain[tokenId];
+    }
 }
