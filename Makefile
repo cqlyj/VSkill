@@ -40,6 +40,12 @@ deploy-oracle-sepolia:
 
 deploy-oracle-anvil:
 	@forge script script/oracle/DeployDistribution.s.sol:DeployDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
+
+deploy-nft-user-sepolia:
+	@forge script script/nft/DeployVSkillUserNft.s.sol:DeployVSkillUserNft --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+
+deploy-nft-user-anvil:
+	@forge script script/nft/DeployVSkillUserNft.s.sol:DeployVSkillUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
 	
 # Staking module interactions
 
