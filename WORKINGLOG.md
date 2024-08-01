@@ -197,3 +197,40 @@
 - Implement the NFT module for users.
 - Add deployment and test for the NFT module of users.
 - Update the `Makefile` and documentation.
+
+**Thoughts:**
+
+- Implement the verifier module first and then implement the NFT module for verifiers.
+- Verifier module -> `distribution`, `reputation`, `rewards`, `penalties`, and `NFT`.
+- **`Distribution`**: The evidence of users will be distributed to three verifiers in the same skill domain randomly.
+- **`Reputation`**: The reputation of verifiers will be based on the performance of the verifiers.
+
+  Range from `0` to `10`. That is to say, if the reputation score is less than or equal to `1`, the verifier will be penalized to be deducted the stake.
+
+  `Initial reputation` is `2`, and the reputation will be updated based on the performance of the verifiers. If each time the three verifiers give the same result, the reputation of the verifiers will be increased by `1`. If the result is different, the evidence will be distributed to another three verifiers and those who give the wrong result will be penalized to deducted the reputation score by `1`.
+
+  Higher reputation will have higher chance to be selected as the verifier. Since the highest score is `10`, each one score will have be considered as half a verifiers. For example, the initial score `2` means `1` verifier, and the score `10` means `5` verifiers which indicates that the verifier who has the highest reputation will have 5 more chances to be selected as the verifier.
+
+  Once the verifier reach the score `10`, subsequent successful verification won't increase the reputation score to eliminate the probability of domination of the verifier.
+
+  The NFT will be minted automatically once the verifier reach the score `10`. And it will be burned if the reputation score is less than `8` automatically.
+
+- **`Rewards`**: The rewards will be distributed to the verifiers each successful verification.
+
+  The amount of rewards will be calculated in the formula:
+
+  `Rewards = (TotalBalanceOfSubmissionFee + TotalBalanceOfPenaltyFee) * AmountOfStakesOfVerifier / TotalAmountOfStakesOfVerifiers / 3 * 50%`.
+
+  That is to say, the rewards will be distributed to the verifiers based on the amount of stakes of the verifiers. And this formula ensures the balance of rewards never exceed the total balance of submission fee and penalty fee.(The maximum rewards will be `50%` of the total balance of submission fee and penalty fee to prevent the undercollateralization of the system.)
+
+  The rewards will increase if the `TotalBalanceOfPenaltyFee` increase. If no one is penalized, the rewards amount to be almost the same as half of the submission fee.
+
+- **`Penalties`**: The penalties will be deducted from the verifiers each unsuccessful verification. The amount will be 10 USD (half amount of being verifier) and the reputation score will be deducted by `1`.
+
+- **`NFT`**: The NFT will be minted automatically once the verifier reach the score `10`. And it will be burned if the reputation score is less than `8` automatically.
+
+---
+
+### 2024/8/2
+
+**What I did today:**
