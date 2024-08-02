@@ -28,7 +28,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {PriceConverter} from "../../src/utils/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract VSkill is Ownable {
+contract VSkillUser is Ownable {
     using PriceConverter for uint256;
 
     error VSkill__NotEnoughSubmissionFee(

@@ -136,7 +136,7 @@ contract Staking {
         return addressToMoneyStaked[staker];
     }
 
-    function getVerifierId(address verifier) external view returns (uint256) {
+    function getVerifierId(address verifier) public view returns (uint256) {
         return verifierToId[verifier];
     }
 

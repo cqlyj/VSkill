@@ -3,14 +3,14 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
-import {DeployVSkill} from "../../../script/user/DeployVSkill.s.sol";
-import {VSkill} from "../../../src/user/VSkill.sol";
+import {DeployVSkillUser} from "../../../script/user/DeployVSkillUser.s.sol";
+import {VSkillUser} from "../../../src/user/VSkillUser.sol";
 import {HelperConfig} from "../../../script/user/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract VSkillTest is Test {
-    DeployVSkill deployer;
-    VSkill vskill;
+contract VSkillUserTest is Test {
+    DeployVSkillUser deployer;
+    VSkillUser vskill;
     HelperConfig helperConfig;
     address public USER = makeAddr("user");
     uint256 public constant INITIAL_BALANCE = 100 ether;
@@ -39,7 +39,7 @@ contract VSkillTest is Test {
     event SkillDomainAdded(string skillDomain);
 
     function setUp() external {
-        deployer = new DeployVSkill();
+        deployer = new DeployVSkillUser();
         (vskill, helperConfig) = deployer.run();
         (uint256 _submissionFeeInUsd, address _priceFeed) = helperConfig
             .activeNetworkConfig();
@@ -57,7 +57,7 @@ contract VSkillTest is Test {
     function testVSkillSubmitEvidenceRevertIfNotEnoughSubmissionFee() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                VSkill.VSkill__NotEnoughSubmissionFee.selector,
+                VSkillUser.VSkill__NotEnoughSubmissionFee.selector,
                 submissionFeeInUsd,
                 0
             )
@@ -66,7 +66,7 @@ contract VSkillTest is Test {
     }
 
     function testVSkillSubmitEvidenceRevertIfInvalidSkillDomain() external {
-        vm.expectRevert(VSkill.VSkill__InvalidSkillDomain.selector);
+        vm.expectRevert(VSkillUser.VSkill__InvalidSkillDomain.selector);
         vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
             IPFS_HASH,
             "InvalidSkillDomain"
@@ -81,7 +81,9 @@ contract VSkillTest is Test {
         );
         vm.stopPrank();
 
-        VSkill.evidence[] memory evidences = vskill.getAddressToEvidences(USER);
+        VSkillUser.evidence[] memory evidences = vskill.getAddressToEvidences(
+            USER
+        );
         assertEq(evidences.length, 1);
         assertEq(evidences[0].evidenceIpfsHash, IPFS_HASH);
         assertEq(evidences[0].skillDomain, SKILL_DOMAIN);
@@ -94,7 +96,7 @@ contract VSkillTest is Test {
     function testVSkillSubmitEvidenceEmitsEvidenceSubmitted() external {
         vm.prank(USER);
         vm.expectEmit(true, false, false, false, address(vskill));
-        emit VSkill.EvidenceSubmitted(USER, IPFS_HASH, SKILL_DOMAIN);
+        emit VSkillUser.EvidenceSubmitted(USER, IPFS_HASH, SKILL_DOMAIN);
         vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
             IPFS_HASH,
             SKILL_DOMAIN
@@ -122,7 +124,7 @@ contract VSkillTest is Test {
         address owner = vskill.owner();
         vm.prank(owner);
         vm.expectEmit(false, false, false, true, address(vskill));
-        emit VSkill.SubmissionFeeChanged(newFeeInUsd);
+        emit VSkillUser.SubmissionFeeChanged(newFeeInUsd);
         vskill.changeSubmissionFee(newFeeInUsd);
     }
 
@@ -137,7 +139,7 @@ contract VSkillTest is Test {
     function testAddMoreSkillsRevertsIfSkillDomainAlreadyExists() external {
         address owner = vskill.owner();
         vm.prank(owner);
-        vm.expectRevert(VSkill.VSkill__SkillDomainAlreadyExists.selector);
+        vm.expectRevert(VSkillUser.VSkill__SkillDomainAlreadyExists.selector);
         vskill.addMoreSkills(SKILL_DOMAIN);
     }
 
@@ -156,7 +158,7 @@ contract VSkillTest is Test {
         address owner = vskill.owner();
         vm.prank(owner);
         vm.expectEmit(false, false, false, true, address(vskill));
-        emit VSkill.SkillDomainAdded(NEW_SKILL_DOMAIN);
+        emit VSkillUser.SkillDomainAdded(NEW_SKILL_DOMAIN);
         vskill.addMoreSkills(NEW_SKILL_DOMAIN);
     }
 }

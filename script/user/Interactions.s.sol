@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
-import {VSkill} from "src/user/VSkill.sol";
+import {VSkillUser} from "src/user/VSkillUser.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract SubmitEvidenceVSkill is Script {
@@ -17,7 +17,7 @@ contract SubmitEvidenceVSkill is Script {
         uint256 submissionFeeInUsd
     ) public {
         vm.startBroadcast();
-        VSkill vskill = VSkill(payable(mostRecentlyDeployed));
+        VSkillUser vskill = VSkillUser(payable(mostRecentlyDeployed));
         vskill.submitEvidence{value: submissionFeeInUsd}(
             IPFS_HASH,
             SKILL_DOMAIN
@@ -52,7 +52,7 @@ contract ChangeSubmissionFeeVSkill is Script {
         uint256 newSubmissionFee
     ) public {
         vm.startBroadcast();
-        VSkill vskill = VSkill(payable(mostRecentlyDeployed));
+        VSkillUser vskill = VSkillUser(payable(mostRecentlyDeployed));
         vskill.changeSubmissionFee(newSubmissionFee);
         vm.stopBroadcast();
         uint256 currentSubmissionFee = vskill.getSubmissionFeeInUsd();
@@ -86,7 +86,7 @@ contract AddMoreSkillsVSkill is Script {
         string memory newSkillDomain
     ) public {
         vm.startBroadcast();
-        VSkill vskill = VSkill(payable(mostRecentlyDeployed));
+        VSkillUser vskill = VSkillUser(payable(mostRecentlyDeployed));
         vskill.addMoreSkills(newSkillDomain);
         vm.stopBroadcast();
 

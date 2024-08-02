@@ -3,20 +3,20 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
-import {DeployVSkill} from "script/user/DeployVSkill.s.sol";
+import {DeployVSkillUser} from "script/user/DeployVSkillUser.s.sol";
 import {SubmitEvidenceVSkill, ChangeSubmissionFeeVSkill, AddMoreSkillsVSkill} from "script/user/Interactions.s.sol";
-import {VSkill} from "src/user/VSkill.sol";
+import {VSkillUser} from "src/user/VSkillUser.sol";
 import {HelperConfig} from "script/user/HelperConfig.s.sol";
 
 contract InteractionsTest is Test {
-    VSkill vskill;
+    VSkillUser vskill;
     HelperConfig helperConfig;
     uint256 submissionFeeInUsd;
     string public constant NEW_SKILL_DOMAIN = "New skill domain";
     uint256 public constant NEW_SUBMISSION_FEE_IN_USD = 10e18; // 10 USD
 
     function setUp() external {
-        DeployVSkill deployer = new DeployVSkill();
+        DeployVSkillUser deployer = new DeployVSkillUser();
         (vskill, helperConfig) = deployer.run();
         (submissionFeeInUsd, ) = helperConfig.activeNetworkConfig();
     }

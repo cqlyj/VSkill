@@ -78,7 +78,7 @@ contract Distribution is VRFConsumerBaseV2 {
     /////   Getter Functions   ////
     ///////////////////////////////
 
-    function getRandomWords() external view returns (uint256[] memory) {
+    function getRandomWords() public view returns (uint256[] memory) {
         return randomWords;
     }
 }
