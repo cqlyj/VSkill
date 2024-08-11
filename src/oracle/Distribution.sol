@@ -39,12 +39,6 @@ contract Distribution is VRFConsumerBaseV2 {
 
     uint256[] private randomWords;
 
-    // mapping(string => address[]) verifiersWithinSameDomain;
-    // First get the address of those verifiers who are within the same domain
-    // Then based on the random number generated, select the verifier
-    // Those verifiers have the reputation score, higher reputation scores means higher probability of being selected
-    // Come back when write the contract for verifiers
-
     constructor(
         uint64 _subscriptionId,
         address _vrfCoordinator,
