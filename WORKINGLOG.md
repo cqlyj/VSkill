@@ -234,3 +234,17 @@
 ### 2024/8/2
 
 **What I did today:**
+
+- Work on the verifier module. -> Begin to integrate this module with previous modules. And refactor those previous modules to adapt to the verifier module.
+
+### 2024/8/3 - 2024/8/12
+
+**What I did those days:**
+
+- Refactor the previous modules to adapt to the verifier module.
+
+### 2024/8/13
+
+**What I did today:**
+
+- Work on the verifier NFT module. => This NFT should be a random color NFT. Each time the verifier reach the score `10`, the NFT will be minted automatically. And it will be burned if the reputation score is less than `8` automatically.
