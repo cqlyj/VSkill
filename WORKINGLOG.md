@@ -247,4 +247,10 @@
 
 **What I did today:**
 
-- Work on the verifier NFT module. => This NFT should be a random color NFT. Each time the verifier reach the score `10`, the NFT will be minted automatically. And it will be burned if the reputation score is less than `8` automatically.
+- Work on the verifier NFT module. => This NFT should be a random color NFT. Each time the verifier reach the score `10`, the NFT will be minted automatically. And it will be burned if the reputation score is less than `8` automatically. => But what's the meaning of verifier NFT? I think for now it's not necessary to implement this. => So I will skip this and move on to the next task.
+
+### 2024/8/14 - 2024/9/16
+
+**Holiday**
+
+### 2024/9/17
