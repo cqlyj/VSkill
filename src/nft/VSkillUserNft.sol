@@ -51,7 +51,7 @@ contract VSkillUserNft is ERC721 {
         }
     }
 
-    function mintUserNft(string memory skillDomain) external {
+    function mintUserNft(string memory skillDomain) public {
         _safeMint(msg.sender, tokenCounter);
         tokenIdToSkillDomain[tokenCounter] = skillDomain;
         tokenCounter++;
