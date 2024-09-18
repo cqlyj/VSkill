@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 import {Test, console} from "lib/forge-std/src/Test.sol";
 import {Staking} from "src/staking/Staking.sol";
 import {DeployStaking} from "script/staking/DeployStaking.s.sol";
-import {StakeToBeTheVerifierStaking, WithdrawStakeStaking, StakeStaking} from "script/staking/Interactions.s.sol";
+import {WithdrawStakeStaking, StakeStaking} from "script/staking/Interactions.s.sol";
 
 contract InteractionsTest is Test {
     Staking staking;
@@ -16,12 +16,6 @@ contract InteractionsTest is Test {
     }
 
     function testInteractions() external {
-        StakeToBeTheVerifierStaking stakerVerifier = new StakeToBeTheVerifierStaking();
-        stakerVerifier.stakeToBeTheVerifierStaking(address(staking));
-
-        assertEq(staking.getVerifierCount(), 1);
-        console.log("Stake to be the verifier success");
-
         WithdrawStakeStaking withdrawer = new WithdrawStakeStaking();
         withdrawer.withdrawStakeStaking(address(staking));
 
