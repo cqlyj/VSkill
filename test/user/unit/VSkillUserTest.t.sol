@@ -57,7 +57,7 @@ contract VSkillUserTest is Test {
     function testVSkillSubmitEvidenceRevertIfNotEnoughSubmissionFee() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                VSkillUser.VSkill__NotEnoughSubmissionFee.selector,
+                VSkillUser.VSkillUser__NotEnoughSubmissionFee.selector,
                 submissionFeeInUsd,
                 0
             )
@@ -66,7 +66,7 @@ contract VSkillUserTest is Test {
     }
 
     function testVSkillSubmitEvidenceRevertIfInvalidSkillDomain() external {
-        vm.expectRevert(VSkillUser.VSkill__InvalidSkillDomain.selector);
+        vm.expectRevert(VSkillUser.VSkillUser__InvalidSkillDomain.selector);
         vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
             IPFS_HASH,
             "InvalidSkillDomain"
@@ -139,7 +139,7 @@ contract VSkillUserTest is Test {
     function testAddMoreSkillsRevertsIfSkillDomainAlreadyExists() external {
         address owner = vskill.owner();
         vm.prank(owner);
-        vm.expectRevert(VSkillUser.VSkill__SkillDomainAlreadyExists.selector);
+        vm.expectRevert(VSkillUser.VSkillUser__SkillDomainAlreadyExists.selector);
         vskill.addMoreSkills(SKILL_DOMAIN);
     }
 
