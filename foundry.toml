@@ -14,6 +14,9 @@ fs_permissions = [
     { access = "read", path = "./image" },
 ]
 
+# It is suggested to avoid adding this configuration, if you can add more scopes or split the larger functions into smaller ones to limit the variable's lifespan.
+viaIR = true
+
 ffi = true
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
