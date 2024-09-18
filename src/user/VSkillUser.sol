@@ -27,21 +27,26 @@ pragma solidity ^0.8.24;
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "../../src/utils/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Staking} from "../staking/Staking.sol";
+import {VSkillUserNft} from "../nft/VSkillUserNft.sol";
 
-contract VSkillUser is Ownable {
+contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using PriceConverter for uint256;
 
-    error VSkill__NotEnoughSubmissionFee(
+    error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
     );
-    error VSkill__InvalidSkillDomain();
-    error VSkill__SkillDomainAlreadyExists();
+    error VSkillUser__InvalidSkillDomain();
+    error VSkillUser__SkillDomainAlreadyExists();
+    error VSkillUser__EvidenceNotApprovedYet(SubmissionStatus status);
 
     struct evidence {
+        address submitter;
         string evidenceIpfsHash;
         string skillDomain;
         SubmissionStatus status;
+        string feedbackIpfsHash;
     }
 
     enum SubmissionStatus {
@@ -58,9 +63,9 @@ contract VSkillUser is Ownable {
         "DevOps",
         "Blockchain"
     ];
-    AggregatorV3Interface internal priceFeed;
+
     uint256 private submissionFeeInUsd; // 5e18 -> 5 USD for each submission
-    mapping(address => evidence[]) private addressToEvidences;
+    mapping(address => evidence[]) public addressToEvidences;
 
     event EvidenceSubmitted(
         address indexed submitter,
@@ -72,8 +77,9 @@ contract VSkillUser is Ownable {
 
     constructor(
         uint256 _submissionFeeInUsd,
-        address _priceFeed
-    ) Ownable(msg.sender) {
+        address _priceFeed,
+        string[] memory _userNftImageUris
+    ) Ownable(msg.sender) Staking(_priceFeed) VSkillUserNft(_userNftImageUris) {
         submissionFeeInUsd = _submissionFeeInUsd;
         priceFeed = AggregatorV3Interface(_priceFeed);
     }
@@ -83,26 +89,42 @@ contract VSkillUser is Ownable {
         string memory skillDomain
     ) external payable {
         if (msg.value.convertEthToUsd(priceFeed) < submissionFeeInUsd) {
-            revert VSkill__NotEnoughSubmissionFee(
+            revert VSkillUser__NotEnoughSubmissionFee(
                 submissionFeeInUsd,
                 msg.value.convertEthToUsd(priceFeed)
             );
         }
 
         if (!_isSkillDomainValid(skillDomain)) {
-            revert VSkill__InvalidSkillDomain();
+            revert VSkillUser__InvalidSkillDomain();
         }
 
         addressToEvidences[msg.sender].push(
             evidence({
+                submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.Submmited
+                status: SubmissionStatus.Submmited,
+                feedbackIpfsHash: ""
             })
         );
 
         emit EvidenceSubmitted(msg.sender, evidenceIpfsHash, skillDomain);
     }
+
+    function checkFeedbackOfEvidence(
+        uint256 index
+    ) external view returns (string memory) {
+        return addressToEvidences[msg.sender][index].feedbackIpfsHash;
+    }
+
+    function earnUserNft(evidence memory _evidence) external {
+        _earnUserNft(_evidence);
+    }
+
+    ///////////////////////////////
+    //////  Owner Functions  //////
+    ///////////////////////////////
 
     function changeSubmissionFee(uint256 newFeeInUsd) external onlyOwner {
         submissionFeeInUsd = newFeeInUsd;
@@ -111,15 +133,11 @@ contract VSkillUser is Ownable {
 
     function addMoreSkills(string memory skillDomain) external onlyOwner {
         if (_skillDomainAlreadyExists(skillDomain)) {
-            revert VSkill__SkillDomainAlreadyExists();
+            revert VSkillUser__SkillDomainAlreadyExists();
         }
         skillDomains.push(skillDomain);
         emit SkillDomainAdded(skillDomain);
     }
-
-    // function checkFeedbackOfEvidence() external {} // To be implemented and the feedback is provided by the verifier. -> called by the user
-    // function updateFeedbackofEvidence() external {} // This will be called by the verifier contract to update the feedback of the evidence. -> only be called by the verifier contract
-    // function updateEvidenceStatus() external {} // This will be called by the verifier contract to update the status of the evidence. -> only be called by the verifier contract
 
     ///////////////////////////////
     /////  Internal Functions  ////
@@ -155,7 +173,13 @@ contract VSkillUser is Ownable {
         return false;
     }
 
-    // function _gainNFTAsProofOfSkill() internal {} // To be implemented and called once the evidence is approved by the verifier -> chainlink automation
+    function _earnUserNft(evidence memory _evidence) internal {
+        if (_evidence.status != SubmissionStatus.Approved) {
+            revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
+        }
+
+        mintUserNft(_evidence.skillDomain);
+    }
 
     ///////////////////////////////
     /////   Getter Functions   ////
@@ -176,9 +200,5 @@ contract VSkillUser is Ownable {
         uint256 index
     ) external view returns (SubmissionStatus) {
         return addressToEvidences[_address][index].status;
-    }
-
-    function getSkillDomains() external view returns (string[] memory) {
-        return skillDomains;
     }
 }
