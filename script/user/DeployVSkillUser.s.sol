@@ -11,8 +11,15 @@ contract DeployVSkillUser is Script {
         HelperConfig helperConfig = new HelperConfig();
         (uint256 submissionFeeInUsd, address priceFeed) = helperConfig
             .activeNetworkConfig();
+        string[] memory userNftImageUris = helperConfig
+            .getActiveNetworkConfig()
+            .userNftImageUris;
         vm.startBroadcast();
-        VSkillUser vSkill = new VSkillUser(submissionFeeInUsd, priceFeed);
+        VSkillUser vSkill = new VSkillUser(
+            submissionFeeInUsd,
+            priceFeed,
+            userNftImageUris
+        );
         vm.stopBroadcast();
         return (vSkill, helperConfig);
     }
