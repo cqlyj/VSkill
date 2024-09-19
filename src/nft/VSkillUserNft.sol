@@ -88,6 +88,19 @@ contract VSkillUserNft is ERC721 {
     }
 
     ///////////////////////////////
+    ///    Internal Functions   ///
+    ///////////////////////////////
+
+    function _addMoreSkillsForNft(
+        string memory skillDomain,
+        string memory newNftImageUri
+    ) internal {
+        skillDomains.push(skillDomain);
+        userNftImageUris.push(newNftImageUri);
+        skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
+    }
+
+    ///////////////////////////////
     /////   Getter Functions   ////
     ///////////////////////////////
 
