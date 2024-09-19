@@ -75,46 +75,52 @@ contract Staking {
 
     fallback() external payable {}
 
-    function withdrawStake(uint256 amountToWithdraw) external {
+    function withdrawStake(uint256 amountToWithdrawInEth) external {
         if (addressToId[msg.sender] == 0) {
             revert Staking__NotVerifier();
         }
 
+        uint256 amountToWithdrawInUsd = amountToWithdrawInEth.convertEthToUsd(
+            priceFeed
+        );
+
         if (
             verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd <
-            amountToWithdraw
+            amountToWithdrawInUsd
         ) {
             revert Staking__NotEnoughBalanceToWithdraw(
                 verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd
             );
         }
 
-        (bool success, ) = msg.sender.call{value: amountToWithdraw}("");
+        (bool success, ) = msg.sender.call{value: amountToWithdrawInEth}("");
         if (!success) {
             revert Staking__WithdrawFailed();
         }
 
         verifiers[addressToId[msg.sender] - 1]
-            .moneyStakedInUsd -= amountToWithdraw;
-        emit Withdrawn(msg.sender, amountToWithdraw);
+            .moneyStakedInUsd -= amountToWithdrawInUsd;
+        emit Withdrawn(msg.sender, amountToWithdrawInEth);
 
         if (
             !_currentStakedAmountIsStillAboveMinUsdAmount(
                 verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd
             )
         ) {
+            // Remove the verifier from the array
+            uint256 index = addressToId[msg.sender] - 1;
+            verifiers[index] = verifiers[verifierCount - 1];
+            verifiers.pop();
+
             addressToId[msg.sender] = 0;
             verifierCount--;
             emit LoseVerifier(msg.sender);
-
-            // Remove the verifier from the array
-            uint256 index = addressToId[msg.sender] - 1;
-            verifiers[index] = verifiers[verifierCount];
-            verifiers.pop();
         }
     }
 
-    function stake(uint256 amountInUsd) external payable {
+    function stake() external payable {
+        uint256 amountInUsd = msg.value.convertEthToUsd(priceFeed);
+
         if (addressToId[msg.sender] == 0) {
             if (amountInUsd < MIN_USD_AMOUNT) {
                 revert Staking__NotEnoughStakeToBecomeVerifier(
@@ -130,17 +136,14 @@ contract Staking {
                 emit BecomeVerifier(id, msg.sender);
                 id++;
 
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd += msg
-                    .value
-                    .convertEthToUsd(priceFeed);
+                verifiers[verifiers.length - 1].moneyStakedInUsd += amountInUsd;
                 emit Staked(msg.sender, msg.value);
             }
+        } else {
+            verifiers[addressToId[msg.sender] - 1]
+                .moneyStakedInUsd += amountInUsd;
+            emit Staked(msg.sender, msg.value);
         }
-
-        verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd += msg
-            .value
-            .convertEthToUsd(priceFeed);
-        emit Staked(msg.sender, msg.value);
     }
 
     /////////////////////////////////
