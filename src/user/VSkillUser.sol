@@ -131,11 +131,15 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         emit SubmissionFeeChanged(newFeeInUsd);
     }
 
-    function addMoreSkills(string memory skillDomain) external onlyOwner {
+    function addMoreSkills(
+        string memory skillDomain,
+        string memory newNftImageUri
+    ) external onlyOwner {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
         skillDomains.push(skillDomain);
+        _addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
     }
 
