@@ -16,16 +16,16 @@ contract InteractionsTest is Test {
     }
 
     function testInteractions() external {
-        WithdrawStakeStaking withdrawer = new WithdrawStakeStaking();
-        withdrawer.withdrawStakeStaking(address(staking));
-
-        assertEq(staking.getVerifierCount(), 0);
-        console.log("Withdraw stake success");
-
         StakeStaking staker = new StakeStaking();
         staker.stakeStaking(address(staking));
 
         assertEq(staking.getVerifierCount(), 1);
         console.log("Stake success");
+
+        WithdrawStakeStaking withdrawer = new WithdrawStakeStaking();
+        withdrawer.withdrawStakeStaking(address(staking));
+
+        assertEq(staking.getVerifierCount(), 0);
+        console.log("Withdraw stake success");
     }
 }
