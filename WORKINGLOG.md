@@ -253,4 +253,13 @@
 
 **Holiday**
 
-### 2024/9/17
+### 2024/9/17 - 2024/9/19
+
+**What I did:**
+
+- Work on the verifier module. => Keep integrating this module with previous modules. And refactor those previous modules to adapt to the verifier module.
+- Refactor and fix the bugs of the previous modules. => Finish the first time of integration and refactor.
+
+### 2024/9/20
+
+**What I did today:**
