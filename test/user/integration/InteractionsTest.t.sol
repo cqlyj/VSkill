@@ -13,6 +13,7 @@ contract InteractionsTest is Test {
     HelperConfig helperConfig;
     uint256 submissionFeeInUsd;
     string public constant NEW_SKILL_DOMAIN = "New skill domain";
+    string public constant NEW_NFT_IMAGE_URI = "newnftimageuri";
     uint256 public constant NEW_SUBMISSION_FEE_IN_USD = 10e18; // 10 USD
 
     function setUp() external {
@@ -35,7 +36,11 @@ contract InteractionsTest is Test {
         );
 
         AddMoreSkillsVSkill addMoreSkills = new AddMoreSkillsVSkill();
-        addMoreSkills.addMoreSkillsVSkill(address(vskill), NEW_SKILL_DOMAIN);
+        addMoreSkills.addMoreSkillsVSkill(
+            address(vskill),
+            NEW_SKILL_DOMAIN,
+            NEW_NFT_IMAGE_URI
+        );
 
         assertEq(vskill.getSubmissionFeeInUsd(), NEW_SUBMISSION_FEE_IN_USD);
         console.log("Submission fee changed successfully");
