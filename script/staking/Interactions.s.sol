@@ -27,12 +27,12 @@ contract WithdrawStakeStaking is Script {
 }
 
 contract StakeStaking is Script {
-    uint256 public constant ENOUGH_USD_AMOUNT = 1000;
+    uint256 public constant MIN_ETH_AMOUNT = 0.01 ether;
 
     function stakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.stake(ENOUGH_USD_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopBroadcast();
     }
 
