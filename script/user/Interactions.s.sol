@@ -80,14 +80,16 @@ contract ChangeSubmissionFeeVSkill is Script {
 
 contract AddMoreSkillsVSkill is Script {
     string public constant NEW_SKILL_DOMAIN = "New skill domain";
+    string public constant NEW_NFT_IMAGE_URI = "newnftimageuri";
 
     function addMoreSkillsVSkill(
         address mostRecentlyDeployed,
-        string memory newSkillDomain
+        string memory newSkillDomain,
+        string memory newNftImageUri
     ) public {
         vm.startBroadcast();
         VSkillUser vskill = VSkillUser(payable(mostRecentlyDeployed));
-        vskill.addMoreSkills(newSkillDomain);
+        vskill.addMoreSkills(newSkillDomain, newNftImageUri);
         vm.stopBroadcast();
 
         string[] memory skillDomains = vskill.getSkillDomains();
@@ -105,6 +107,10 @@ contract AddMoreSkillsVSkill is Script {
 
         console.log("Most recently deployed address: ", mostRecentlyDeployed);
 
-        addMoreSkillsVSkill(mostRecentlyDeployed, NEW_SKILL_DOMAIN);
+        addMoreSkillsVSkill(
+            mostRecentlyDeployed,
+            NEW_SKILL_DOMAIN,
+            NEW_NFT_IMAGE_URI
+        );
     }
 }
