@@ -22,6 +22,7 @@ contract VSkillUserTest is Test {
     string public constant SKILL_DOMAIN = "Blockchain";
     string public constant NEW_SKILL_DOMAIN = "NewSkillDomain";
     uint256 public constant NEW_SUBMISSION_FEE_IN_USD = 10e18; // 10 USD
+    string public constant NEW_NFT_IMAGE_URI = "newnftimageuri";
 
     // enum SubmissionStatus {
     //     Submmited,
@@ -133,21 +134,23 @@ contract VSkillUserTest is Test {
     function testAddMoreSkillsRevertsIfNotOwner() external {
         vm.prank(USER);
         vm.expectRevert();
-        vskill.addMoreSkills(NEW_SKILL_DOMAIN);
+        vskill.addMoreSkills(NEW_SKILL_DOMAIN, NEW_NFT_IMAGE_URI);
     }
 
     function testAddMoreSkillsRevertsIfSkillDomainAlreadyExists() external {
         address owner = vskill.owner();
         vm.prank(owner);
-        vm.expectRevert(VSkillUser.VSkillUser__SkillDomainAlreadyExists.selector);
-        vskill.addMoreSkills(SKILL_DOMAIN);
+        vm.expectRevert(
+            VSkillUser.VSkillUser__SkillDomainAlreadyExists.selector
+        );
+        vskill.addMoreSkills(SKILL_DOMAIN, NEW_NFT_IMAGE_URI);
     }
 
     function testAddMoreSkillsUpdatesSkillDomains() external {
         uint256 length = vskill.getSkillDomains().length;
         address owner = vskill.owner();
         vm.prank(owner);
-        vskill.addMoreSkills(NEW_SKILL_DOMAIN);
+        vskill.addMoreSkills(NEW_SKILL_DOMAIN, NEW_NFT_IMAGE_URI);
         string[] memory skillDomains = vskill.getSkillDomains();
         uint256 newLength = skillDomains.length;
         assertEq(length + 1, newLength);
@@ -159,6 +162,6 @@ contract VSkillUserTest is Test {
         vm.prank(owner);
         vm.expectEmit(false, false, false, true, address(vskill));
         emit VSkillUser.SkillDomainAdded(NEW_SKILL_DOMAIN);
-        vskill.addMoreSkills(NEW_SKILL_DOMAIN);
+        vskill.addMoreSkills(NEW_SKILL_DOMAIN, NEW_NFT_IMAGE_URI);
     }
 }
