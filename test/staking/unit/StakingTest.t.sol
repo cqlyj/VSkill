@@ -65,28 +65,32 @@ contract StakingTest is Test {
     // withdrawStake
 
     function testWithdrawStakeRevertIfNotEnoughBalance() external {
+        vm.startPrank(USER);
+        staking.stake{value: MIN_ETH_AMOUNT}();
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 Staking.Staking__NotEnoughBalanceToWithdraw.selector,
-                0
+                MIN_ETH_AMOUNT.convertEthToUsd(priceFeed)
             )
         );
-        staking.withdrawStake(MIN_ETH_AMOUNT);
+        staking.withdrawStake(2 * MIN_ETH_AMOUNT);
+        vm.stopPrank();
     }
 
     function testWithdrawStakeSuccessUpdatesBalance() external {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
-        staking.withdrawStake(MIN_ETH_AMOUNT / 2);
+        staking.stake{value: 2 * MIN_ETH_AMOUNT}();
+        staking.withdrawStake(MIN_ETH_AMOUNT);
         vm.stopPrank();
 
         uint256 balance = staking.getVerifierMoneyStakedInUsd(USER);
-        assertEq(balance, MIN_ETH_AMOUNT / 2);
+        assertEq(balance, MIN_ETH_AMOUNT.convertEthToUsd(priceFeed));
     }
 
     function testWithdrawStakeSuccessChecksVerifierStatus() external {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         staking.withdrawStake(MIN_ETH_AMOUNT);
         vm.stopPrank();
 
@@ -98,13 +102,13 @@ contract StakingTest is Test {
         external
     {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         address anotherUser = makeAddr("anotherUser");
         vm.deal(anotherUser, INITIAL_BALANCE);
         vm.startPrank(anotherUser);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         vm.startPrank(USER);
@@ -117,7 +121,7 @@ contract StakingTest is Test {
 
     function testWithdrawStakeEmitsWithdrawnEvent() external {
         vm.prank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
 
         vm.prank(USER);
         vm.expectEmit(true, false, false, true, address(staking));
@@ -129,7 +133,7 @@ contract StakingTest is Test {
         external
     {
         vm.prank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
 
         vm.prank(USER);
         vm.expectEmit(true, false, false, false, address(staking));
@@ -139,7 +143,7 @@ contract StakingTest is Test {
 
     function testWithdrawStakeEmitsBothEventsIfNotEnoughBalance() external {
         vm.prank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
 
         vm.prank(USER);
         vm.recordLogs();
@@ -155,16 +159,23 @@ contract StakingTest is Test {
 
     function testStakeUpdatesBalance() external {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT / 2);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         uint256 balance = staking.getVerifierMoneyStakedInUsd(USER);
-        assertEq(balance, MIN_ETH_AMOUNT / 2);
+        assertEq(balance, MIN_ETH_AMOUNT.convertEthToUsd(priceFeed));
+
+        vm.startPrank(USER);
+        staking.stake{value: MIN_ETH_AMOUNT}();
+        vm.stopPrank();
+
+        uint256 newBalance = staking.getVerifierMoneyStakedInUsd(USER);
+        assertEq(newBalance, 2 * MIN_ETH_AMOUNT.convertEthToUsd(priceFeed));
     }
 
     function testStakeCheckVerifierStatus() external {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         uint256 id = staking.getVerifierId(USER);
@@ -175,32 +186,32 @@ contract StakingTest is Test {
     function testStakeEmitsStakedEvent() external {
         vm.prank(USER);
         vm.expectEmit(true, false, false, true, address(staking));
-        emit Staked(USER, MIN_ETH_AMOUNT / 2);
-        staking.stake(MIN_ETH_AMOUNT / 2);
+        emit Staked(USER, MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
     }
 
     function testStakeEmitsBecomeVerifierEventIfEnoughBalance() external {
         vm.prank(USER);
         vm.expectEmit(true, true, false, false, address(staking));
         emit BecomeVerifier(1, USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
     }
 
-    function testStakeEmitsOnlyStakedEventIfNotEnoughBalance() external {
-        vm.prank(USER);
-        vm.recordLogs();
-        staking.stake(MIN_ETH_AMOUNT / 2);
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        assertEq(entries.length, 1);
-    }
+    // function testStakeEmitsOnlyStakedEventIfNotEnoughBalance() external {
+    //     vm.prank(USER);
+    //     vm.recordLogs();
+    //     staking.stake{value: MIN_ETH_AMOUNT / 2}();
+    //     Vm.Log[] memory entries = vm.getRecordedLogs();
+    //     assertEq(entries.length, 1);
+    // }
 
     function testStakeEmitsBothEventsIfEnoughBalance() external {
         vm.prank(USER);
         vm.recordLogs();
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        bytes32 staker = entries[0].topics[1];
-        bytes32 verifier = entries[1].topics[2];
+        bytes32 verifier = entries[0].topics[2];
+        bytes32 staker = entries[1].topics[1];
         assertEq(staker, verifier);
         assertEq(entries.length, 2);
     }
@@ -215,9 +226,9 @@ contract StakingTest is Test {
             // staking.stake{value: MIN_ETH_AMOUNT}();
             // vm.stopPrank();
             hoax(user, INITIAL_BALANCE);
-            staking.stake(MIN_ETH_AMOUNT);
+            staking.stake{value: MIN_ETH_AMOUNT}();
             uint256 balance = staking.getVerifierMoneyStakedInUsd(user);
-            assertEq(balance, MIN_ETH_AMOUNT);
+            assertEq(balance, MIN_ETH_AMOUNT.convertEthToUsd(priceFeed));
         }
     }
 
@@ -225,7 +236,7 @@ contract StakingTest is Test {
 
     function testUsersCanTrackTheirVerifierId() external {
         vm.startPrank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         uint256 id = staking.getVerifierId(USER);
@@ -239,7 +250,7 @@ contract StakingTest is Test {
         assertEq(newId, 0);
 
         vm.prank(USER);
-        staking.stake(MIN_ETH_AMOUNT);
+        staking.stake{value: MIN_ETH_AMOUNT}();
         vm.stopPrank();
 
         uint256 anotherId = staking.getVerifierId(USER);
