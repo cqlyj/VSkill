@@ -139,7 +139,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
         skillDomains.push(skillDomain);
-        _addMoreSkillsForNft(skillDomain, newNftImageUri);
+        super._addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
     }
 
