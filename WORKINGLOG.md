@@ -263,3 +263,23 @@
 ### 2024/9/20
 
 **What I did today:**
+
+- Work on the verifier module. => After the verifier be removed from the list, what about the money they staked? => It will be recorded in the `bonusMoney` variant in the `Staking` contract and will be distributed to the verifiers who provide correct feedback.
+- Add the `bonusMoney` variant in the `Staking` contract.
+- Add the corresponding functions to handle the `bonusMoney` in the `Staking` contract.
+- Add the penalize and reward functions in the `Staking` and `Verifier` contracts.
+
+- What about the money in the VSkillUser module? => This contract share the same address with the `Staking` contract. => So the money will be recorded in the `bonusMoney` variant in the `Staking` contract and will be distributed to the verifiers who provide correct feedback.
+
+- A known **BUG** here in `Staking` module!!!
+
+```
+Let's say for now: 1 ETH = 2000 USD.
+And in the future: 1 ETH = 1000 USD.
+
+Now I have stake 1 ETH in the contract, it will record that I have 2000 USD available to withdraw.
+
+But in the future when 1 ETH = 1000 USD, the contract will still record that I have 2000 USD available to withdraw.
+
+When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. However the contract only have 1 ETH. => This is a known bug in the contract.
+```
