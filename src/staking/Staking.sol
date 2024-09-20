@@ -55,6 +55,7 @@ contract Staking {
     uint256 private immutable HIGHEST_REPUTATION = 10;
     uint256 private id; // If id is 0, then the address is not a verifier
     uint256 private verifierCount;
+    uint256 private bonusMoneyInUsd;
 
     AggregatorV3Interface internal priceFeed;
     mapping(address => uint256) internal addressToId;
@@ -69,6 +70,7 @@ contract Staking {
         priceFeed = AggregatorV3Interface(_priceFeed);
         id = 1;
         verifierCount = 0;
+        bonusMoneyInUsd = 0;
     }
 
     receive() external payable {}
@@ -108,12 +110,7 @@ contract Staking {
             )
         ) {
             // Remove the verifier from the array
-            uint256 index = addressToId[msg.sender] - 1;
-            verifiers[index] = verifiers[verifierCount - 1];
-            verifiers.pop();
-
-            addressToId[msg.sender] = 0;
-            verifierCount--;
+            _removeVerifier(msg.sender);
             emit LoseVerifier(msg.sender);
         }
     }
@@ -146,9 +143,41 @@ contract Staking {
         }
     }
 
+    // This function for anyone who willing to add bonus money to the contract
+    function addBonusMoneyForVerifier() public payable {
+        uint256 amountInUsd = msg.value.convertEthToUsd(priceFeed);
+        bonusMoneyInUsd += amountInUsd;
+    }
+
     /////////////////////////////////
     /////   Internal Functions   ////
     /////////////////////////////////
+
+    function _addBonusMoney(uint256 amountInUsd) internal {
+        bonusMoneyInUsd += amountInUsd;
+    }
+
+    function _rewardVerifierInFormOfStake(
+        address verifierAddress,
+        uint256 amountInUsd
+    ) internal {
+        verifiers[addressToId[verifierAddress] - 1]
+            .moneyStakedInUsd += amountInUsd;
+        bonusMoneyInUsd -= amountInUsd;
+    }
+
+    function _penalizeVerifierStakeToBonusMoney(uint256 amountInUsd) internal {
+        bonusMoneyInUsd += amountInUsd;
+    }
+
+    function _removeVerifier(address verifierAddress) internal {
+        uint256 index = addressToId[verifierAddress] - 1;
+        verifiers[index] = verifiers[verifierCount - 1];
+        verifiers.pop();
+
+        addressToId[verifierAddress] = 0;
+        verifierCount--;
+    }
 
     function _initializeVerifier(
         address verifierAddress,
@@ -246,5 +275,9 @@ contract Staking {
         uint256 _id
     ) external view returns (verifier memory) {
         return verifiers[_id - 1];
+    }
+
+    function getBonusMoneyInUsd() public view returns (uint256) {
+        return bonusMoneyInUsd;
     }
 }
