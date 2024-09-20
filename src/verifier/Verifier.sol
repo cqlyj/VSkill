@@ -37,6 +37,7 @@ contract Verifier is VSkillUser, Distribution {
     uint256 private constant INITIAL_REPUTATION = 2;
     uint256 private immutable LOWEST_REPUTATION = 0;
     uint256 private immutable HIGHEST_REPUTATION = 10;
+    uint256 private constant BONUS_DISTRIBUTION_NUMBER = 20;
 
     mapping(string => bool[]) private evidenceToStatusApproveOrNot;
 
@@ -89,12 +90,7 @@ contract Verifier is VSkillUser, Distribution {
             revert Verifier__EvidenceStillInReview();
         }
 
-        uint256 currentReputation = verifiers[addressToId[msg.sender] - 1]
-            .reputation;
-
-        if (currentReputation < HIGHEST_REPUTATION) {
-            verifiers[addressToId[msg.sender] - 1].reputation++;
-        }
+        _rewardVerifiers(msg.sender);
     }
 
     function updateSkillDomains(
@@ -140,6 +136,26 @@ contract Verifier is VSkillUser, Distribution {
     /////   Internal Functions   /////
     //////////////////////////////////
 
+    function _rewardVerifiers(address verifiersAddress) internal {
+        uint256 currentReputation = verifiers[addressToId[verifiersAddress] - 1]
+            .reputation;
+
+        if (currentReputation < HIGHEST_REPUTATION) {
+            verifiers[addressToId[verifiersAddress] - 1].reputation++;
+        }
+        // get the reward from the contract => what's the ratio of the reward?
+        // first, higher reputation leads to higher rewards
+        // second, the reward will depends on the bonus money in the staking contract
+        // Here is the algorithm to calculate the reward: reward = reputation / HIGHEST_REPUTATION / 20 * bonusMoneyInUsd
+        // 20 is that the verifier needs to stake about 20 USD to be a verifier => This is just a round number
+
+        uint256 rewardAmountInUsd = (currentReputation /
+            HIGHEST_REPUTATION /
+            BONUS_DISTRIBUTION_NUMBER) * super.getBonusMoneyInUsd();
+
+        super._rewardVerifierInFormOfStake(verifiersAddress, rewardAmountInUsd);
+    }
+
     function _penalizeVerifiers(address verifiersAddress) internal {
         if (
             verifiers[addressToId[verifiersAddress] - 1].reputation >
@@ -151,7 +167,18 @@ contract Verifier is VSkillUser, Distribution {
                 addressToId[verifiersAddress] - 1
             ];
 
-            verifierToBeRemoved.id = 0;
+            uint256 verifierStakedMoneyInUsd = verifierToBeRemoved
+                .moneyStakedInUsd;
+
+            // after remove the verifier, what about the money they stake?
+            // the money will be collected by the staking contract and will be used to reward the verifiers who provide feedback
+            // in staking contract we need to implement a function to distribute the money to the verifiers who provide feedback...
+
+            // This money will be locked in the staking contract and will be used to reward the verifiers who provide feedback
+            super._penalizeVerifierStakeToBonusMoney(verifierStakedMoneyInUsd);
+
+            super._removeVerifier(verifiersAddress);
+
             emit LoseVerifier(verifierToBeRemoved.verifierAddress);
         }
     }
