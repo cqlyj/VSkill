@@ -99,6 +99,23 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__InvalidSkillDomain();
         }
 
+        // transfer the submission fee to Staking contract and update the bonusMoneyInUsd
+
+        // Even though contract VSkillUser inherits from contract Staking, both contracts share the same deployed address for contract VSkillUser.
+        // When you deploy contract VSkillUser, you're not deploying contract Staking separately
+        // Instead, all of contract Staking's functionality is incorporated into contract VSkillUser's code.
+        // So whenever a function is executed, this always refers to the current instance, which is contract VSkillUser.
+
+        // Contract Staking’s balance will not hold Ether unless you directly send Ether to contract Staking's address.
+        // Contract VSkillUser will hold all the Ether if you interact with contract VSkillUser or if contract VSkillUser calls contract Staking’s payable function.
+        // Both functions in contract Staking’s and VSkillUser will store Ether in contract VSkillUser's balance when you interact with contract VSkillUser.
+
+        // When you deploy contract B, both contract A and contract B share the same address because contract B inherits from contract A.
+        // Any Ether sent to either contract A's or contract B's payable function is stored in the same contract address (which is contract B’s address in this case).
+        // The total balance of the contract is available at that address, no matter which function (from contract A or contract B) received the Ether.
+
+        super._addBonusMoney(msg.value.convertEthToUsd(priceFeed));
+
         addressToEvidences[msg.sender].push(
             evidence({
                 submitter: msg.sender,
@@ -182,7 +199,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
-        mintUserNft(_evidence.skillDomain);
+        super.mintUserNft(_evidence.skillDomain);
     }
 
     ///////////////////////////////
