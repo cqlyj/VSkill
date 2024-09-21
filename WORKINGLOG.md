@@ -237,11 +237,15 @@
 
 - Work on the verifier module. -> Begin to integrate this module with previous modules. And refactor those previous modules to adapt to the verifier module.
 
+---
+
 ### 2024/8/3 - 2024/8/12
 
 **What I did those days:**
 
 - Refactor the previous modules to adapt to the verifier module.
+
+---
 
 ### 2024/8/13
 
@@ -249,9 +253,13 @@
 
 - Work on the verifier NFT module. => This NFT should be a random color NFT. Each time the verifier reach the score `10`, the NFT will be minted automatically. And it will be burned if the reputation score is less than `8` automatically. => But what's the meaning of verifier NFT? I think for now it's not necessary to implement this. => So I will skip this and move on to the next task.
 
+---
+
 ### 2024/8/14 - 2024/9/16
 
 **Holiday**
+
+---
 
 ### 2024/9/17 - 2024/9/19
 
@@ -259,6 +267,8 @@
 
 - Work on the verifier module. => Keep integrating this module with previous modules. And refactor those previous modules to adapt to the verifier module.
 - Refactor and fix the bugs of the previous modules. => Finish the first time of integration and refactor.
+
+---
 
 ### 2024/9/20
 
@@ -283,3 +293,19 @@ But in the future when 1 ETH = 1000 USD, the contract will still record that I h
 
 When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. However the contract only have 1 ETH. => This is a known bug in the contract.
 ```
+
+---
+
+### 2024/9/21
+
+**What I did today:**
+
+- Fix the known bug yesterday. => The contract will record the amount of ETH only and the amount of USD will be calculated based on the current price of ETH.
+- Add more tests for the `Staking` contract.
+- start to work on the chainlink `automation` once someone submit the evidence.
+
+---
+
+### 2024/9/22
+
+**What I did today:**
