@@ -44,7 +44,7 @@ contract Staking {
         address verifierAddress;
         uint256 reputation;
         string[] skillDomains;
-        uint256 moneyStakedInUsd;
+        uint256 moneyStakedInEth;
         string[] evidenceIpfsHash;
         string[] feedbackIpfsHash;
     }
@@ -55,7 +55,7 @@ contract Staking {
     uint256 private immutable HIGHEST_REPUTATION = 10;
     uint256 private id; // If id is 0, then the address is not a verifier
     uint256 private verifierCount;
-    uint256 private bonusMoneyInUsd;
+    uint256 private bonusMoneyInEth;
 
     AggregatorV3Interface internal priceFeed;
     mapping(address => uint256) internal addressToId;
@@ -65,12 +65,21 @@ contract Staking {
     event Withdrawn(address indexed staker, uint256 amount);
     event BecomeVerifier(uint256 indexed id, address indexed verifier);
     event LoseVerifier(address indexed verifier);
+    event BonusMoneyUpdated(
+        uint256 indexed previousAmountInEth,
+        uint256 indexed newAmountInEth
+    );
+    event VerifierStakeUpdated(
+        address indexed verifier,
+        uint256 indexed previousAmountInEth,
+        uint256 indexed newAmountInEth
+    );
 
     constructor(address _priceFeed) {
         priceFeed = AggregatorV3Interface(_priceFeed);
         id = 1;
         verifierCount = 0;
-        bonusMoneyInUsd = 0;
+        bonusMoneyInEth = 0;
     }
 
     receive() external payable {}
@@ -82,16 +91,12 @@ contract Staking {
             revert Staking__NotVerifier();
         }
 
-        uint256 amountToWithdrawInUsd = amountToWithdrawInEth.convertEthToUsd(
-            priceFeed
-        );
-
         if (
-            verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd <
-            amountToWithdrawInUsd
+            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth <
+            amountToWithdrawInEth
         ) {
             revert Staking__NotEnoughBalanceToWithdraw(
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd
+                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
             );
         }
 
@@ -101,17 +106,22 @@ contract Staking {
         }
 
         verifiers[addressToId[msg.sender] - 1]
-            .moneyStakedInUsd -= amountToWithdrawInUsd;
+            .moneyStakedInEth -= amountToWithdrawInEth;
         emit Withdrawn(msg.sender, amountToWithdrawInEth);
+        emit VerifierStakeUpdated(
+            msg.sender,
+            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth +
+                amountToWithdrawInEth,
+            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+        );
 
         if (
             !_currentStakedAmountIsStillAboveMinUsdAmount(
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInUsd
+                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
             )
         ) {
             // Remove the verifier from the array
             _removeVerifier(msg.sender);
-            emit LoseVerifier(msg.sender);
         }
     }
 
@@ -133,41 +143,62 @@ contract Staking {
                 emit BecomeVerifier(id, msg.sender);
                 id++;
 
-                verifiers[verifiers.length - 1].moneyStakedInUsd += amountInUsd;
+                verifiers[verifiers.length - 1].moneyStakedInEth += msg.value;
                 emit Staked(msg.sender, msg.value);
+                emit VerifierStakeUpdated(
+                    msg.sender,
+                    0,
+                    verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+                );
             }
         } else {
-            verifiers[addressToId[msg.sender] - 1]
-                .moneyStakedInUsd += amountInUsd;
+            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth += msg
+                .value;
             emit Staked(msg.sender, msg.value);
+            emit VerifierStakeUpdated(
+                msg.sender,
+                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth -
+                    msg.value,
+                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+            );
         }
     }
 
     // This function for anyone who willing to add bonus money to the contract
     function addBonusMoneyForVerifier() public payable {
-        uint256 amountInUsd = msg.value.convertEthToUsd(priceFeed);
-        bonusMoneyInUsd += amountInUsd;
+        bonusMoneyInEth += msg.value;
+        emit BonusMoneyUpdated(bonusMoneyInEth - msg.value, bonusMoneyInEth);
     }
 
     /////////////////////////////////
     /////   Internal Functions   ////
     /////////////////////////////////
 
-    function _addBonusMoney(uint256 amountInUsd) internal {
-        bonusMoneyInUsd += amountInUsd;
+    function _addBonusMoney(uint256 amountInEth) internal {
+        bonusMoneyInEth += amountInEth;
+        emit BonusMoneyUpdated(bonusMoneyInEth - amountInEth, bonusMoneyInEth);
     }
 
     function _rewardVerifierInFormOfStake(
         address verifierAddress,
-        uint256 amountInUsd
+        uint256 amountInEth
     ) internal {
         verifiers[addressToId[verifierAddress] - 1]
-            .moneyStakedInUsd += amountInUsd;
-        bonusMoneyInUsd -= amountInUsd;
+            .moneyStakedInEth += amountInEth;
+        bonusMoneyInEth -= amountInEth;
+
+        emit BonusMoneyUpdated(bonusMoneyInEth + amountInEth, bonusMoneyInEth);
+        emit VerifierStakeUpdated(
+            verifierAddress,
+            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth -
+                amountInEth,
+            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth
+        );
     }
 
-    function _penalizeVerifierStakeToBonusMoney(uint256 amountInUsd) internal {
-        bonusMoneyInUsd += amountInUsd;
+    function _penalizeVerifierStakeToBonusMoney(uint256 amountInEth) internal {
+        bonusMoneyInEth += amountInEth;
+        emit BonusMoneyUpdated(bonusMoneyInEth - amountInEth, bonusMoneyInEth);
     }
 
     function _removeVerifier(address verifierAddress) internal {
@@ -177,6 +208,8 @@ contract Staking {
 
         addressToId[verifierAddress] = 0;
         verifierCount--;
+
+        emit LoseVerifier(verifierAddress);
     }
 
     function _initializeVerifier(
@@ -189,16 +222,18 @@ contract Staking {
                 verifierAddress: verifierAddress,
                 reputation: INITIAL_REPUTATION,
                 skillDomains: skillDomains,
-                moneyStakedInUsd: 0,
+                moneyStakedInEth: 0,
                 evidenceIpfsHash: new string[](0),
                 feedbackIpfsHash: new string[](0)
             });
     }
 
     function _currentStakedAmountIsStillAboveMinUsdAmount(
-        uint256 currentStakedAmount
-    ) internal pure returns (bool) {
-        return currentStakedAmount >= MIN_USD_AMOUNT;
+        uint256 currentStakedAmountInEth
+    ) internal view returns (bool) {
+        return
+            currentStakedAmountInEth.convertEthToUsd(priceFeed) >=
+            MIN_USD_AMOUNT;
     }
 
     ///////////////////////////////
@@ -235,10 +270,10 @@ contract Staking {
         return verifiers[addressToId[verifierAddress] - 1].skillDomains;
     }
 
-    function getVerifierMoneyStakedInUsd(
+    function getVerifierMoneyStakedInEth(
         address verifierAddress
     ) external view returns (uint256) {
-        return verifiers[addressToId[verifierAddress] - 1].moneyStakedInUsd;
+        return verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth;
     }
 
     function getVerifierEvidenceIpfsHash(
@@ -277,7 +312,7 @@ contract Staking {
         return verifiers[_id - 1];
     }
 
-    function getBonusMoneyInUsd() public view returns (uint256) {
-        return bonusMoneyInUsd;
+    function getBonusMoneyInEth() public view returns (uint256) {
+        return bonusMoneyInEth;
     }
 }
