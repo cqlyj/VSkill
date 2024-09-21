@@ -143,12 +143,13 @@ contract Staking {
                 emit BecomeVerifier(id, msg.sender);
                 id++;
 
+                // Since it's new verifier, the way we find the index is by using the length of the array
                 verifiers[verifiers.length - 1].moneyStakedInEth += msg.value;
                 emit Staked(msg.sender, msg.value);
                 emit VerifierStakeUpdated(
                     msg.sender,
                     0,
-                    verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+                    verifiers[verifiers.length - 1].moneyStakedInEth
                 );
             }
         } else {
