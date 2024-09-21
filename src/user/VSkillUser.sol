@@ -114,7 +114,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         // Any Ether sent to either contract A's or contract B's payable function is stored in the same contract address (which is contract B’s address in this case).
         // The total balance of the contract is available at that address, no matter which function (from contract A or contract B) received the Ether.
 
-        super._addBonusMoney(msg.value.convertEthToUsd(priceFeed));
+        super._addBonusMoney(msg.value);
 
         addressToEvidences[msg.sender].push(
             evidence({
