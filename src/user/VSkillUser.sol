@@ -46,7 +46,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         string evidenceIpfsHash;
         string skillDomain;
         SubmissionStatus status;
-        string feedbackIpfsHash;
+        string[] feedbackIpfsHash;
     }
 
     enum SubmissionStatus {
@@ -124,7 +124,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
                 status: SubmissionStatus.SUBMITTED,
-                feedbackIpfsHash: ""
+                feedbackIpfsHash: new string[](0)
             })
         );
 
@@ -134,7 +134,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
                 status: SubmissionStatus.SUBMITTED,
-                feedbackIpfsHash: ""
+                feedbackIpfsHash: new string[](0)
             })
         );
 
@@ -143,7 +143,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
     function checkFeedbackOfEvidence(
         uint256 index
-    ) external view returns (string memory) {
+    ) external view returns (string[] memory) {
         return addressToEvidences[msg.sender][index].feedbackIpfsHash;
     }
 
