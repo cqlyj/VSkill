@@ -160,7 +160,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
-        userEvidences[currentEvidenceIndex].feedbackIpfsHash = feedbackIpfsHash;
+        addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
+            feedbackIpfsHash
+        );
         verifiers[addressToId[msg.sender] - 1].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
