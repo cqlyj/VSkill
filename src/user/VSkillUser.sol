@@ -50,11 +50,11 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     }
 
     enum SubmissionStatus {
-        Submitted,
-        InReview,
-        Approved,
-        Rejected,
-        DifferentOpinion
+        SUBMITTED,
+        INREVIEW,
+        APPROVED,
+        REJECTED,
+        DIFFERENTOPINION
     }
 
     string[] private skillDomains = [
@@ -123,7 +123,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.Submitted,
+                status: SubmissionStatus.SUBMITTED,
                 feedbackIpfsHash: ""
             })
         );
@@ -133,7 +133,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.Submitted,
+                status: SubmissionStatus.SUBMITTED,
                 feedbackIpfsHash: ""
             })
         );
@@ -207,7 +207,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     }
 
     function _earnUserNft(evidence memory _evidence) internal {
-        if (_evidence.status != SubmissionStatus.Approved) {
+        if (_evidence.status != SubmissionStatus.APPROVED) {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
