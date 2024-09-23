@@ -308,4 +308,30 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 
 ### 2024/9/22
 
+**REST DAY🍻**
+
+---
+
+### 2024/9/23
+
+**What I did today:**
+
+- Fix issues in the evidence status, add the new status `DifferentOpinions` and fix issues in verifier contract for the reward and penalty.
+
+  - Those evidence which have the status of `Submitted` will be distributed to the verifiers and once this process is done, the status will be updated to `InReview`.
+  - If the verifiers have different opinions, the evidence will be distributed to another three verifiers and the status will be updated to `DifferentOpinions`.
+  - The distribution of the evidence will be done automatically with the help of the `chainlink automation`.
+
+- refactor the `Verifier` contract...
+
+**Thoughts:**
+
+- The final product will be two contract only: `Verifier` and `VSkillUser`.
+- Don't forget to integrate the functions like `withdraw` and `stake` ... in those contracts.
+- Those verifiers who make right decision but have different opinions should not be penalized. => This is a known bug in the contract.
+
+---
+
+### 2024/9/24
+
 **What I did today:**
