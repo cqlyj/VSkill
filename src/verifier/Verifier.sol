@@ -42,9 +42,11 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
     mapping(string => bool[]) private evidenceToStatusApproveOrNot;
     mapping(string => address[]) private evidenceIpfsHashToSelectedVerifiers;
+    mapping(string => mapping(address => bool))
+        private evidenceToAllSelectedVerifiersToFeedbackStatus;
 
     //////////////////////////////
-    /////       Events       /////
+    ///         Events         ///
     //////////////////////////////
 
     event VerifierSkillDomainUpdated(
@@ -169,8 +171,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         if (approved) {
             evidenceToStatusApproveOrNot[evidenceIpfsHash].push(true);
+            evidenceToAllSelectedVerifiersToFeedbackStatus[evidenceIpfsHash][
+                msg.sender
+            ] = true;
         } else {
             evidenceToStatusApproveOrNot[evidenceIpfsHash].push(false);
+            evidenceToAllSelectedVerifiersToFeedbackStatus[evidenceIpfsHash][
+                msg.sender
+            ] = false;
         }
 
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
@@ -179,14 +187,15 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             SubmissionStatus.INREVIEW
         ) {
             address[]
-                memory selectedVerifiers = evidenceIpfsHashToSelectedVerifiers[
+                memory allSelectedVerifiers = evidenceIpfsHashToSelectedVerifiers[
                     evidenceIpfsHash
                 ];
-            for (uint256 i = 0; i < numWords; i++) {
+            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
                 _earnRewardsOrGetPenalized(
                     evidenceIpfsHash,
                     user,
-                    selectedVerifiers[i]
+                    allSelectedVerifiers[i]
                 );
             }
         }
@@ -217,10 +226,32 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 userThatSubmittedEvidence
             ) == SubmissionStatus.DIFFERENTOPINION
         ) {
-            _penalizeVerifiers(verifierAddress);
+            // first wait until this evidence finally gets approved or rejected
+            // then penalize or reward the verifiers
+            return;
+        } else if (
+            _updateEvidenceStatus(
+                evidenceIpfsHash,
+                userThatSubmittedEvidence
+            ) == SubmissionStatus.APPROVED
+        ) {
+            bool status = evidenceToAllSelectedVerifiersToFeedbackStatus[
+                evidenceIpfsHash
+            ][verifierAddress];
+            if (status) {
+                _rewardVerifiers(verifierAddress);
+            } else {
+                _penalizeVerifiers(verifierAddress);
+            }
         } else {
-            // either approved or rejected
-            _rewardVerifiers(verifierAddress);
+            bool status = evidenceToAllSelectedVerifiersToFeedbackStatus[
+                evidenceIpfsHash
+            ][verifierAddress];
+            if (status) {
+                _penalizeVerifiers(verifierAddress);
+            } else {
+                _rewardVerifiers(verifierAddress);
+            }
         }
     }
 
@@ -359,9 +390,36 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             ];
         }
 
-        evidenceIpfsHashToSelectedVerifiers[
-            evidenceIpfsHash
-        ] = selectedVerifiers;
+        address[]
+            memory prevSelectedVerifiers = evidenceIpfsHashToSelectedVerifiers[
+                evidenceIpfsHash
+            ];
+
+        uint256 prevSelectedVerifiersLength = prevSelectedVerifiers.length;
+
+        if (prevSelectedVerifiersLength > 0) {
+            address[] memory prevAndCurrentSelectedVerifiers = new address[](
+                prevSelectedVerifiersLength + numWords
+            );
+
+            for (uint256 i = 0; i < prevSelectedVerifiersLength; i++) {
+                prevAndCurrentSelectedVerifiers[i] = prevSelectedVerifiers[i];
+            }
+
+            for (uint256 i = 0; i < numWords; i++) {
+                prevAndCurrentSelectedVerifiers[
+                    prevSelectedVerifiersLength + i
+                ] = selectedVerifiers[i];
+            }
+
+            evidenceIpfsHashToSelectedVerifiers[
+                evidenceIpfsHash
+            ] = prevAndCurrentSelectedVerifiers;
+        } else {
+            evidenceIpfsHashToSelectedVerifiers[
+                evidenceIpfsHash
+            ] = selectedVerifiers;
+        }
 
         return selectedVerifiers;
     }
@@ -445,13 +503,21 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         for (uint256 i = 0; i < numWords; i++) {
             if (status[i] != status[i + 1]) {
+                evidence memory ev = addressToEvidences[user][
+                    currentEvidenceIndex
+                ];
+                ev.status = SubmissionStatus.DIFFERENTOPINION;
                 return SubmissionStatus.DIFFERENTOPINION;
             }
         }
 
         if (status[0]) {
+            evidence memory ev = addressToEvidences[user][currentEvidenceIndex];
+            ev.status = SubmissionStatus.APPROVED;
             return SubmissionStatus.APPROVED;
         } else {
+            evidence memory ev = addressToEvidences[user][currentEvidenceIndex];
+            ev.status = SubmissionStatus.REJECTED;
             return SubmissionStatus.REJECTED;
         }
     }
