@@ -45,6 +45,7 @@ contract Staking {
         uint256 reputation;
         string[] skillDomains;
         uint256 moneyStakedInEth;
+        address[] evidenceSubmitters;
         string[] evidenceIpfsHash;
         string[] feedbackIpfsHash;
     }
@@ -224,6 +225,7 @@ contract Staking {
                 reputation: INITIAL_REPUTATION,
                 skillDomains: skillDomains,
                 moneyStakedInEth: 0,
+                evidenceSubmitters: new address[](0),
                 evidenceIpfsHash: new string[](0),
                 feedbackIpfsHash: new string[](0)
             });
@@ -277,6 +279,12 @@ contract Staking {
         return verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth;
     }
 
+    function getVerifierEvidenceSubmitters(
+        address verifierAddress
+    ) external view returns (address[] memory) {
+        return verifiers[addressToId[verifierAddress] - 1].evidenceSubmitters;
+    }
+
     function getVerifierEvidenceIpfsHash(
         address verifierAddress
     ) external view returns (string[] memory) {
@@ -315,5 +323,27 @@ contract Staking {
 
     function getBonusMoneyInEth() public view returns (uint256) {
         return bonusMoneyInEth;
+    }
+
+    function getLatestEvidenceSubmitter(
+        address verifierAddress
+    ) external view returns (address) {
+        return
+            verifiers[addressToId[verifierAddress] - 1].evidenceSubmitters[
+                verifiers[addressToId[verifierAddress] - 1]
+                    .evidenceSubmitters
+                    .length - 1
+            ];
+    }
+
+    function getLatestEvidenceIpfsHash(
+        address verifierAddress
+    ) external view returns (string memory) {
+        return
+            verifiers[addressToId[verifierAddress] - 1].evidenceIpfsHash[
+                verifiers[addressToId[verifierAddress] - 1]
+                    .evidenceIpfsHash
+                    .length - 1
+            ];
     }
 }
