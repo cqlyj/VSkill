@@ -27,8 +27,9 @@ pragma solidity ^0.8.24;
 import {VSkillUser} from "../user/VSkillUser.sol";
 import {Distribution} from "../oracle/Distribution.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
-contract Verifier is VSkillUser, Distribution {
+contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     error Verifier__NotEnoughVerifiers(uint256 verifiersLength);
     error Verifier__NotSelectedVerifier();
     error Verifier__NotAllVerifiersProvidedFeedback();
@@ -40,6 +41,16 @@ contract Verifier is VSkillUser, Distribution {
     uint256 private constant BONUS_DISTRIBUTION_NUMBER = 20;
 
     mapping(string => bool[]) private evidenceToStatusApproveOrNot;
+    mapping(string => address[]) private evidenceIpfsHashToSelectedVerifiers;
+
+    //////////////////////////////
+    /////       Events       /////
+    //////////////////////////////
+
+    event VerifierSkillDomainUpdated(
+        address indexed verifierAddress,
+        string[] newSkillDomains
+    );
 
     modifier isVeifier() {
         _isVerifier(msg.sender);
@@ -51,8 +62,11 @@ contract Verifier is VSkillUser, Distribution {
         _;
     }
 
-    modifier onlySelectedVerifier(string memory evidenceIpfsHash) {
-        _onlySelectedVerifier(evidenceIpfsHash);
+    modifier onlySelectedVerifier(
+        string memory evidenceIpfsHash,
+        address verifierAddress
+    ) {
+        _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
         _;
     }
 
@@ -76,27 +90,54 @@ contract Verifier is VSkillUser, Distribution {
         priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
-    function earnRewardsOrGetPenalized(
-        string memory evidenceIpfsHash,
-        address userThatSubmittedEvidence
-    ) external onlySelectedVerifier(evidenceIpfsHash) {
-        if (
-            _updateEvidenceStatus(
-                evidenceIpfsHash,
-                userThatSubmittedEvidence
-            ) == SubmissionStatus.InReview
-        ) {
-            _penalizeVerifiers(msg.sender);
-            revert Verifier__EvidenceStillInReview();
-        }
+    ////////////////////////////////////////////
+    /////  Chainlink Automation Functions  /////
+    ////////////////////////////////////////////
 
-        _rewardVerifiers(msg.sender);
+    // https://docs.chain.link/chainlink-automation/reference/automation-interfaces
+    // https://docs.chain.link/chainlink-automation/guides/flexible-upkeeps
+
+    // once someone submits an evidence, the contract will automatically assign the evidence to the selected verifiers
+    // those evidence status remains in `submitted` are the evidence that haven't been assigned to the verifiers
+    // once the evidence is assigned to the verifiers, the status will be changed to `InReview`
+
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        // if the evidence status is `submitted` or `differentOpinion`, this function will return true
+        uint256 length = evidences.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                evidences[i].status == SubmissionStatus.SUBMITTED ||
+                evidences[i].status == SubmissionStatus.DIFFERENTOPINION
+            ) {
+                upkeepNeeded = true;
+                performData = abi.encode(evidences[i]);
+                return (upkeepNeeded, performData);
+            }
+        }
     }
+
+    function performUpkeep(bytes calldata performData) external override {
+        evidence memory ev = abi.decode(performData, (evidence));
+
+        _assignEvidenceToSelectedVerifier(ev);
+    }
+
+    //////////////////////////////////
+    /////   External Functions   /////
+    //////////////////////////////////
 
     function updateSkillDomains(
         string[] memory newSkillDomains
     ) external isVeifier {
         verifiers[addressToId[msg.sender] - 1].skillDomains = newSkillDomains;
+        emit VerifierSkillDomainUpdated(msg.sender, newSkillDomains);
     }
 
     function provideFeedback(
@@ -104,7 +145,7 @@ contract Verifier is VSkillUser, Distribution {
         string memory evidenceIpfsHash,
         address user,
         bool approved
-    ) external onlySelectedVerifier(evidenceIpfsHash) {
+    ) external onlySelectedVerifier(evidenceIpfsHash, msg.sender) {
         evidence[] memory userEvidences = addressToEvidences[user];
         uint256 length = userEvidences.length;
         uint256 currentEvidenceIndex;
@@ -119,7 +160,6 @@ contract Verifier is VSkillUser, Distribution {
             }
         }
 
-        userEvidences[currentEvidenceIndex].status = SubmissionStatus.InReview;
         userEvidences[currentEvidenceIndex].feedbackIpfsHash = feedbackIpfsHash;
         verifiers[addressToId[msg.sender] - 1].feedbackIpfsHash.push(
             feedbackIpfsHash
@@ -130,11 +170,57 @@ contract Verifier is VSkillUser, Distribution {
         } else {
             evidenceToStatusApproveOrNot[evidenceIpfsHash].push(false);
         }
+
+        // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
+        if (
+            _updateEvidenceStatus(evidenceIpfsHash, user) !=
+            SubmissionStatus.INREVIEW
+        ) {
+            address[]
+                memory selectedVerifiers = evidenceIpfsHashToSelectedVerifiers[
+                    evidenceIpfsHash
+                ];
+            for (uint256 i = 0; i < numWords; i++) {
+                _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    user,
+                    selectedVerifiers[i]
+                );
+            }
+        }
     }
+
+    // function stake() external {}
+    // function withdraw() external {}
 
     //////////////////////////////////
     /////   Internal Functions   /////
     //////////////////////////////////
+
+    function _earnRewardsOrGetPenalized(
+        string memory evidenceIpfsHash,
+        address userThatSubmittedEvidence,
+        address verifierAddress
+    ) internal onlySelectedVerifier(evidenceIpfsHash, verifierAddress) {
+        if (
+            _updateEvidenceStatus(
+                evidenceIpfsHash,
+                userThatSubmittedEvidence
+            ) == SubmissionStatus.INREVIEW
+        ) {
+            revert Verifier__EvidenceStillInReview();
+        } else if (
+            _updateEvidenceStatus(
+                evidenceIpfsHash,
+                userThatSubmittedEvidence
+            ) == SubmissionStatus.DIFFERENTOPINION
+        ) {
+            _penalizeVerifiers(verifierAddress);
+        } else {
+            // either approved or rejected
+            _rewardVerifiers(verifierAddress);
+        }
+    }
 
     function _rewardVerifiers(address verifiersAddress) internal {
         uint256 currentReputation = verifiers[addressToId[verifiersAddress] - 1]
@@ -225,13 +311,9 @@ contract Verifier is VSkillUser, Distribution {
     }
 
     function _selectedVerifiersAddress(
+        string memory evidenceIpfsHash,
         string memory skillDomain
-    )
-        internal
-        view
-        enoughNumberOfVerifiers(skillDomain)
-        returns (address[] memory)
-    {
+    ) internal enoughNumberOfVerifiers(skillDomain) returns (address[] memory) {
         address[] memory selectedVerifiers = new address[](numWords);
 
         uint256[] memory randomWords = getRandomWords();
@@ -275,37 +357,45 @@ contract Verifier is VSkillUser, Distribution {
             ];
         }
 
+        evidenceIpfsHashToSelectedVerifiers[
+            evidenceIpfsHash
+        ] = selectedVerifiers;
+
         return selectedVerifiers;
     }
 
-    function _assignEvidenceToSelectedVerifier(
-        string memory skillDomain,
-        string memory evidenceIpfsHash
-    ) internal {
+    function _assignEvidenceToSelectedVerifier(evidence memory ev) internal {
         address[] memory selectedVerifiers = _selectedVerifiersAddress(
-            skillDomain
+            ev.evidenceIpfsHash,
+            ev.skillDomain
         );
 
         for (uint256 i = 0; i < numWords; i++) {
             verifiers[addressToId[selectedVerifiers[i]] - 1]
                 .evidenceIpfsHash
-                .push(evidenceIpfsHash);
+                .push(ev.evidenceIpfsHash);
+
+            verifiers[addressToId[selectedVerifiers[i]] - 1]
+                .evidenceSubmitters
+                .push(ev.submitter);
         }
+
+        ev.status = SubmissionStatus.INREVIEW;
     }
 
     function _onlySelectedVerifier(
-        string memory evidenceIpfsHash
+        string memory evidenceIpfsHash,
+        address verifierAddress
     ) internal view isVeifier {
-        uint256 length = verifiers[addressToId[msg.sender] - 1]
+        uint256 length = verifiers[addressToId[verifierAddress] - 1]
             .evidenceIpfsHash
             .length;
         for (uint256 i = 0; i < length; i++) {
             if (
                 keccak256(
                     abi.encodePacked(
-                        verifiers[addressToId[msg.sender] - 1].evidenceIpfsHash[
-                            i
-                        ]
+                        verifiers[addressToId[verifierAddress] - 1]
+                            .evidenceIpfsHash[i]
                     )
                 ) == keccak256(abi.encodePacked(evidenceIpfsHash))
             ) {
@@ -347,20 +437,20 @@ contract Verifier is VSkillUser, Distribution {
         }
 
         // If all three verifiers approve or reject the evidence, the status of the evidence will be updated
-        // Anyone of them gives a different feedback, the status will remain in review
+        // Anyone of them gives a different feedback, the status be differentOpinion
         // And the evidence will be assigned again randomly to three verifiers(may be the same verifiers => it's possible)
         // The process will be repeated until all three verifiers give the same feedback
 
         for (uint256 i = 0; i < numWords; i++) {
             if (status[i] != status[i + 1]) {
-                return SubmissionStatus.InReview;
+                return SubmissionStatus.DIFFERENTOPINION;
             }
         }
 
         if (status[0]) {
-            return SubmissionStatus.Approved;
+            return SubmissionStatus.APPROVED;
         } else {
-            return SubmissionStatus.Rejected;
+            return SubmissionStatus.REJECTED;
         }
     }
 
