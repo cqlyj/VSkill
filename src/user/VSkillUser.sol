@@ -50,10 +50,11 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     }
 
     enum SubmissionStatus {
-        Submmited,
+        Submitted,
         InReview,
         Approved,
-        Rejected
+        Rejected,
+        DifferentOpinion
     }
 
     string[] private skillDomains = [
@@ -66,6 +67,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
     uint256 private submissionFeeInUsd; // 5e18 -> 5 USD for each submission
     mapping(address => evidence[]) public addressToEvidences;
+    evidence[] public evidences;
 
     event EvidenceSubmitted(
         address indexed submitter,
@@ -121,7 +123,17 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.Submmited,
+                status: SubmissionStatus.Submitted,
+                feedbackIpfsHash: ""
+            })
+        );
+
+        evidences.push(
+            evidence({
+                submitter: msg.sender,
+                evidenceIpfsHash: evidenceIpfsHash,
+                skillDomain: skillDomain,
+                status: SubmissionStatus.Submitted,
                 feedbackIpfsHash: ""
             })
         );
