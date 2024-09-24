@@ -335,3 +335,13 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 ### 2024/9/24
 
 **What I did today:**
+
+- fix the known bug in the contract. => Those verifiers who make right decision but have different opinions should not be penalized.
+- find a bug in `Distribution` test. => the length of `getRandomNumber` is 0 for now.
+- keep refactoring the `Verifier` contract...
+
+---
+
+### 2024/9/25
+
+**What I did today:**
