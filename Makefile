@@ -49,9 +49,6 @@ deploy-nft-user-anvil:
 	
 # Staking module interactions
 
-stakeToBeTheVerifierStaking-anvil:
-	@forge script script/staking/Interactions.s.sol:StakeToBeTheVerifierStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
 withdrawStakeStaking-anvil:
 	@forge script script/staking/Interactions.s.sol:WithdrawStakeStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
