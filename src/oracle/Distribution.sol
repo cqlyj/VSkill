@@ -51,7 +51,7 @@ contract Distribution is VRFConsumerBaseV2 {
         callbackGasLimit = _callbackGasLimit;
     }
 
-    function distributionRandomNumberForVerifiers() external {
+    function distributionRandomNumberForVerifiers() public {
         requestId = vrfCoordinator.requestRandomWords(
             keyHash,
             subscriptionId,
