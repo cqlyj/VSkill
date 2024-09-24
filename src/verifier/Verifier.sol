@@ -54,6 +54,48 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         string[] newSkillDomains
     );
 
+    event FeedbackProvided(
+        address indexed verifierAddress,
+        address indexed user,
+        bool indexed approved,
+        string feedbackIpfsHash,
+        string evidenceIpfsHash
+    );
+
+    event EvidenceToStatusApproveOrNotUpdated(
+        string indexed evidenceIpfsHash,
+        bool indexed status
+    );
+
+    event EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+        address indexed verifierAddress,
+        string indexed evidenceIpfsHash,
+        bool indexed status
+    );
+
+    event EvidenceStatusUpdated(
+        address indexed user,
+        string indexed evidenceIpfsHash,
+        SubmissionStatus status
+    );
+
+    event VerifierAssignedToEvidence(
+        address indexed verifierAddress,
+        address indexed submitter,
+        string indexed evidenceIpfsHash
+    );
+
+    event EvidenceIpfsHashToSelectedVerifiersUpdated(
+        string indexed evidenceIpfsHash,
+        address[] selectedVerifiers
+    );
+
+    event VerifierReputationUpdated(
+        address indexed verifierAddress,
+        uint256 indexed prevousReputation,
+        uint256 indexed currentReputation
+    );
+
     modifier isVeifier() {
         _isVerifier(msg.sender);
         _;
@@ -169,16 +211,38 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             feedbackIpfsHash
         );
 
+        emit FeedbackProvided(
+            msg.sender,
+            user,
+            approved,
+            feedbackIpfsHash,
+            evidenceIpfsHash
+        );
+
         if (approved) {
             evidenceToStatusApproveOrNot[evidenceIpfsHash].push(true);
+            emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, true);
+
             evidenceToAllSelectedVerifiersToFeedbackStatus[evidenceIpfsHash][
                 msg.sender
             ] = true;
+            emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+                msg.sender,
+                evidenceIpfsHash,
+                true
+            );
         } else {
             evidenceToStatusApproveOrNot[evidenceIpfsHash].push(false);
+            emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, false);
+
             evidenceToAllSelectedVerifiersToFeedbackStatus[evidenceIpfsHash][
                 msg.sender
             ] = false;
+            emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+                msg.sender,
+                evidenceIpfsHash,
+                false
+            );
         }
 
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
@@ -261,6 +325,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         if (currentReputation < HIGHEST_REPUTATION) {
             verifiers[addressToId[verifiersAddress] - 1].reputation++;
+
+            emit VerifierReputationUpdated(
+                verifiersAddress,
+                verifiers[addressToId[verifiersAddress] - 1].reputation - 1,
+                verifiers[addressToId[verifiersAddress] - 1].reputation
+            );
         }
         // get the reward from the contract => what's the ratio of the reward?
         // first, higher reputation leads to higher rewards
@@ -281,6 +351,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             LOWEST_REPUTATION
         ) {
             verifiers[addressToId[verifiersAddress] - 1].reputation--;
+
+            emit VerifierReputationUpdated(
+                verifiersAddress,
+                verifiers[addressToId[verifiersAddress] - 1].reputation + 1,
+                verifiers[addressToId[verifiersAddress] - 1].reputation
+            );
         } else {
             verifier memory verifierToBeRemoved = verifiers[
                 addressToId[verifiersAddress] - 1
@@ -349,7 +425,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ) internal enoughNumberOfVerifiers(skillDomain) returns (address[] memory) {
         address[] memory selectedVerifiers = new address[](numWords);
 
-        uint256[] memory randomWords = getRandomWords();
+        super.distributionRandomNumberForVerifiers();
+        uint256[] memory randomWords = super.getRandomWords();
 
         (
             address[] memory verifiersWithinSameDomain,
@@ -415,10 +492,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             evidenceIpfsHashToSelectedVerifiers[
                 evidenceIpfsHash
             ] = prevAndCurrentSelectedVerifiers;
+
+            emit EvidenceIpfsHashToSelectedVerifiersUpdated(
+                evidenceIpfsHash,
+                prevAndCurrentSelectedVerifiers
+            );
         } else {
             evidenceIpfsHashToSelectedVerifiers[
                 evidenceIpfsHash
             ] = selectedVerifiers;
+
+            emit EvidenceIpfsHashToSelectedVerifiersUpdated(
+                evidenceIpfsHash,
+                selectedVerifiers
+            );
         }
 
         return selectedVerifiers;
@@ -438,9 +525,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             verifiers[addressToId[selectedVerifiers[i]] - 1]
                 .evidenceSubmitters
                 .push(ev.submitter);
+
+            emit VerifierAssignedToEvidence(
+                selectedVerifiers[i],
+                ev.submitter,
+                ev.evidenceIpfsHash
+            );
         }
 
         ev.status = SubmissionStatus.INREVIEW;
+        emit EvidenceStatusUpdated(
+            ev.submitter,
+            ev.evidenceIpfsHash,
+            ev.status
+        );
     }
 
     function _onlySelectedVerifier(
@@ -477,7 +575,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function _updateEvidenceStatus(
         string memory evidenceIpfsHash,
         address user
-    ) internal view returns (SubmissionStatus) {
+    ) internal returns (SubmissionStatus) {
         _waitForConfirmation(evidenceIpfsHash);
         bool[] memory status = evidenceToStatusApproveOrNot[evidenceIpfsHash];
 
@@ -507,6 +605,11 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                     currentEvidenceIndex
                 ];
                 ev.status = SubmissionStatus.DIFFERENTOPINION;
+                emit EvidenceStatusUpdated(
+                    user,
+                    ev.evidenceIpfsHash,
+                    SubmissionStatus.DIFFERENTOPINION
+                );
                 return SubmissionStatus.DIFFERENTOPINION;
             }
         }
@@ -514,10 +617,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         if (status[0]) {
             evidence memory ev = addressToEvidences[user][currentEvidenceIndex];
             ev.status = SubmissionStatus.APPROVED;
+            emit EvidenceStatusUpdated(
+                user,
+                ev.evidenceIpfsHash,
+                SubmissionStatus.APPROVED
+            );
             return SubmissionStatus.APPROVED;
         } else {
             evidence memory ev = addressToEvidences[user][currentEvidenceIndex];
             ev.status = SubmissionStatus.REJECTED;
+            emit EvidenceStatusUpdated(
+                user,
+                ev.evidenceIpfsHash,
+                SubmissionStatus.REJECTED
+            );
             return SubmissionStatus.REJECTED;
         }
     }
@@ -525,4 +638,26 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ///////////////////////////////
     /////   Getter Functions   ////
     ///////////////////////////////
+
+    function getEvidenceToStatusApproveOrNot(
+        string memory evidenceIpfsHash
+    ) external view returns (bool[] memory) {
+        return evidenceToStatusApproveOrNot[evidenceIpfsHash];
+    }
+
+    function getEvidenceIpfsHashToSelectedVerifiers(
+        string memory evidenceIpfsHash
+    ) external view returns (address[] memory) {
+        return evidenceIpfsHashToSelectedVerifiers[evidenceIpfsHash];
+    }
+
+    function getEvidenceToAllSelectedVerifiersToFeedbackStatus(
+        string memory evidenceIpfsHash,
+        address verifierAddress
+    ) external view returns (bool) {
+        return
+            evidenceToAllSelectedVerifiersToFeedbackStatus[evidenceIpfsHash][
+                verifierAddress
+            ];
+    }
 }
