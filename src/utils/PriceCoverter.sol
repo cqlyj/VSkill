@@ -26,4 +26,12 @@ library PriceConverter {
         int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
         return (ethAmount * uint256(ethPrice)) / 1e18;
     }
+
+    function convertUsdToEth(
+        uint256 usdAmount,
+        AggregatorV3Interface priceFeed
+    ) internal view returns (uint256) {
+        int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
+        return (usdAmount * 1e18) / uint256(ethPrice);
+    }
 }
