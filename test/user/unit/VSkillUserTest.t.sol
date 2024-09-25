@@ -24,13 +24,6 @@ contract VSkillUserTest is Test {
     uint256 public constant NEW_SUBMISSION_FEE_IN_USD = 10e18; // 10 USD
     string public constant NEW_NFT_IMAGE_URI = "newnftimageuri";
 
-    // enum SubmissionStatus {
-    //     Submmited,
-    //     InReview,
-    //     Approved,
-    //     Rejected
-    // }
-
     event EvidenceSubmitted(
         address indexed submitter,
         string evidenceIpfsHash,
