@@ -265,8 +265,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
-    // function stake() external {}
-    // function withdraw() external {}
+    function stake() public payable override {
+        super.stake();
+    }
+
+    function withdrawStake(uint256 amountToWithdrawInEth) public override {
+        super.withdrawStake(amountToWithdrawInEth);
+    }
 
     //////////////////////////////////
     /////   Internal Functions   /////
