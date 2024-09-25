@@ -345,3 +345,18 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 ### 2024/9/25
 
 **What I did today:**
+
+- write the scripts for `verifier` contract.
+- add new function convert USD to ETH in the `util` module. => The `PriceConverter.sol`
+- write some test for the `verifier` contract.
+- **Issue**: for now the `forge compile` works well with the help of `--via-ir`, but `forge coverage` doesn't work with this flag.
+
+**Thoughts:**
+
+- maybe not directly inherit the `VSkillUser` contract, instead, add the `VSkillUser` contract address as a parameter constructor of the `Verifier` contract. And make the `VSkillUser` contract as a library.
+
+---
+
+### 2024/9/26
+
+**What I did today:**
