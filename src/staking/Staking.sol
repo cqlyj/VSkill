@@ -87,7 +87,7 @@ contract Staking {
 
     fallback() external payable {}
 
-    function withdrawStake(uint256 amountToWithdrawInEth) external {
+    function withdrawStake(uint256 amountToWithdrawInEth) public virtual {
         if (addressToId[msg.sender] == 0) {
             revert Staking__NotVerifier();
         }
@@ -126,7 +126,7 @@ contract Staking {
         }
     }
 
-    function stake() external payable {
+    function stake() public payable virtual {
         uint256 amountInUsd = msg.value.convertEthToUsd(priceFeed);
 
         if (addressToId[msg.sender] == 0) {
