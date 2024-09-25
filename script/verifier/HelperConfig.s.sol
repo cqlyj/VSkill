@@ -29,7 +29,23 @@ contract HelperConfig is Script {
 
     NetworkConfig public activeNetworkConfig;
 
-    constructor() {}
+    constructor() {
+        if (block.chainid == 1) {
+            activeNetworkConfig = getMainnetConfig();
+        } else if (block.chainid == 11155111) {
+            activeNetworkConfig = getSepoliaConfig();
+        } else {
+            activeNetworkConfig = getOrCreateAnvilChainConfig();
+        }
+    }
+
+    function getActiveNetworkConfig()
+        public
+        view
+        returns (NetworkConfig memory)
+    {
+        return activeNetworkConfig;
+    }
 
     function svgToImageUri(
         string memory svg
