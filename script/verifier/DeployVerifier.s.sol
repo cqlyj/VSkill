@@ -6,8 +6,11 @@ import {Script} from "forge-std/Script.sol";
 import {CreateSubscriptionDistribution, FundSubscriptionDistribution, AddConsumerDistribution} from "./Interactions.s.sol";
 import {Verifier} from "../../src/verifier/Verifier.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
+import {StructDefinition} from "../../src/utils/StructDefinition.sol";
 
 contract DeployVerifier is Script {
+    using StructDefinition for StructDefinition.VerifierConstructorParams;
+
     function run() external returns (Verifier, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         (
@@ -43,16 +46,19 @@ contract DeployVerifier is Script {
             );
         }
 
+        StructDefinition.VerifierConstructorParams
+            memory params = StructDefinition.VerifierConstructorParams({
+                priceFeed: priceFeed,
+                subscriptionId: subscriptionId,
+                vrfCoordinator: vrfCoordinator,
+                keyHash: keyHash,
+                callbackGasLimit: callbackGasLimit,
+                submissionFeeInUsd: submissionFeeInUsd,
+                userNftImageUris: userNftImageUris
+            });
+
         vm.startBroadcast();
-        Verifier verifier = new Verifier(
-            priceFeed,
-            subscriptionId,
-            vrfCoordinator,
-            keyHash,
-            callbackGasLimit,
-            submissionFeeInUsd,
-            userNftImageUris
-        );
+        Verifier verifier = new Verifier(params);
         vm.stopBroadcast();
 
         // Add consumer
