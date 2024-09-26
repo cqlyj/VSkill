@@ -15,7 +15,7 @@ fs_permissions = [
 ]
 
 # It is suggested to avoid adding this configuration, if you can add more scopes or split the larger functions into smaller ones to limit the variable's lifespan.
-viaIR = true
+# viaIR = true
 
 ffi = true
 
