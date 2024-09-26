@@ -10,21 +10,18 @@ import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFC
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "src/utils/PriceCoverter.sol";
 import {Staking} from "src/staking/Staking.sol";
+import {StructDefinition} from "src/utils/StructDefinition.sol";
 
 contract VerifierTest is Test {
     using PriceConverter for uint256;
+    using StructDefinition for StructDefinition.VerifierConstructorParams;
+    using StructDefinition for StructDefinition.VerifierFeedbackProvidedEventParams;
 
     DeployVerifier deployer;
     Verifier verifier;
     HelperConfig helperConfig;
 
-    address priceFeed;
-    uint64 subscriptionId;
-    address vrfCoordinator;
-    bytes32 keyHash;
-    uint32 callbackGasLimit;
-    uint256 submissionFeeInUsd;
-    string[] userNftImageUris;
+    StructDefinition.VerifierConstructorParams verifierConstructorParams;
     address linkTokenAddress;
     uint256 deployerKey;
 
@@ -44,16 +41,40 @@ contract VerifierTest is Test {
     function setUp() external {
         deployer = new DeployVerifier();
         (verifier, helperConfig) = deployer.run();
-        (
-            priceFeed,
-            subscriptionId,
-            vrfCoordinator,
-            keyHash,
-            callbackGasLimit,
-            submissionFeeInUsd,
-            linkTokenAddress,
-            deployerKey
-        ) = helperConfig.activeNetworkConfig();
+        // (
+        //     verifierConstructorParams.priceFeed,
+        //     verifierConstructorParams.subscriptionId,
+        //     verifierConstructorParams.vrfCoordinator,
+        //     verifierConstructorParams.keyHash,
+        //     verifierConstructorParams.callbackGasLimit,
+        //     verifierConstructorParams.submissionFeeInUsd,
+        //     linkTokenAddress,
+        //     deployerKey
+        // ) = helperConfig.activeNetworkConfig();
+
+        // Refactor the above code to the following to avoid stack too deep error
+        verifierConstructorParams.priceFeed = helperConfig
+            .getActiveNetworkConfig()
+            .priceFeed;
+        verifierConstructorParams.subscriptionId = helperConfig
+            .getActiveNetworkConfig()
+            .subscriptionId;
+        verifierConstructorParams.vrfCoordinator = helperConfig
+            .getActiveNetworkConfig()
+            .vrfCoordinator;
+        verifierConstructorParams.keyHash = helperConfig
+            .getActiveNetworkConfig()
+            .keyHash;
+        verifierConstructorParams.callbackGasLimit = helperConfig
+            .getActiveNetworkConfig()
+            .callbackGasLimit;
+        verifierConstructorParams.submissionFeeInUsd = helperConfig
+            .getActiveNetworkConfig()
+            .submissionFeeInUsd;
+        linkTokenAddress = helperConfig
+            .getActiveNetworkConfig()
+            .linkTokenAddress;
+        deployerKey = helperConfig.getActiveNetworkConfig().deployerKey;
 
         vm.deal(USER, INITIAL_BALANCE);
     }
@@ -68,11 +89,7 @@ contract VerifierTest is Test {
     );
 
     event FeedbackProvided(
-        address indexed verifierAddress,
-        address indexed user,
-        bool indexed approved,
-        string feedbackIpfsHash,
-        string evidenceIpfsHash
+        StructDefinition.VerifierFeedbackProvidedEventParams feedbackInfo
     );
 
     event EvidenceToStatusApproveOrNotUpdated(
@@ -113,15 +130,6 @@ contract VerifierTest is Test {
     ////       modifier      ////
     /////////////////////////////
 
-    modifier stakeToBeVerifier() {
-        uint256 minEthAmount = MIN_USD_AMOUNT_TO_STAKE.convertUsdToEth(
-            AggregatorV3Interface(priceFeed)
-        );
-        vm.prank(USER);
-        verifier.stake{value: minEthAmount}();
-        _;
-    }
-
     //////////////////////////////
     //    updateSkillDomains    //
     //////////////////////////////
@@ -132,10 +140,8 @@ contract VerifierTest is Test {
         verifier.updateSkillDomains(NEW_SKILL_DOMAINS);
     }
 
-    function testUpdateSkillDomainsUpdateSuccessfully()
-        external
-        stakeToBeVerifier
-    {
+    function testUpdateSkillDomainsUpdateSuccessfully() external {
+        _stakeToBeVerifier();
         vm.prank(USER);
         verifier.updateSkillDomains(NEW_SKILL_DOMAINS);
 
@@ -147,8 +153,8 @@ contract VerifierTest is Test {
 
     function testUpdateSkillDomainsEmitsVerifierSkillDomainUpdatedEvent()
         external
-        stakeToBeVerifier
     {
+        _stakeToBeVerifier();
         vm.prank(USER);
 
         vm.expectEmit(true, false, false, true, address(verifier));
@@ -159,4 +165,15 @@ contract VerifierTest is Test {
     //////////////////////////////////////
     //    _verifiersWithinSameDomain    //
     //////////////////////////////////////
+
+    ///////////////////////////////////
+    ///       Helper Functions      ///
+    ///////////////////////////////////
+    function _stakeToBeVerifier() internal {
+        uint256 minEthAmount = MIN_USD_AMOUNT_TO_STAKE.convertUsdToEth(
+            AggregatorV3Interface(verifierConstructorParams.priceFeed)
+        );
+        vm.prank(USER);
+        verifier.stake{value: minEthAmount}();
+    }
 }
