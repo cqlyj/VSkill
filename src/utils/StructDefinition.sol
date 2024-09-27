@@ -26,4 +26,25 @@ library StructDefinition {
         string feedbackIpfsHash;
         string evidenceIpfsHash;
     }
+
+    struct DistributionVerifierRequestContext {
+        address requester;
+        VSkillUserEvidence ev;
+    }
+
+    enum VSkillUserSubmissionStatus {
+        SUBMITTED,
+        INREVIEW,
+        APPROVED,
+        REJECTED,
+        DIFFERENTOPINION
+    }
+
+    struct VSkillUserEvidence {
+        address submitter;
+        string evidenceIpfsHash;
+        string skillDomain;
+        VSkillUserSubmissionStatus status;
+        string[] feedbackIpfsHash;
+    }
 }
