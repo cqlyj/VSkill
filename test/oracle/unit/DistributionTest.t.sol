@@ -71,8 +71,27 @@ contract DistributionTest is Test {
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         bytes32 requestId = entries[0].topics[2];
-        assertEq(entries.length, 1);
-        assert(requestId != 0);
+        assertEq(uint256(requestId), 1);
+    }
+
+    function testDistributionRandomNumberForVerifiersEmitsTwoEvents() external {
+        vm.recordLogs();
+        distribution.distributionRandomNumberForVerifiers(SUBMITTER, EV);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        assertEq(entries.length, 2);
+    }
+
+    function testDistributionRandomNumberForVerifiersEmitsRequestIdToContextUpdatedEvent()
+        external
+    {
+        vm.recordLogs();
+        distribution.distributionRandomNumberForVerifiers(SUBMITTER, EV);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        bytes32 requestId = entries[0].topics[2];
+        bytes32 requestIdFromRequestIdToContext = entries[1].topics[1];
+        assertEq(requestId, requestIdFromRequestIdToContext);
     }
 
     function testDistributionRandomNumberForVerifiersUpdatesRequestIdToContext()
