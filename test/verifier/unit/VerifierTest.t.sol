@@ -2,15 +2,16 @@
 
 pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {Verifier} from "src/verifier/Verifier.sol";
 import {DeployVerifier} from "script/verifier/DeployVerifier.s.sol";
 import {HelperConfig} from "script/verifier/HelperConfig.s.sol";
 import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceConverter} from "src/utils/PriceCoverter.sol";
+import {PriceConverter} from "src/utils/library/PriceCoverter.sol";
 import {Staking} from "src/staking/Staking.sol";
-import {StructDefinition} from "src/utils/StructDefinition.sol";
+import {StructDefinition} from "src/utils/library/StructDefinition.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract VerifierTest is Test {
     using PriceConverter for uint256;
@@ -28,7 +29,11 @@ contract VerifierTest is Test {
     address public USER = makeAddr("user");
     uint256 private constant MIN_USD_AMOUNT_TO_STAKE = 20e18; // 20 USD
     string[] private NEW_SKILL_DOMAINS = ["newSkillDomain1", "newSkillDomain2"];
+    string[] private SKILL_DOMAINS = ["skillDomain1", "skillDomain2"];
     uint256 private constant INITIAL_BALANCE = 100 ether;
+    uint256 private constant NUM_WORDS = 3;
+    string public constant IPFS_HASH =
+        "https://ipfs.io/ipfs/QmbJLndDmDiwdotu3MtfcjC2hC5tXeAR9EXbNSdUDUDYWa";
 
     enum SubmissionStatus {
         SUBMITTED,
@@ -130,6 +135,14 @@ contract VerifierTest is Test {
     ////       modifier      ////
     /////////////////////////////
 
+    modifier becomeVerifierWithSkillDomain(
+        address user,
+        string[] memory skillDomains
+    ) {
+        _becomeVerifierWithSkillDomain(user, skillDomains);
+        _;
+    }
+
     //////////////////////////////
     //    updateSkillDomains    //
     //////////////////////////////
@@ -140,11 +153,10 @@ contract VerifierTest is Test {
         verifier.updateSkillDomains(NEW_SKILL_DOMAINS);
     }
 
-    function testUpdateSkillDomainsUpdateSuccessfully() external {
-        _stakeToBeVerifier();
-        vm.prank(USER);
-        verifier.updateSkillDomains(NEW_SKILL_DOMAINS);
-
+    function testUpdateSkillDomainsUpdateSuccessfully()
+        external
+        becomeVerifierWithSkillDomain(USER, SKILL_DOMAINS)
+    {
         assert(
             NEW_SKILL_DOMAINS.length ==
                 verifier.getVerifierSkillDomains(USER).length
@@ -154,7 +166,7 @@ contract VerifierTest is Test {
     function testUpdateSkillDomainsEmitsVerifierSkillDomainUpdatedEvent()
         external
     {
-        _stakeToBeVerifier();
+        _stakeToBeVerifier(USER);
         vm.prank(USER);
 
         vm.expectEmit(true, false, false, true, address(verifier));
@@ -165,15 +177,149 @@ contract VerifierTest is Test {
     //////////////////////////////////////
     //    _verifiersWithinSameDomain    //
     //////////////////////////////////////
+    function testVerifierWithinSameDomainOnlyRetureVerifierWithinSameDomainAndCorrectCount()
+        external
+        becomeVerifierWithSkillDomain(USER, SKILL_DOMAINS)
+    {
+        address verifierNotSameDomain = makeAddr("verifierNotSameDomain");
+        vm.deal(verifierNotSameDomain, INITIAL_BALANCE);
+        _becomeVerifierWithSkillDomain(
+            verifierNotSameDomain,
+            NEW_SKILL_DOMAINS
+        );
+
+        string memory expectedSkillDomain = SKILL_DOMAINS[0];
+        (address[] memory verifiers, uint256 count) = verifier
+            ._verifiersWithinSameDomain(expectedSkillDomain);
+
+        assert(verifiers.length == 1);
+        assert(count == 1);
+        assert(verifiers[0] == USER);
+    }
+
+    //////////////////////////////////////
+    //     _enoughNumberOfVerifiers     //
+    //////////////////////////////////////
+
+    function testEnoughNumberOfVerifiersWillRevertWithNotEnoughVerifiersIfNotEnoughVerifiers()
+        external
+        becomeVerifierWithSkillDomain(USER, SKILL_DOMAINS)
+    {
+        string memory skillDomain = SKILL_DOMAINS[0];
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Verifier.Verifier__NotEnoughVerifiers.selector,
+                1
+            )
+        );
+        verifier._enoughNumberOfVerifiers(skillDomain);
+    }
+
+    function testEnoughNumberOfVerifiersWillRevertIfNotEnoughVerifierWithinSameDomain()
+        external
+        becomeVerifierWithSkillDomain(USER, SKILL_DOMAINS)
+    {
+        for (uint160 i = 1; i < uint160(NUM_WORDS); i++) {
+            address verifierWithinSameDomain = address(i);
+            vm.deal(verifierWithinSameDomain, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(
+                verifierWithinSameDomain,
+                NEW_SKILL_DOMAINS
+            );
+        }
+
+        string memory skillDomainNeeded = NEW_SKILL_DOMAINS[0];
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Verifier.Verifier__NotEnoughVerifiers.selector,
+                2
+            )
+        );
+        verifier._enoughNumberOfVerifiers(skillDomainNeeded);
+    }
+
+    function testEnoughNumberOFVerifiersWillPassIfEnoughVerifiers()
+        external
+        becomeVerifierWithSkillDomain(USER, SKILL_DOMAINS)
+    {
+        for (uint160 i = 1; i < uint160(NUM_WORDS); i++) {
+            address verifierWithinSameDomain = address(i);
+            vm.deal(verifierWithinSameDomain, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(
+                verifierWithinSameDomain,
+                SKILL_DOMAINS
+            );
+        }
+        verifier._enoughNumberOfVerifiers(SKILL_DOMAINS[0]);
+    }
+
+    ////////////////////////
+    //    A HUGE TEST     //
+    ////////////////////////
+
+    // The test below works, that is to say the VRF works, but it is not a good test
+
+    function testRequestVerifiersSelection() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        address submitter = makeAddr("submitter");
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                submitter,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+
+        uint256[] memory randomWords = verifier.getRandomWords();
+        assertEq(randomWords.length, uint256(3));
+    }
 
     ///////////////////////////////////
     ///       Helper Functions      ///
     ///////////////////////////////////
-    function _stakeToBeVerifier() internal {
+    function _stakeToBeVerifier(address user) internal {
         uint256 minEthAmount = MIN_USD_AMOUNT_TO_STAKE.convertUsdToEth(
             AggregatorV3Interface(verifierConstructorParams.priceFeed)
         );
-        vm.prank(USER);
+        vm.prank(user);
         verifier.stake{value: minEthAmount}();
+    }
+
+    function _becomeVerifierWithSkillDomain(
+        address user,
+        string[] memory skillDomains
+    ) internal {
+        _stakeToBeVerifier(user);
+        vm.prank(user);
+        verifier.updateSkillDomains(skillDomains);
+    }
+
+    function _createNumWordsNumberOfSameDomainVerifier(
+        string[] memory skillDomain
+    ) internal returns (address[] memory) {
+        address[] memory verifierWithinSameDomain = new address[](NUM_WORDS);
+        for (uint160 i = 1; i < uint160(NUM_WORDS + 1); i++) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, skillDomain);
+            verifierWithinSameDomain[i - 1] = verifierAddress;
+        }
+        return verifierWithinSameDomain;
     }
 }
