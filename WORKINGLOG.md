@@ -372,3 +372,15 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 ### 2024/9/27
 
 **What I did today:**
+
+- refactor the `Verifier` and `Distribution` contract to make them work properly. => Add callback function in the `Verifier` contract to be called by the `fulfillRandomWords` function and thus assign the evidence to the verifiers.
+- refactor the `VSkillUser` contract about its structs and enums.
+- Add `VerifierInterface` in a new interface folder and will be used in the `Distribution` contract for the callback function.
+- Refactor their corresponding deployment and test scripts.
+- write a huge test for the `Verifier` contract just to ensure that the VRF works properly and the evidence can be distributed to the verifiers.
+
+---
+
+### 2024/9/28
+
+**What I did today:**
