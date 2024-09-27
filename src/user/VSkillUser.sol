@@ -25,11 +25,11 @@
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceConverter} from "../../src/utils/PriceCoverter.sol";
+import {PriceConverter} from "../../src/utils/library/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Staking} from "../staking/Staking.sol";
 import {VSkillUserNft} from "../nft/VSkillUserNft.sol";
-import {StructDefinition} from "../utils/StructDefinition.sol";
+import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using PriceConverter for uint256;

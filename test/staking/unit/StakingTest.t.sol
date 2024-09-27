@@ -5,7 +5,7 @@ pragma solidity ^0.8.24;
 import {Test, console} from "lib/forge-std/src/Test.sol";
 import {Staking} from "src/staking/Staking.sol";
 import {DeployStaking} from "script/staking/DeployStaking.s.sol";
-import {PriceConverter} from "src/utils/PriceCoverter.sol";
+import {PriceConverter} from "src/utils/library/PriceCoverter.sol";
 import {HelperConfig} from "script/staking/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {Vm} from "forge-std/Vm.sol";

@@ -6,7 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {CreateSubscriptionDistribution, FundSubscriptionDistribution, AddConsumerDistribution} from "./Interactions.s.sol";
 import {Verifier} from "../../src/verifier/Verifier.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {StructDefinition} from "../../src/utils/StructDefinition.sol";
+import {StructDefinition} from "../../src/utils/library/StructDefinition.sol";
 
 contract DeployVerifier is Script {
     using StructDefinition for StructDefinition.VerifierConstructorParams;
