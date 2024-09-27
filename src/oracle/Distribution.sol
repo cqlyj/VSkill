@@ -26,8 +26,13 @@ pragma solidity ^0.8.24;
 
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import {StructDefinition} from "../utils/library/StructDefinition.sol";
+import {VerifierInterface} from "../utils/interface/VerifierInterface.sol";
 
 contract Distribution is VRFConsumerBaseV2 {
+    using StructDefinition for StructDefinition.DistributionVerifierRequestContext;
+    using StructDefinition for StructDefinition.VSkillUserEvidence;
+
     uint64 subscriptionId;
     VRFCoordinatorV2Interface vrfCoordinator;
     bytes32 keyHash;
@@ -38,6 +43,8 @@ contract Distribution is VRFConsumerBaseV2 {
     uint256 requestId;
 
     uint256[] private randomWords;
+    mapping(uint256 => StructDefinition.DistributionVerifierRequestContext)
+        private requestIdToContext;
 
     constructor(
         uint64 _subscriptionId,
@@ -51,7 +58,10 @@ contract Distribution is VRFConsumerBaseV2 {
         callbackGasLimit = _callbackGasLimit;
     }
 
-    function distributionRandomNumberForVerifiers() public {
+    function distributionRandomNumberForVerifiers(
+        address requester,
+        StructDefinition.VSkillUserEvidence memory ev
+    ) public {
         requestId = vrfCoordinator.requestRandomWords(
             keyHash,
             subscriptionId,
@@ -59,6 +69,9 @@ contract Distribution is VRFConsumerBaseV2 {
             callbackGasLimit,
             numWords
         );
+
+        requestIdToContext[requestId] = StructDefinition
+            .DistributionVerifierRequestContext(requester, ev);
     }
 
     function fulfillRandomWords(
@@ -66,6 +79,19 @@ contract Distribution is VRFConsumerBaseV2 {
         uint256[] memory _randomWords
     ) internal override {
         randomWords = _randomWords;
+        _processVerifiers(requestId);
+    }
+
+    ///////////////////////////////
+    /////   Internal Functions ////
+    ///////////////////////////////
+    function _processVerifiers(uint256 _requestId) internal {
+        StructDefinition.DistributionVerifierRequestContext
+            memory context = requestIdToContext[_requestId];
+        VerifierInterface(context.requester)._selectedVerifiersAddressCallback(
+            context.ev,
+            randomWords
+        );
     }
 
     ///////////////////////////////
@@ -74,5 +100,15 @@ contract Distribution is VRFConsumerBaseV2 {
 
     function getRandomWords() public view returns (uint256[] memory) {
         return randomWords;
+    }
+
+    function getRequestIdToContext(
+        uint256 _requestId
+    )
+        public
+        view
+        returns (StructDefinition.DistributionVerifierRequestContext memory)
+    {
+        return requestIdToContext[_requestId];
     }
 }
