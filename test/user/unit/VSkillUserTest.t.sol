@@ -7,8 +7,12 @@ import {DeployVSkillUser} from "../../../script/user/DeployVSkillUser.s.sol";
 import {VSkillUser} from "../../../src/user/VSkillUser.sol";
 import {HelperConfig} from "../../../script/user/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {StructDefinition} from "../../../src/utils/library/StructDefinition.sol";
 
 contract VSkillUserTest is Test {
+    using StructDefinition for StructDefinition.VSkillUserEvidence;
+    using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+
     DeployVSkillUser deployer;
     VSkillUser vskill;
     HelperConfig helperConfig;
@@ -75,9 +79,8 @@ contract VSkillUserTest is Test {
         );
         vm.stopPrank();
 
-        VSkillUser.evidence[] memory evidences = vskill.getAddressToEvidences(
-            USER
-        );
+        StructDefinition.VSkillUserEvidence[] memory evidences = vskill
+            .getAddressToEvidences(USER);
         assertEq(evidences.length, 1);
         assertEq(evidences[0].evidenceIpfsHash, IPFS_HASH);
         assertEq(evidences[0].skillDomain, SKILL_DOMAIN);
