@@ -29,9 +29,12 @@ import {PriceConverter} from "../../src/utils/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Staking} from "../staking/Staking.sol";
 import {VSkillUserNft} from "../nft/VSkillUserNft.sol";
+import {StructDefinition} from "../utils/StructDefinition.sol";
 
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using PriceConverter for uint256;
+    using StructDefinition for StructDefinition.VSkillUserEvidence;
+    using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
@@ -39,23 +42,25 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     );
     error VSkillUser__InvalidSkillDomain();
     error VSkillUser__SkillDomainAlreadyExists();
-    error VSkillUser__EvidenceNotApprovedYet(SubmissionStatus status);
+    error VSkillUser__EvidenceNotApprovedYet(
+        StructDefinition.VSkillUserSubmissionStatus status
+    );
 
-    struct evidence {
-        address submitter;
-        string evidenceIpfsHash;
-        string skillDomain;
-        SubmissionStatus status;
-        string[] feedbackIpfsHash;
-    }
+    // struct evidence {
+    //     address submitter;
+    //     string evidenceIpfsHash;
+    //     string skillDomain;
+    //     SubmissionStatus status;
+    //     string[] feedbackIpfsHash;
+    // }
 
-    enum SubmissionStatus {
-        SUBMITTED,
-        INREVIEW,
-        APPROVED,
-        REJECTED,
-        DIFFERENTOPINION
-    }
+    // enum SubmissionStatus {
+    //     SUBMITTED,
+    //     INREVIEW,
+    //     APPROVED,
+    //     REJECTED,
+    //     DIFFERENTOPINION
+    // }
 
     string[] private skillDomains = [
         "Frontend",
@@ -66,8 +71,9 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     ];
 
     uint256 private submissionFeeInUsd; // 5e18 -> 5 USD for each submission
-    mapping(address => evidence[]) public addressToEvidences;
-    evidence[] public evidences;
+    mapping(address => StructDefinition.VSkillUserEvidence[])
+        public addressToEvidences;
+    StructDefinition.VSkillUserEvidence[] public evidences;
 
     event EvidenceSubmitted(
         address indexed submitter,
@@ -119,21 +125,21 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         super._addBonusMoney(msg.value);
 
         addressToEvidences[msg.sender].push(
-            evidence({
+            StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.SUBMITTED,
+                status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
                 feedbackIpfsHash: new string[](0)
             })
         );
 
         evidences.push(
-            evidence({
+            StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
                 skillDomain: skillDomain,
-                status: SubmissionStatus.SUBMITTED,
+                status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
                 feedbackIpfsHash: new string[](0)
             })
         );
@@ -147,7 +153,9 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         return addressToEvidences[msg.sender][index].feedbackIpfsHash;
     }
 
-    function earnUserNft(evidence memory _evidence) external {
+    function earnUserNft(
+        StructDefinition.VSkillUserEvidence memory _evidence
+    ) external {
         _earnUserNft(_evidence);
     }
 
@@ -206,8 +214,13 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         return false;
     }
 
-    function _earnUserNft(evidence memory _evidence) internal {
-        if (_evidence.status != SubmissionStatus.APPROVED) {
+    function _earnUserNft(
+        StructDefinition.VSkillUserEvidence memory _evidence
+    ) internal {
+        if (
+            _evidence.status !=
+            StructDefinition.VSkillUserSubmissionStatus.APPROVED
+        ) {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
@@ -224,14 +237,14 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
     function getAddressToEvidences(
         address _address
-    ) external view returns (evidence[] memory) {
+    ) external view returns (StructDefinition.VSkillUserEvidence[] memory) {
         return addressToEvidences[_address];
     }
 
     function getEvidenceStatus(
         address _address,
         uint256 index
-    ) external view returns (SubmissionStatus) {
+    ) external view returns (StructDefinition.VSkillUserSubmissionStatus) {
         return addressToEvidences[_address][index].status;
     }
 }
