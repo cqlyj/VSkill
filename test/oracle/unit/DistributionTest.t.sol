@@ -8,8 +8,11 @@ import {Distribution} from "src/oracle/Distribution.sol";
 import {HelperConfig} from "script/oracle/HelperConfig.s.sol";
 import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {StructDefinition} from "src/utils/library/StructDefinition.sol";
 
 contract DistributionTest is Test {
+    using StructDefinition for StructDefinition.VSkillUserEvidence;
+
     DeployDistribution deployer;
     Distribution distribution;
     HelperConfig helperConfig;
@@ -17,10 +20,23 @@ contract DistributionTest is Test {
     address vrfCoordinator;
     bytes32 keyHash;
     uint32 callbackGasLimit;
-    uint16 requestConfirmations;
     uint32 numWords = 3;
     address linkTokenAddress;
     uint256 deployerKey;
+
+    string public constant IPFS_HASH =
+        "https://ipfs.io/ipfs/QmbJLndDmDiwdotu3MtfcjC2hC5tXeAR9EXbNSdUDUDYWa";
+    string[] private SKILL_DOMAINS = ["skillDomain1", "skillDomain2"];
+    address private verifierContractAddress;
+    address private SUBMITTER = makeAddr("submitter");
+    StructDefinition.VSkillUserEvidence private EV =
+        StructDefinition.VSkillUserEvidence(
+            SUBMITTER,
+            IPFS_HASH,
+            SKILL_DOMAINS[0],
+            StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+            new string[](0)
+        );
 
     // For now, just test on non-mainnet forks -> After figuered out why mainnet fork is not working, remove this modifier
     modifier skipMainnetForkingTest() {
@@ -43,23 +59,44 @@ contract DistributionTest is Test {
         ) = helperConfig.activeNetworkConfig();
     }
 
-    function testFulfillRandomWordsUpdatesRandomWords()
+    ////////////////////////////////////////////////
+    //    distributionRandomNumberForVerifiers    //
+    ////////////////////////////////////////////////
+
+    function testDistributionRandomNumberForVerifiersEmitsRandomWordsRequested()
         external
-        skipMainnetForkingTest
     {
         vm.recordLogs();
-        distribution.distributionRandomNumberForVerifiers();
+        distribution.distributionRandomNumberForVerifiers(SUBMITTER, EV);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         bytes32 requestId = entries[0].topics[2];
-        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
-            vrfCoordinator
-        );
-        vrfCoordinatorMock.fulfillRandomWords(
-            uint256(requestId),
-            address(distribution)
-        );
-        uint256[] memory randomWords = distribution.getRandomWords();
-        assertEq(randomWords.length, uint256(numWords));
+        assertEq(entries.length, 1);
+        assert(requestId != 0);
     }
+
+    function testDistributionRandomNumberForVerifiersUpdatesRequestIdToContext()
+        external
+    {
+        vm.recordLogs();
+        distribution.distributionRandomNumberForVerifiers(SUBMITTER, EV);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        bytes32 requestId = entries[0].topics[2];
+        StructDefinition.DistributionVerifierRequestContext
+            memory context = distribution.getRequestIdToContext(
+                uint256(requestId)
+            );
+        assertEq(context.requester, SUBMITTER);
+        assert(
+            keccak256(abi.encodePacked(context.ev.evidenceIpfsHash)) ==
+                keccak256(abi.encodePacked(IPFS_HASH))
+        );
+    }
+
+    ////////////////////////////////
+    //     fulfillRandomWords     //
+    ////////////////////////////////
+
+    // Will be tested in the verifier test
 }
