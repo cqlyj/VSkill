@@ -46,6 +46,11 @@ contract Distribution is VRFConsumerBaseV2 {
     mapping(uint256 => StructDefinition.DistributionVerifierRequestContext)
         private requestIdToContext;
 
+    event RequestIdToContextUpdated(
+        uint256 indexed requestId,
+        StructDefinition.DistributionVerifierRequestContext context
+    );
+
     constructor(
         uint64 _subscriptionId,
         address _vrfCoordinator,
@@ -72,6 +77,11 @@ contract Distribution is VRFConsumerBaseV2 {
 
         requestIdToContext[requestId] = StructDefinition
             .DistributionVerifierRequestContext(requester, ev);
+
+        emit RequestIdToContextUpdated(
+            requestId,
+            requestIdToContext[requestId]
+        );
     }
 
     function fulfillRandomWords(
