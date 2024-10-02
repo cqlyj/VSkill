@@ -83,9 +83,13 @@ contract Staking {
         bonusMoneyInEth = 0;
     }
 
-    receive() external payable {}
+    receive() external payable {
+        stake();
+    }
 
-    fallback() external payable {}
+    fallback() external payable {
+        stake();
+    }
 
     function withdrawStake(uint256 amountToWithdrawInEth) public virtual {
         if (addressToId[msg.sender] == 0) {
