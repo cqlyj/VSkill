@@ -30,7 +30,7 @@ contract StakingTest is Test {
     Staking staking;
     HelperConfig helperConfig;
     AggregatorV3Interface priceFeed;
-    uint256 public constant MIN_ETH_AMOUNT = 0.01 ether; // 0.01 * 2000 = 20 USD
+    uint256 public MIN_ETH_AMOUNT;
     uint256 public constant INITIAL_BALANCE = 100 ether;
     uint256 public constant MIN_USD_AMOUNT = 20e18;
     uint256 private constant INITIAL_REPUTATION = 2;
@@ -42,6 +42,7 @@ contract StakingTest is Test {
         DeployStaking deployer = new DeployStaking();
         (staking, helperConfig) = deployer.run();
         priceFeed = AggregatorV3Interface(helperConfig.activeNetworkConfig());
+        MIN_ETH_AMOUNT = MIN_USD_AMOUNT.convertUsdToEth(priceFeed);
         vm.deal(USER, INITIAL_BALANCE);
     }
 
@@ -283,6 +284,33 @@ contract StakingTest is Test {
         assertEq(newBalance, 2 * MIN_ETH_AMOUNT);
     }
 
+    function testStakeSuccessInitializeVerifierIfNewVerifier() external {
+        vm.startPrank(USER);
+        staking.stake{value: MIN_ETH_AMOUNT}();
+        vm.stopPrank();
+
+        uint256 id = staking.getVerifierId(USER);
+        uint256 reputation = staking.getVerifierReputation(USER);
+        string[] memory skillDomains = staking.getVerifierSkillDomains(USER);
+        uint256 moneyStakedInEth = staking.getVerifierMoneyStakedInEth(USER);
+        address[] memory evidenceSubmitters = staking
+            .getVerifierEvidenceSubmitters(USER);
+        string[] memory evidenceIpfsHash = staking.getVerifierEvidenceIpfsHash(
+            USER
+        );
+        string[] memory feedbackIpfsHash = staking.getVerifierFeedbackIpfsHash(
+            USER
+        );
+
+        assertEq(id, 1);
+        assertEq(reputation, INITIAL_REPUTATION);
+        assertEq(skillDomains.length, 0);
+        assertEq(moneyStakedInEth, MIN_ETH_AMOUNT);
+        assertEq(evidenceSubmitters.length, 0);
+        assertEq(evidenceIpfsHash.length, 0);
+        assertEq(feedbackIpfsHash.length, 0);
+    }
+
     function testStakeEmitsStakedEvent() external {
         vm.prank(USER);
         vm.expectEmit(true, false, false, true, address(staking));
@@ -423,4 +451,16 @@ contract StakingTest is Test {
         uint256 anotherId = staking.getVerifierId(USER);
         assertEq(anotherId, 2);
     }
+
+    //////////////////////
+    ///     Getter     ///
+    //////////////////////
+
+    // function testGetVerifier() external {
+    //     vm.startPrank(USER);
+    //     staking.stake{value: MIN_ETH_AMOUNT}();
+    //     vm.stopPrank();
+
+    //     verifier memory v = staking.getVerifier(USER); // use StructDefinition
+    // }
 }
