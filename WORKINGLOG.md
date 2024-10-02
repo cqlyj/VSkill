@@ -381,6 +381,15 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 
 ---
 
-### 2024/9/28
+### 2024/9/28 - 2024/10/1
+
+**REST DAY🍻**
+
+---
+
+### 2024/10/2
 
 **What I did today:**
+
+- refactor the `VSkillUserNft` contract and add two events, refactor its test scripts.
+- refactor the `Staking` contract and its test scripts.
