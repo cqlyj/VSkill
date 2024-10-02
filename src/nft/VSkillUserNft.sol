@@ -40,6 +40,15 @@ contract VSkillUserNft is ERC721 {
     mapping(string => string) private skillDomainToUserNftImageUri;
     mapping(uint256 => string) private tokenIdToSkillDomain;
 
+    ////////////////
+    //   Events   //
+    ////////////////
+    event MintNftSuccess(uint256 indexed tokenId, string indexed skillDomain);
+    event SkillDomainsForNftAdded(
+        string indexed newSkillDomain,
+        string indexed newNftImageUri
+    );
+
     constructor(
         string[] memory _userNftImageUris
     ) ERC721("VSkillUserNft", "VSU") {
@@ -55,6 +64,8 @@ contract VSkillUserNft is ERC721 {
         _safeMint(msg.sender, tokenCounter);
         tokenIdToSkillDomain[tokenCounter] = skillDomain;
         tokenCounter++;
+
+        emit MintNftSuccess(tokenCounter - 1, skillDomain);
     }
 
     function _baseURI() internal pure override returns (string memory) {
@@ -94,10 +105,12 @@ contract VSkillUserNft is ERC721 {
     function _addMoreSkillsForNft(
         string memory skillDomain,
         string memory newNftImageUri
-    ) internal {
+    ) public {
         skillDomains.push(skillDomain);
         userNftImageUris.push(newNftImageUri);
         skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
+
+        emit SkillDomainsForNftAdded(skillDomain, newNftImageUri);
     }
 
     ///////////////////////////////
@@ -126,5 +139,9 @@ contract VSkillUserNft is ERC721 {
         uint256 tokenId
     ) external view returns (string memory) {
         return tokenIdToSkillDomain[tokenId];
+    }
+
+    function getBaseURI() external pure returns (string memory) {
+        return _baseURI();
     }
 }
