@@ -9,9 +9,11 @@ import {PriceConverter} from "src/utils/library/PriceCoverter.sol";
 import {HelperConfig} from "script/staking/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {StructDefinition} from "src/utils/library/StructDefinition.sol";
 
 contract StakingTest is Test {
     using PriceConverter for uint256;
+    using StructDefinition for StructDefinition.StakingVerifier;
 
     event Staked(address indexed staker, uint256 amount);
     event Withdrawn(address indexed staker, uint256 amount);
@@ -456,11 +458,19 @@ contract StakingTest is Test {
     ///     Getter     ///
     //////////////////////
 
-    // function testGetVerifier() external {
-    //     vm.startPrank(USER);
-    //     staking.stake{value: MIN_ETH_AMOUNT}();
-    //     vm.stopPrank();
+    function testGetVerifier() external {
+        vm.startPrank(USER);
+        staking.stake{value: MIN_ETH_AMOUNT}();
+        vm.stopPrank();
 
-    //     verifier memory v = staking.getVerifier(USER); // use StructDefinition
-    // }
+        StructDefinition.StakingVerifier memory v = staking.getVerifier(USER);
+        assertEq(v.id, 1);
+        assertEq(v.verifierAddress, USER);
+        assertEq(v.reputation, INITIAL_REPUTATION);
+        assertEq(v.skillDomains.length, 0);
+        assertEq(v.moneyStakedInEth, MIN_ETH_AMOUNT);
+        assertEq(v.evidenceSubmitters.length, 0);
+        assertEq(v.evidenceIpfsHash.length, 0);
+        assertEq(v.feedbackIpfsHash.length, 0);
+    }
 }
