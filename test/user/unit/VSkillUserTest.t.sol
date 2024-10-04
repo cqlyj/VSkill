@@ -8,10 +8,12 @@ import {VSkillUser} from "../../../src/user/VSkillUser.sol";
 import {HelperConfig} from "../../../script/user/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {StructDefinition} from "../../../src/utils/library/StructDefinition.sol";
+import {PriceConverter} from "../../../src/utils/library/PriceCoverter.sol";
 
 contract VSkillUserTest is Test {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+    using PriceConverter for uint256;
 
     DeployVSkillUser deployer;
     VSkillUser vskill;
@@ -19,7 +21,7 @@ contract VSkillUserTest is Test {
     address public USER = makeAddr("user");
     uint256 public constant INITIAL_BALANCE = 100 ether;
     uint256 public submissionFeeInUsd; // 5e18 -> 5 USD
-    uint256 public constant SUBMISSION_FEE_IN_ETH = 0.0025 ether; // 0.0025 * 2000 = 5 USD
+    uint256 public SUBMISSION_FEE_IN_ETH;
     AggregatorV3Interface priceFeed;
     string public constant IPFS_HASH =
         "https://ipfs.io/ipfs/QmbJLndDmDiwdotu3MtfcjC2hC5tXeAR9EXbNSdUDUDYWa";
@@ -27,6 +29,7 @@ contract VSkillUserTest is Test {
     string public constant NEW_SKILL_DOMAIN = "NewSkillDomain";
     uint256 public constant NEW_SUBMISSION_FEE_IN_USD = 10e18; // 10 USD
     string public constant NEW_NFT_IMAGE_URI = "newnftimageuri";
+    string public constant FEEDBACK = "Good Job!";
 
     event EvidenceSubmitted(
         address indexed submitter,
@@ -44,13 +47,21 @@ contract VSkillUserTest is Test {
         submissionFeeInUsd = _submissionFeeInUsd;
         priceFeed = AggregatorV3Interface(_priceFeed);
         vm.deal(USER, INITIAL_BALANCE);
+
+        SUBMISSION_FEE_IN_ETH = submissionFeeInUsd.convertUsdToEth(priceFeed);
     }
+
+    ///////////////////////////
+    ///     constructor     ///
+    ///////////////////////////
 
     function testVSkillSubmissionFee() external view {
         assertEq(vskill.getSubmissionFeeInUsd(), submissionFeeInUsd);
     }
 
-    // submitEvidence
+    //////////////////////////////
+    ///     submitEvidence     ///
+    //////////////////////////////
 
     function testVSkillSubmitEvidenceRevertIfNotEnoughSubmissionFee() external {
         vm.expectRevert(
@@ -69,6 +80,18 @@ contract VSkillUserTest is Test {
             IPFS_HASH,
             "InvalidSkillDomain"
         );
+    }
+
+    function testVSkillSubmitEvidenceUpdatesBonusMoney() external {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        uint256 bonusMoney = vskill.getBonusMoneyInEth();
+        assertEq(bonusMoney, SUBMISSION_FEE_IN_ETH);
     }
 
     function testVSkillSubmitEvidenceUpdatesAddressToEvidences() external {
@@ -90,6 +113,25 @@ contract VSkillUserTest is Test {
         );
     }
 
+    function testVSkillSubmitEvidenceUpdatesEvidences() external {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        StructDefinition.VSkillUserEvidence[] memory evidences = vskill
+            .getEvidences();
+        assertEq(evidences.length, 1);
+        assertEq(evidences[0].evidenceIpfsHash, IPFS_HASH);
+        assertEq(evidences[0].skillDomain, SKILL_DOMAIN);
+        assertEq(
+            uint256(evidences[0].status),
+            uint256(vskill.getEvidenceStatus(USER, 0))
+        );
+    }
+
     function testVSkillSubmitEvidenceEmitsEvidenceSubmitted() external {
         vm.prank(USER);
         vm.expectEmit(true, false, false, false, address(vskill));
@@ -100,7 +142,60 @@ contract VSkillUserTest is Test {
         );
     }
 
-    // changeSubmissionFee
+    ///////////////////////////////////////
+    ///     checkFeedbackOfEvidence     ///
+    ///////////////////////////////////////
+
+    function testCheckFeedbackOfEvidenceRevertIfIndexOutOfRange() external {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        vm.expectRevert(
+            VSkillUser.VSkillUser__EvidenceIndexOutOfRange.selector
+        );
+        vskill.checkFeedbackOfEvidence(1);
+    }
+
+    // since only the selected verifier can provide feedback
+    // here we can't test the function in the unit test
+
+    // function testCheckFeedbackOfEvidenceReturnsCorrectFeedback() external {}
+
+    ///////////////////////////
+    ///     earnUserNft     ///
+    ///////////////////////////
+
+    function testEarnUserNftRevertIfEvidenceNotApproved() external {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+
+        StructDefinition.VSkillUserEvidence memory evidence = vskill
+            .getAddressToEvidences(USER)[0];
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                VSkillUser.VSkillUser__EvidenceNotApprovedYet.selector,
+                vskill.getEvidenceStatus(USER, 0)
+            )
+        );
+        vskill.earnUserNft(evidence);
+        vm.stopPrank();
+    }
+
+    // since only the selected verifier can approve the evidence
+    // here we can't test the function in the unit test
+
+    // function testEarnUserNftMintUserNftIfEvidenceApproved() external {}
+
+    ///////////////////////////////////
+    ///     changeSubmissionFee     ///
+    ///////////////////////////////////
 
     function testChangeSubmissionFeeRevertsIfNotOwner() external {
         vm.prank(USER);
@@ -125,7 +220,9 @@ contract VSkillUserTest is Test {
         vskill.changeSubmissionFee(newFeeInUsd);
     }
 
-    // addMoreSkills
+    ///////////////////////////
+    ///     addMoreSkills   ///
+    ///////////////////////////
 
     function testAddMoreSkillsRevertsIfNotOwner() external {
         vm.prank(USER);
