@@ -393,3 +393,12 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 
 - refactor the `VSkillUserNft` contract and add two events, refactor its test scripts.
 - refactor the `Staking` contract and its test scripts.
+
+---
+
+### 2024/10/4
+
+**What I did today:**
+
+- refactor the `Staking` contract and use `StructDefinition` library to store the `verifier` struct.
+- refactor the `VSkillUser` contract and its test scripts.
