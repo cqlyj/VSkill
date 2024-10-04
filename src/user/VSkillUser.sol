@@ -45,22 +45,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     error VSkillUser__EvidenceNotApprovedYet(
         StructDefinition.VSkillUserSubmissionStatus status
     );
-
-    // struct evidence {
-    //     address submitter;
-    //     string evidenceIpfsHash;
-    //     string skillDomain;
-    //     SubmissionStatus status;
-    //     string[] feedbackIpfsHash;
-    // }
-
-    // enum SubmissionStatus {
-    //     SUBMITTED,
-    //     INREVIEW,
-    //     APPROVED,
-    //     REJECTED,
-    //     DIFFERENTOPINION
-    // }
+    error VSkillUser__EvidenceIndexOutOfRange();
 
     string[] private skillDomains = [
         "Frontend",
@@ -148,15 +133,28 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     }
 
     function checkFeedbackOfEvidence(
-        uint256 index
+        uint256 indexOfUserEvidence
     ) external view returns (string[] memory) {
-        return addressToEvidences[msg.sender][index].feedbackIpfsHash;
+        if (indexOfUserEvidence >= evidences.length) {
+            revert VSkillUser__EvidenceIndexOutOfRange();
+        }
+
+        return
+            addressToEvidences[msg.sender][indexOfUserEvidence]
+                .feedbackIpfsHash;
     }
 
     function earnUserNft(
         StructDefinition.VSkillUserEvidence memory _evidence
     ) external {
-        _earnUserNft(_evidence);
+        if (
+            _evidence.status !=
+            StructDefinition.VSkillUserSubmissionStatus.APPROVED
+        ) {
+            revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
+        }
+
+        super.mintUserNft(_evidence.skillDomain);
     }
 
     ///////////////////////////////
@@ -214,19 +212,6 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         return false;
     }
 
-    function _earnUserNft(
-        StructDefinition.VSkillUserEvidence memory _evidence
-    ) internal {
-        if (
-            _evidence.status !=
-            StructDefinition.VSkillUserSubmissionStatus.APPROVED
-        ) {
-            revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
-        }
-
-        super.mintUserNft(_evidence.skillDomain);
-    }
-
     ///////////////////////////////
     /////   Getter Functions   ////
     ///////////////////////////////
@@ -246,5 +231,13 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         uint256 index
     ) external view returns (StructDefinition.VSkillUserSubmissionStatus) {
         return addressToEvidences[_address][index].status;
+    }
+
+    function getEvidences()
+        external
+        view
+        returns (StructDefinition.VSkillUserEvidence[] memory)
+    {
+        return evidences;
     }
 }
