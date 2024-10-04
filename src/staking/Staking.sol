@@ -26,9 +26,11 @@ pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "../utils/library/PriceCoverter.sol";
+import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
 contract Staking {
     using PriceConverter for uint256;
+    using StructDefinition for StructDefinition.StakingVerifier;
 
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
     error Staking__NotEnoughStakeToBecomeVerifier(
@@ -38,17 +40,6 @@ contract Staking {
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
     error Staking__AlreadyVerifier();
-
-    struct verifier {
-        uint256 id;
-        address verifierAddress;
-        uint256 reputation;
-        string[] skillDomains;
-        uint256 moneyStakedInEth;
-        address[] evidenceSubmitters;
-        string[] evidenceIpfsHash;
-        string[] feedbackIpfsHash;
-    }
 
     uint256 private constant MIN_USD_AMOUNT = 20e18; // 20 USD
     uint256 private constant INITIAL_REPUTATION = 2;
@@ -60,7 +51,7 @@ contract Staking {
 
     AggregatorV3Interface internal priceFeed;
     mapping(address => uint256) internal addressToId;
-    verifier[] internal verifiers;
+    StructDefinition.StakingVerifier[] internal verifiers;
 
     event Staked(address indexed staker, uint256 amount);
     event Withdrawn(address indexed staker, uint256 amount);
@@ -221,9 +212,9 @@ contract Staking {
     function _initializeVerifier(
         address verifierAddress,
         string[] memory skillDomains
-    ) internal view returns (verifier memory) {
+    ) internal view returns (StructDefinition.StakingVerifier memory) {
         return
-            verifier({
+            StructDefinition.StakingVerifier({
                 id: id,
                 verifierAddress: verifierAddress,
                 reputation: INITIAL_REPUTATION,
@@ -315,13 +306,13 @@ contract Staking {
 
     function getVerifier(
         address verifierAddress
-    ) external view returns (verifier memory) {
+    ) external view returns (StructDefinition.StakingVerifier memory) {
         return verifiers[addressToId[verifierAddress] - 1];
     }
 
     function getVerifierById(
         uint256 _id
-    ) external view returns (verifier memory) {
+    ) external view returns (StructDefinition.StakingVerifier memory) {
         return verifiers[_id - 1];
     }
 
