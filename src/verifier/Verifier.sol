@@ -36,6 +36,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     using StructDefinition for StructDefinition.VerifierFeedbackProvidedEventParams;
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+    using StructDefinition for StructDefinition.StakingVerifier;
 
     error Verifier__NotEnoughVerifiers(uint256 verifiersLength);
     error Verifier__NotSelectedVerifier();
@@ -366,7 +367,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 verifiers[addressToId[verifiersAddress] - 1].reputation
             );
         } else {
-            verifier memory verifierToBeRemoved = verifiers[
+            StructDefinition.StakingVerifier memory verifierToBeRemoved = verifiers[
                 addressToId[verifiersAddress] - 1
             ];
 
