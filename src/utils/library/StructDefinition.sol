@@ -47,4 +47,15 @@ library StructDefinition {
         VSkillUserSubmissionStatus status;
         string[] feedbackIpfsHash;
     }
+
+    struct StakingVerifier {
+        uint256 id;
+        address verifierAddress;
+        uint256 reputation;
+        string[] skillDomains;
+        uint256 moneyStakedInEth;
+        address[] evidenceSubmitters;
+        string[] evidenceIpfsHash;
+        string[] feedbackIpfsHash;
+    }
 }
