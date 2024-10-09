@@ -341,4 +341,8 @@ contract Staking {
                     .length - 1
             ];
     }
+
+    function getPriceFeed() external view returns (AggregatorV3Interface) {
+        return priceFeed;
+    }
 }
