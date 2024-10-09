@@ -333,10 +333,7 @@ contract VerifierTest is Test {
     }
 
     function testProvideFeedbackUpdateAddressToEvidences() external {
-        address[]
-            memory verifiersWithinSameDomain = _createNumWordsNumberOfSameDomainVerifier(
-                SKILL_DOMAINS
-            );
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
 
         StructDefinition.VSkillUserEvidence memory ev = StructDefinition
             .VSkillUserEvidence(

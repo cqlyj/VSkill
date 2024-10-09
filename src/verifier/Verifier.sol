@@ -259,23 +259,28 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
 
         // Consider pull over push...
-        
-        // if (
-        //     _updateEvidenceStatus(evidenceIpfsHash, user) !=
-        //     StructDefinition.VSkillUserSubmissionStatus.INREVIEW
-        // ) {
-        //     address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
-        //         evidenceIpfsHash
-        //     ].selectedVerifiers;
-        //     uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
-        //     for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
-        //         _earnRewardsOrGetPenalized(
-        //             evidenceIpfsHash,
-        //             user,
-        //             allSelectedVerifiers[i]
-        //         );
-        //     }
-        // }
+        if (
+            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .length < numWords
+        ) {
+            return;
+        } else if (
+            _updateEvidenceStatus(evidenceIpfsHash, user) !=
+            StructDefinition.VSkillUserSubmissionStatus.INREVIEW
+        ) {
+            address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
+                evidenceIpfsHash
+            ].selectedVerifiers;
+            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+                _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    user,
+                    allSelectedVerifiers[i]
+                );
+            }
+        }
     }
 
     function stake() public payable override {
