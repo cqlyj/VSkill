@@ -334,7 +334,7 @@ contract VerifierTest is Test {
 
     function testProvideFeedbackUpdateAddressToEvidences() external {
         address[]
-            memory currentVerifiers = _createNumWordsNumberOfSameDomainVerifier(
+            memory verifiersWithinSameDomain = _createNumWordsNumberOfSameDomainVerifier(
                 SKILL_DOMAINS
             );
 
@@ -362,12 +362,18 @@ contract VerifierTest is Test {
             verifierConstructorParams.vrfCoordinator
         );
         vm.pauseGasMetering();
+        vm.recordLogs();
         vrfCoordinatorMock.fulfillRandomWords(
             uint256(requestId),
             address(verifier)
         );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
 
-        vm.prank(currentVerifiers[2]);
+        vm.prank(selectedVerifierAddress);
         verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
         StructDefinition.VSkillUserEvidence[] memory evidences = verifier
             .getAddressToEvidences(USER);
