@@ -121,4 +121,28 @@ contract Distribution is VRFConsumerBaseV2 {
     {
         return requestIdToContext[_requestId];
     }
+
+    function getSubscriptionId() public view returns (uint64) {
+        return subscriptionId;
+    }
+
+    function getVrfCoordinator()
+        public
+        view
+        returns (VRFCoordinatorV2Interface)
+    {
+        return vrfCoordinator;
+    }
+
+    function getKeyHash() public view returns (bytes32) {
+        return keyHash;
+    }
+
+    function getCallbackGasLimit() public view returns (uint32) {
+        return callbackGasLimit;
+    }
+
+    function getRequestConfirmations() public view returns (uint16) {
+        return requestConfirmations;
+    }
 }
