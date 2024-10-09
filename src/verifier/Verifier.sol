@@ -163,6 +163,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 return (upkeepNeeded, performData);
             }
         }
+        upkeepNeeded = false;
+        return (upkeepNeeded, "");
     }
 
     function performUpkeep(bytes calldata performData) external override {
@@ -206,9 +208,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
+        // addressToEvidence[user].length == 0... ??
+
         addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
+
         verifiers[addressToId[msg.sender] - 1].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
@@ -252,22 +257,25 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
 
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
-        if (
-            _updateEvidenceStatus(evidenceIpfsHash, user) !=
-            StructDefinition.VSkillUserSubmissionStatus.INREVIEW
-        ) {
-            address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
-                evidenceIpfsHash
-            ].selectedVerifiers;
-            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
-            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
-                _earnRewardsOrGetPenalized(
-                    evidenceIpfsHash,
-                    user,
-                    allSelectedVerifiers[i]
-                );
-            }
-        }
+
+        // Consider pull over push...
+        
+        // if (
+        //     _updateEvidenceStatus(evidenceIpfsHash, user) !=
+        //     StructDefinition.VSkillUserSubmissionStatus.INREVIEW
+        // ) {
+        //     address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
+        //         evidenceIpfsHash
+        //     ].selectedVerifiers;
+        //     uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+        //     for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+        //         _earnRewardsOrGetPenalized(
+        //             evidenceIpfsHash,
+        //             user,
+        //             allSelectedVerifiers[i]
+        //         );
+        //     }
+        // }
     }
 
     function stake() public payable override {
@@ -367,9 +375,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 verifiers[addressToId[verifiersAddress] - 1].reputation
             );
         } else {
-            StructDefinition.StakingVerifier memory verifierToBeRemoved = verifiers[
-                addressToId[verifiersAddress] - 1
-            ];
+            StructDefinition.StakingVerifier
+                memory verifierToBeRemoved = verifiers[
+                    addressToId[verifiersAddress] - 1
+                ];
 
             uint256 verifierStakedMoneyInEth = verifierToBeRemoved
                 .moneyStakedInEth;
@@ -648,7 +657,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         for (uint256 i = 0; i < numWords; i++) {
             if (status[i] != status[i + 1]) {
                 StructDefinition.VSkillUserEvidence
-                    memory ev = addressToEvidences[user][currentEvidenceIndex];
+                    storage ev = addressToEvidences[user][currentEvidenceIndex];
                 ev.status = StructDefinition
                     .VSkillUserSubmissionStatus
                     .DIFFERENTOPINION;
