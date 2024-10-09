@@ -402,3 +402,47 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 
 - refactor the `Staking` contract and use `StructDefinition` library to store the `verifier` struct.
 - refactor the `VSkillUser` contract and its test scripts.
+
+---
+
+### 2024/10/9
+
+**What I did today:**
+
+- write tests for the `Verifier` contract.
+- There exists issue in the `provideFeedback` function... => To be solved now or maybe leave it to audit later.
+
+  - ```javascript
+    // addressToEvidence[user].length == 0... ??
+    addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
+      feedbackIpfsHash
+    );
+    ```
+
+  why this `addressToEvidences` not updated in my test case? ✅ => Because the user address set to the test contract address.
+
+  - ```javascript
+    if (
+             _updateEvidenceStatus(evidenceIpfsHash, user) !=
+             StructDefinition.VSkillUserSubmissionStatus.INREVIEW
+         ) {
+             address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
+                 evidenceIpfsHash
+             ].selectedVerifiers;
+             uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+             for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+                 _earnRewardsOrGetPenalized(
+                     evidenceIpfsHash,
+                     user,
+                     allSelectedVerifiers[i]
+                 );
+             }
+         }
+    ```
+
+    This section of code will revert the function with `Verifier__NotAllVerifiersProvidedFeedback`, this need to be fixed so that verifiers who is the first two will not get this error.
+    => consider "PULL over PUSH" pattern for the reward and penalty. => line 261 in the `Verifier` contract.
+
+- Issues found in the contract, the `_updateEvidenceStatus` function got some issues here, we should use `storage` instead of `memory` to update the evidence status. => fix this as the test case developed.
+
+---
