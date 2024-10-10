@@ -99,7 +99,7 @@ contract VerifierTest is Test {
     );
 
     event FeedbackProvided(
-        StructDefinition.VerifierFeedbackProvidedEventParams feedbackInfo
+        StructDefinition.VerifierFeedbackProvidedEventParams indexed feedbackInfo
     );
 
     event EvidenceToStatusApproveOrNotUpdated(
@@ -376,6 +376,324 @@ contract VerifierTest is Test {
             .getAddressToEvidences(USER);
         assertEq(evidences.length, 1);
     }
+
+    function testProvideFeedbackUpdateVerifiersInfo() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
+
+        vm.prank(selectedVerifierAddress);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        string[] memory feedbackIpfsHashes = verifier
+            .getVerifierFeedbackIpfsHash(selectedVerifierAddress);
+
+        assertEq(feedbackIpfsHashes.length, 1);
+        assertEq(feedbackIpfsHashes[0], FEEDBACK_IPFS_HASH);
+    }
+
+    function testProvideFeedbackEmitFeedbackProvidedEvent() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
+
+        vm.startPrank(selectedVerifierAddress);
+        vm.expectEmit(true, false, false, false, address(verifier));
+        emit FeedbackProvided(
+            StructDefinition.VerifierFeedbackProvidedEventParams({
+                verifierAddress: selectedVerifierAddress,
+                user: USER,
+                approved: true,
+                feedbackIpfsHash: FEEDBACK_IPFS_HASH,
+                evidenceIpfsHash: IPFS_HASH
+            })
+        );
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+        vm.stopPrank();
+    }
+
+    function testProvideFeedbackUpdateEvidenceIpfsHashToItsInfo() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
+
+        vm.startPrank(selectedVerifierAddress);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        vm.stopPrank();
+
+        bool[] memory statusApproveOrNot = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+
+        assertEq(statusApproveOrNot.length, 1);
+        assertEq(statusApproveOrNot[0], true);
+
+        bool selectedVerifierFeedbackStatus = verifier
+            .getEvidenceToAllSelectedVerifiersToFeedbackStatus(
+                IPFS_HASH,
+                selectedVerifierAddress
+            );
+
+        assert(selectedVerifierFeedbackStatus);
+    }
+
+    function testProvideFeedbackEmitsEvidenceToStatusApproveOrNotUpdatedEvent()
+        external
+    {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
+
+        vm.startPrank(selectedVerifierAddress);
+        vm.expectEmit(true, true, false, false, address(verifier));
+        emit EvidenceToStatusApproveOrNotUpdated(IPFS_HASH, true);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        vm.stopPrank();
+    }
+
+    function testProvideFeedbackEmitsEvidenceToAllSelectedVerifiersToFeedbackStatusUpdatedEvent()
+        external
+    {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifier = entriesOfFulfillRandomWords[1].topics[1];
+        address selectedVerifierAddress = address(
+            uint160(uint256(selectedVerifier))
+        );
+
+        vm.startPrank(selectedVerifierAddress);
+        vm.expectEmit(true, true, true, false, address(verifier));
+        emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+            selectedVerifierAddress,
+            IPFS_HASH,
+            true
+        );
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        vm.stopPrank();
+    }
+
+    // function testProvideFeedbackCallUpdateEvidenceStatusIfMoreThanNumWordsVerifiersSubmitFeedback()
+    //     external
+    // {
+    //     _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+    //     StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+    //         .VSkillUserEvidence(
+    //             USER,
+    //             IPFS_HASH,
+    //             SKILL_DOMAINS[0],
+    //             StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+    //             new string[](0)
+    //         );
+    //     vm.startPrank(USER);
+    //     verifier.submitEvidence{
+    //         value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+    //             AggregatorV3Interface(verifierConstructorParams.priceFeed)
+    //         )
+    //     }(ev.evidenceIpfsHash, ev.skillDomain);
+    //     vm.stopPrank();
+
+    //     vm.recordLogs();
+    //     verifier._requestVerifiersSelection(ev);
+    //     Vm.Log[] memory entries = vm.getRecordedLogs();
+    //     bytes32 requestId = entries[0].topics[2];
+    //     VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+    //         verifierConstructorParams.vrfCoordinator
+    //     );
+    //     vm.pauseGasMetering();
+    //     vm.recordLogs();
+    //     vrfCoordinatorMock.fulfillRandomWords(
+    //         uint256(requestId),
+    //         address(verifier)
+    //     );
+    //     Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+    //     bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+    //     bytes32 selectedVerifierTwo = entriesOfFulfillRandomWords[2].topics[1];
+    //     bytes32 selectedVerifierThree = entriesOfFulfillRandomWords[3].topics[
+    //         1
+    //     ];
+    //     address selectedVerifierAddressOne = address(
+    //         uint160(uint256(selectedVerifierOne))
+    //     );
+    //     address selectedVerifierAddressTwo = address(
+    //         uint160(uint256(selectedVerifierTwo))
+    //     );
+    //     address selectedVerifierAddressThree = address(
+    //         uint160(uint256(selectedVerifierThree))
+    //     );
+
+    //     // all of them approve, this should set the status to approved
+
+    //     vm.prank(selectedVerifierAddressOne);
+    //     verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+    //     vm.prank(selectedVerifierAddressTwo);
+    //     verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+    //     vm.prank(selectedVerifierAddressThree);
+    //     verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+    // }
 
     //////////////////////////////////////
     //    _verifiersWithinSameDomain    //
