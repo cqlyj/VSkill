@@ -446,3 +446,62 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 - Issues found in the contract, the `_updateEvidenceStatus` function got some issues here, we should use `storage` instead of `memory` to update the evidence status. => fix this as the test case developed.
 
 ---
+
+### 2024/10/10
+
+**What I did today:**
+
+- refactor the test case for the `provideFeedback` function in the `Verifier` contract.
+- fix the issue which the `_updateEvidenceStatus` will always revert this function for first two verifiers in the `provideFeedback` function in the `Verifier` contract. => However, this function still got other issues to be fixed. for current test case it reverts for reason below:
+
+```bash
+    ├─ [0] Verifier::provideFeedback("https://ipfs.io/ipfs/QmSsYRx3LpDAb1GZQm7zZ1AuHZjfbPkD6J7s9r41xu1mf8", "https://ipfs.io/ipfs/QmbJLndDmDiwdotu3MtfcjC2hC5tXeAR9EXbNSdUDUDYWa", user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], true)
+    │   ├─ emit FeedbackProvided(feedbackInfo: 0x5c96f047d29dbddd4e95634882df52806a722a5ef78b2a9c40d38b1a5df98be3)
+    │   ├─ emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: true)
+    │   ├─ emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(verifierAddress: 0x0000000000000000000000000000000000000003, evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: true)
+    │   └─ ← [Revert] panic: array out-of-bounds access (0x32)
+    └─ ← [Revert] panic: array out-of-bounds access (0x32)
+
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 11.77ms (1.09ms CPU time)
+
+Ran 1 test suite in 1.13s (11.77ms CPU time): 0 tests passed, 1 failed, 0 skipped (1 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/verifier/unit/VerifierTest.t.sol:VerifierTest
+[FAIL. Reason: panic: array out-of-bounds access (0x32)] testProvideFeedbackCallUpdateEvidenceStatusIfMoreThanNumWordsVerifiersSubmitFeedback() (gas: 9223372036854754743)
+```
+
+But it works fine if I comment those code in the function `provideFeedback`:
+
+```javascript
+ if (
+            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .length < numWords
+        ) {
+            return;
+        } else if (
+            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
+                StructDefinition.VSkillUserSubmissionStatus.INREVIEW) &&
+            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED)
+        ) {
+            address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
+                evidenceIpfsHash
+            ].selectedVerifiers;
+            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+                _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    user,
+                    allSelectedVerifiers[i]
+                );
+            }
+        }
+```
+
+---
+
+### 2024/10/11
+
+**What I did today:**
