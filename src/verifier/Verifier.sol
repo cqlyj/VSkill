@@ -65,7 +65,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     );
 
     event FeedbackProvided(
-        StructDefinition.VerifierFeedbackProvidedEventParams feedbackInfo
+        StructDefinition.VerifierFeedbackProvidedEventParams indexed feedbackInfo
     );
 
     event EvidenceToStatusApproveOrNotUpdated(
@@ -259,6 +259,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
 
         // Consider pull over push...
+
+        // those codes below got issues...
         if (
             evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
@@ -266,8 +268,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         ) {
             return;
         } else if (
-            _updateEvidenceStatus(evidenceIpfsHash, user) !=
-            StructDefinition.VSkillUserSubmissionStatus.INREVIEW
+            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
+                StructDefinition.VSkillUserSubmissionStatus.INREVIEW) &&
+            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED)
         ) {
             address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
                 evidenceIpfsHash
@@ -679,7 +683,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
 
         if (status[0]) {
-            StructDefinition.VSkillUserEvidence memory ev = addressToEvidences[
+            StructDefinition.VSkillUserEvidence storage ev = addressToEvidences[
                 user
             ][currentEvidenceIndex];
             ev.status = StructDefinition.VSkillUserSubmissionStatus.APPROVED;
@@ -690,7 +694,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             );
             return StructDefinition.VSkillUserSubmissionStatus.APPROVED;
         } else {
-            StructDefinition.VSkillUserEvidence memory ev = addressToEvidences[
+            StructDefinition.VSkillUserEvidence storage ev = addressToEvidences[
                 user
             ][currentEvidenceIndex];
             ev.status = StructDefinition.VSkillUserSubmissionStatus.REJECTED;
