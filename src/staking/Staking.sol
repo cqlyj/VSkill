@@ -282,7 +282,7 @@ contract Staking {
 
     function getVerifierEvidenceIpfsHash(
         address verifierAddress
-    ) external view returns (string[] memory) {
+    ) public view returns (string[] memory) {
         return verifiers[addressToId[verifierAddress] - 1].evidenceIpfsHash;
     }
 
