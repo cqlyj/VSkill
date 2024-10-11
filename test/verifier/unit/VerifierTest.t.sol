@@ -892,6 +892,36 @@ contract VerifierTest is Test {
         assertEq(uint256(statusNew), uint256(SubmissionStatus.APPROVED));
     }
 
+    /////////////////////
+    ///     stake     ///
+    /////////////////////
+
+    // This is an inherited function from the staking contract, since we have test it in the staking contract, here just run a simple test and add `-vvvv` for more details
+
+    function testStakeWorksAsExpected() external {
+        uint256 minEthAmount = MIN_USD_AMOUNT_TO_STAKE.convertUsdToEth(
+            AggregatorV3Interface(verifierConstructorParams.priceFeed)
+        );
+        vm.prank(USER);
+        verifier.stake{value: minEthAmount}();
+    }
+
+    /////////////////////////////
+    ///     withdrawStake     ///
+    /////////////////////////////
+
+    // This is also inherited from the staking contract, since we have test it in the staking contract, here just run a simple test and add `-vvvv` for more details
+
+    function testWithdrawWorksAsExpected() external {
+        uint256 minEthAmount = MIN_USD_AMOUNT_TO_STAKE.convertUsdToEth(
+            AggregatorV3Interface(verifierConstructorParams.priceFeed)
+        );
+        vm.startPrank(USER);
+        verifier.stake{value: minEthAmount}();
+        verifier.withdrawStake(minEthAmount);
+        vm.stopPrank();
+    }
+
     //////////////////////////////////////
     //    _verifiersWithinSameDomain    //
     //////////////////////////////////////
