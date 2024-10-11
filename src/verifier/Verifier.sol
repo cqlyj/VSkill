@@ -208,8 +208,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
-        // addressToEvidence[user].length == 0... ??
-
         addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
@@ -258,30 +256,26 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
 
-        // Consider pull over push...
-
-        // those codes below got issues...
         if (
             evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
                 .length < numWords
         ) {
             return;
-        } else if (
-            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
-                StructDefinition.VSkillUserSubmissionStatus.INREVIEW) &&
-            (_updateEvidenceStatus(evidenceIpfsHash, user) !=
-                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED)
-        ) {
+        } else {
             address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
                 evidenceIpfsHash
             ].selectedVerifiers;
             uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            StructDefinition.VSkillUserSubmissionStatus evidenceStatus = _updateEvidenceStatus(
+                    evidenceIpfsHash,
+                    user
+                );
             for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
                 _earnRewardsOrGetPenalized(
                     evidenceIpfsHash,
-                    user,
-                    allSelectedVerifiers[i]
+                    allSelectedVerifiers[i],
+                    evidenceStatus
                 );
             }
         }
@@ -301,47 +295,49 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
     function _earnRewardsOrGetPenalized(
         string memory evidenceIpfsHash,
-        address userThatSubmittedEvidence,
-        address verifierAddress
+        address verifierAddress,
+        StructDefinition.VSkillUserSubmissionStatus evidenceStatus
     ) internal {
         _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
+
         if (
-            _updateEvidenceStatus(
-                evidenceIpfsHash,
-                userThatSubmittedEvidence
-            ) == StructDefinition.VSkillUserSubmissionStatus.INREVIEW
+            evidenceStatus ==
+            StructDefinition.VSkillUserSubmissionStatus.INREVIEW
         ) {
             revert Verifier__EvidenceStillInReview();
         } else if (
-            _updateEvidenceStatus(
-                evidenceIpfsHash,
-                userThatSubmittedEvidence
-            ) == StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION
+            evidenceStatus ==
+            StructDefinition.VSkillUserSubmissionStatus.APPROVED
         ) {
+            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .allSelectedVerifiersToFeedbackStatus[verifierAddress];
+            if (status) {
+                _rewardVerifiers(verifierAddress);
+            } else {
+                _penalizeVerifiers(verifierAddress);
+            }
+        } else if (
+            evidenceStatus ==
+            StructDefinition.VSkillUserSubmissionStatus.REJECTED
+        ) {
+            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .allSelectedVerifiersToFeedbackStatus[verifierAddress];
+            if (status) {
+                _penalizeVerifiers(verifierAddress);
+            } else {
+                _rewardVerifiers(verifierAddress);
+            }
+        }
+        // DIFFERENTOPINION
+        else {
             // first wait until this evidence finally gets approved or rejected
             // then penalize or reward the verifiers
+
+            // If different opinion, the verifier need to delete the status of the feedback first, but we still have a copy of the allSelectedVerifiersToFeedbackStatus
+
+            evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot.pop();
+
             return;
-        } else if (
-            _updateEvidenceStatus(
-                evidenceIpfsHash,
-                userThatSubmittedEvidence
-            ) == StructDefinition.VSkillUserSubmissionStatus.APPROVED
-        ) {
-            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-                .allSelectedVerifiersToFeedbackStatus[verifierAddress];
-            if (status) {
-                _rewardVerifiers(verifierAddress);
-            } else {
-                _penalizeVerifiers(verifierAddress);
-            }
-        } else {
-            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-                .allSelectedVerifiersToFeedbackStatus[verifierAddress];
-            if (status) {
-                _penalizeVerifiers(verifierAddress);
-            } else {
-                _rewardVerifiers(verifierAddress);
-            }
         }
     }
 
@@ -364,9 +360,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // Here is the algorithm to calculate the reward: reward = reputation / HIGHEST_REPUTATION / 20 * bonusMoneyInUsd
         // 20 is that the verifier needs to stake about 20 USD to be a verifier => This is just a round number
 
-        uint256 rewardAmountInEth = (currentReputation /
+        uint256 rewardAmountInEth = (super.getBonusMoneyInEth() *
+            currentReputation) /
             HIGHEST_REPUTATION /
-            BONUS_DISTRIBUTION_NUMBER) * super.getBonusMoneyInEth();
+            BONUS_DISTRIBUTION_NUMBER;
 
         super._rewardVerifierInFormOfStake(verifiersAddress, rewardAmountInEth);
     }
@@ -663,8 +660,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // And the evidence will be assigned again randomly to three verifiers(may be the same verifiers => it's possible)
         // The process will be repeated until all three verifiers give the same feedback
 
-        for (uint256 i = 0; i < numWords; i++) {
-            if (status[i] != status[i + 1]) {
+        uint256 statusLength = status.length;
+
+        for (uint256 i = 1; i < statusLength; i++) {
+            if (status[i] != status[i - 1]) {
                 StructDefinition.VSkillUserEvidence
                     storage ev = addressToEvidences[user][currentEvidenceIndex];
                 ev.status = StructDefinition
