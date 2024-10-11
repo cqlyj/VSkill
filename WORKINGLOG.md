@@ -505,3 +505,38 @@ But it works fine if I comment those code in the function `provideFeedback`:
 ### 2024/10/11
 
 **What I did today:**
+
+- fix the issue in the `provideFeedback` function in the `Verifier` contract. => This issue due to the wrong index for loop in the `_updateEvidenceStatus` function.
+- find new issue in `_earnRewardsOrGetPenalized`, if `DIFFERENTOPINIONS` status, before the `checkUpkeep` function is called by the chainlink nodes, we need to first remove the previous status in the `evidenceIpfsHashToItsInfo` so that we can update the status again, anyway we have a copy of the previous status in the `evidenceIpfsHashToItsInfo.allSelectedVerifiers` array, thus this will affect the rewards and penalties for the verifiers. => maybe refactor the `_earnRewardsOrGetPenalized` to accept an array of verifiers addresses as parameter. TBC... (This may also solve the known issue below.)
+  - Solution: refactor the those functions so the `_updateEvidenceStatus` will be called only once, if the status is `DIFFERENTOPINIONS`, those verifiers who enter the `_earnRewardsOrGetPenalized` function pop their status from the `evidenceIpfsHashToItsInfo` array and then update the status again.
+
+**Known Issue:**
+
+- The `reward` function will distribution different amount of rewards to the verifiers. Those addresses which call the function earlier will get more rewards than those who call the function later.
+
+```bash
+ emit VerifierReputationUpdated(verifierAddress: 0x0000000000000000000000000000000000000003, prevousReputation: 2, currentReputation: 3)
+    │   ├─ emit BonusMoneyUpdated(previousAmountInEth: 2500000000000000 [2.5e15], newAmountInEth: 2475000000000000 [2.475e15])
+@>  │   ├─ emit VerifierStakeUpdated(verifier: 0x0000000000000000000000000000000000000003, previousAmountInEth: 10000000000000000 [1e16], newAmountInEth: 10025000000000000 [1.002e16])
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit VerifierReputationUpdated(verifierAddress: 0x0000000000000000000000000000000000000002, prevousReputation: 2, currentReputation: 3)
+    │   ├─ emit BonusMoneyUpdated(previousAmountInEth: 2475000000000000 [2.475e15], newAmountInEth: 2450250000000000 [2.45e15])
+@>  │   ├─ emit VerifierStakeUpdated(verifier: 0x0000000000000000000000000000000000000002, previousAmountInEth: 10000000000000000 [1e16], newAmountInEth: 10024750000000000 [1.002e16])
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 2)
+    │   ├─ emit VerifierReputationUpdated(verifierAddress: 0x0000000000000000000000000000000000000003, prevousReputation: 3, currentReputation: 4)
+    │   ├─ emit BonusMoneyUpdated(previousAmountInEth: 2450250000000000 [2.45e15], newAmountInEth: 2413496250000000 [2.413e15])
+@>  │   ├─ emit VerifierStakeUpdated(verifier: 0x0000000000000000000000000000000000000003, previousAmountInEth: 10025000000000000 [1.002e16], newAmountInEth: 10061753750000000 [1.006e16])
+```
+
+The first verifier will get `25000000000000` while the second verifier will only get `24750000000000` wei as rewards.
+It's not a huge gap but it's not fair for the second verifier. But this might incentivize the verifiers to provide feedback earlier.
+Fix this or not? => follow up.
+
+- The `Verifier` contract size is above limit:
+  ```bash
+  `Unknown2` is above the contract size limit (35616 > 24576).
+  ```
