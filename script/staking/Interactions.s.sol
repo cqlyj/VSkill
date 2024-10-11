@@ -5,14 +5,19 @@ pragma solidity ^0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {Staking} from "src/staking/Staking.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
+import {PriceConverter} from "../../src/utils/library/PriceCoverter.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract WithdrawStakeStaking is Script {
-    uint256 public MIN_ETH_AMOUNT = 0.01 ether;
+    using PriceConverter for uint256;
+
+    uint256 public constant MIN_USD_AMOUNT = 20e18;
 
     function withdrawStakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.withdrawStake(MIN_ETH_AMOUNT);
+        AggregatorV3Interface priceFeed = staking.getPriceFeed();
+        staking.withdrawStake(MIN_USD_AMOUNT.convertUsdToEth(priceFeed));
         vm.stopBroadcast();
     }
 
@@ -27,12 +32,15 @@ contract WithdrawStakeStaking is Script {
 }
 
 contract StakeStaking is Script {
-    uint256 public constant MIN_ETH_AMOUNT = 0.01 ether;
+    using PriceConverter for uint256;
+
+    uint256 public constant MIN_USD_AMOUNT = 20e18;
 
     function stakeStaking(address mostRecentlyDeployed) public {
         vm.startBroadcast();
         Staking staking = Staking(payable(mostRecentlyDeployed));
-        staking.stake{value: MIN_ETH_AMOUNT}();
+        AggregatorV3Interface priceFeed = staking.getPriceFeed();
+        staking.stake{value: MIN_USD_AMOUNT.convertUsdToEth(priceFeed)}();
         vm.stopBroadcast();
     }
 
