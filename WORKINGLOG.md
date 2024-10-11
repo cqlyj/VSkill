@@ -350,7 +350,7 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 - add new function convert USD to ETH in the `util` module. => The `PriceConverter.sol`
 - write some test for the `verifier` contract.
 
-**Issue:**
+**Issue:**✅
 
 - for now the `forge compile` works well with the help of `--via-ir`, but `forge coverage` doesn't work with this flag. => https://github.com/foundry-rs/foundry/issues/3357
 
@@ -410,7 +410,7 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 **What I did today:**
 
 - write tests for the `Verifier` contract.
-- There exists issue in the `provideFeedback` function... => To be solved now or maybe leave it to audit later.
+- There exists issue in the `provideFeedback` function... => To be solved now or maybe leave it to audit later.✅
 
   - ```javascript
     // addressToEvidence[user].length == 0... ??
@@ -443,7 +443,7 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
     This section of code will revert the function with `Verifier__NotAllVerifiersProvidedFeedback`, this need to be fixed so that verifiers who is the first two will not get this error.
     => consider "PULL over PUSH" pattern for the reward and penalty. => line 261 in the `Verifier` contract.
 
-- Issues found in the contract, the `_updateEvidenceStatus` function got some issues here, we should use `storage` instead of `memory` to update the evidence status. => fix this as the test case developed.
+- Issues✅ found in the contract, the `_updateEvidenceStatus` function got some issues here, we should use `storage` instead of `memory` to update the evidence status. => fix this as the test case developed.
 
 ---
 
@@ -507,7 +507,7 @@ But it works fine if I comment those code in the function `provideFeedback`:
 **What I did today:**
 
 - fix the issue in the `provideFeedback` function in the `Verifier` contract. => This issue due to the wrong index for loop in the `_updateEvidenceStatus` function.
-- find new issue in `_earnRewardsOrGetPenalized`, if `DIFFERENTOPINIONS` status, before the `checkUpkeep` function is called by the chainlink nodes, we need to first remove the previous status in the `evidenceIpfsHashToItsInfo` so that we can update the status again, anyway we have a copy of the previous status in the `evidenceIpfsHashToItsInfo.allSelectedVerifiers` array, thus this will affect the rewards and penalties for the verifiers. => maybe refactor the `_earnRewardsOrGetPenalized` to accept an array of verifiers addresses as parameter. TBC... (This may also solve the known issue below.)
+- find new issue✅ in `_earnRewardsOrGetPenalized`, if `DIFFERENTOPINIONS` status, before the `checkUpkeep` function is called by the chainlink nodes, we need to first remove the previous status in the `evidenceIpfsHashToItsInfo` so that we can update the status again, anyway we have a copy of the previous status in the `evidenceIpfsHashToItsInfo.allSelectedVerifiers` array, thus this will affect the rewards and penalties for the verifiers. => maybe refactor the `_earnRewardsOrGetPenalized` to accept an array of verifiers addresses as parameter. TBC... (This may also solve the known issue below.)
   - Solution: refactor the those functions so the `_updateEvidenceStatus` will be called only once, if the status is `DIFFERENTOPINIONS`, those verifiers who enter the `_earnRewardsOrGetPenalized` function pop their status from the `evidenceIpfsHashToItsInfo` array and then update the status again.
 
 **Known Issue:**
@@ -540,3 +540,9 @@ Fix this or not? => follow up.
   ```bash
   `Unknown2` is above the contract size limit (35616 > 24576).
   ```
+
+---
+
+### 2024/10/12
+
+**What I did today:**
