@@ -546,3 +546,5 @@ Fix this or not? => follow up.
 ### 2024/10/12
 
 **What I did today:**
+
+- Write integration tests for the `Staking` and `VSkillUser` contracts.
