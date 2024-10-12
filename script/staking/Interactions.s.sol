@@ -53,3 +53,30 @@ contract StakeStaking is Script {
         stakeStaking(mostRecentlyDeployed);
     }
 }
+
+contract AddBonusMoneyForVerifierStaking is Script {
+    using PriceConverter for uint256;
+
+    uint256 public constant MIN_USD_AMOUNT = 20e18;
+
+    function addBonusMoneyForVerifierStaking(
+        address mostRecentlyDeployed
+    ) public payable {
+        vm.startBroadcast();
+        Staking staking = Staking(payable(mostRecentlyDeployed));
+        AggregatorV3Interface priceFeed = staking.getPriceFeed();
+        staking.addBonusMoneyForVerifier{
+            value: MIN_USD_AMOUNT.convertUsdToEth(priceFeed)
+        }();
+        vm.stopBroadcast();
+    }
+
+    function run() external {
+        address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment(
+            "Staking",
+            block.chainid
+        );
+        console.log("Most recently deployed address: ", mostRecentlyDeployed);
+        addBonusMoneyForVerifierStaking(mostRecentlyDeployed);
+    }
+}
