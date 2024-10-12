@@ -66,11 +66,17 @@ addBonusMoneyForVerifierStaking-anvil:
 
 # User module interactions
 
-submitEvidenceVSkill-anvil:
-	@forge script script/user/Interactions.s.sol:SubmitEvidenceVSkill --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+submitEvidenceVSkillUser-anvil:
+	@forge script script/user/Interactions.s.sol:SubmitEvidenceVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
-changeSubmissionFeeVSkill-anvil:
-	@forge script script/user/Interactions.s.sol:ChangeSubmissionFeeVSkill --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+changeSubmissionFeeVSkillUser-anvil:
+	@forge script script/user/Interactions.s.sol:ChangeSubmissionFeeVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
-addMoreSkillsVSkill-anvil:
-	@forge script script/user/Interactions.s.sol:AddMoreSkillsVSkill --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+addMoreSkillsVSkillUser-anvil:
+	@forge script script/user/Interactions.s.sol:AddMoreSkillsVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+checkFeedbackOfEvidenceVSkillUser-anvil:
+	@forge script script/user/Interactions.s.sol:CheckFeedbackOfEvidenceVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+earnUserNft-anvil:
+	@forge script script/user/Interactions.s.sol:EarnUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
