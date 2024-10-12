@@ -61,6 +61,9 @@ withdrawStakeStaking-anvil:
 stakeSaking-anvil:
 	@forge script script/staking/Interactions.s.sol:StakeStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
+addBonusMoneyForVerifierStaking-anvil:
+	@forge script script/staking/Interactions.s.sol:AddBonusMoneyForVerifierStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
 # User module interactions
 
 submitEvidenceVSkill-anvil:
