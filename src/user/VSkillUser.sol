@@ -240,4 +240,11 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     {
         return evidences;
     }
+
+    function getEvidenceFeedbackIpfsHash(
+        address _address,
+        uint256 index
+    ) external view returns (string[] memory) {
+        return addressToEvidences[_address][index].feedbackIpfsHash;
+    }
 }
