@@ -85,3 +85,8 @@ earnUserNft-anvil:
 
 mintUserNftVSkillUserNft-anvil:
 	@forge script script/nft/Interactions.s.sol:MintUserNftVSkillUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+# Oracle module interactions
+
+distributionRandomNumberForVerifiersDistribution-anvil:
+	@forge script script/oracle/Interactions.s.sol:DistributionRandomNumberForVerifiersDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
