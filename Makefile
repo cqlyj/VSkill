@@ -80,3 +80,8 @@ checkFeedbackOfEvidenceVSkillUser-anvil:
 
 earnUserNft-anvil:
 	@forge script script/user/Interactions.s.sol:EarnUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+# User NFT module interactions
+
+mintUserNftVSkillUserNft-anvil:
+	@forge script script/nft/Interactions.s.sol:MintUserNftVSkillUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
