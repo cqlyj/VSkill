@@ -394,7 +394,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             // in staking contract we need to implement a function to distribute the money to the verifiers who provide feedback...
 
             // This money will be locked in the staking contract and will be used to reward the verifiers who provide feedback
-            super._penalizeVerifierStakeToBonusMoney(verifierStakedMoneyInEth);
+            super._penalizeVerifierStakeToBonusMoney(
+                verifiersAddress,
+                verifierStakedMoneyInEth
+            );
 
             super._removeVerifier(verifiersAddress);
 
