@@ -1,27 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// internal & private view & pure functions
-// external & public view & pure functions
-
 pragma solidity ^0.8.24;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -60,6 +38,11 @@ contract VSkillUserNft is ERC721 {
         }
     }
 
+    /**
+     *
+     * @param skillDomain The domain of the skill
+     * @dev Mint a user NFT with the skill domain
+     */
     function mintUserNft(string memory skillDomain) public {
         _safeMint(msg.sender, tokenCounter);
         tokenIdToSkillDomain[tokenCounter] = skillDomain;
@@ -68,10 +51,12 @@ contract VSkillUserNft is ERC721 {
         emit MintNftSuccess(tokenCounter - 1, skillDomain);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "data:application/json;base64,";
-    }
-
+    /**
+     *
+     * @param tokenId The id of the token
+     * @return The URI of the token
+     * @dev Get the URI of the token
+     */
     function tokenURI(
         uint256 tokenId
     ) public view override returns (string memory) {
@@ -102,6 +87,11 @@ contract VSkillUserNft is ERC721 {
     ///    Internal Functions   ///
     ///////////////////////////////
 
+    /**
+     *
+     * @param skillDomain The domain of the skill
+     * @param newNftImageUri New NFT image URI for the new skill domain
+     */
     function _addMoreSkillsForNft(
         string memory skillDomain,
         string memory newNftImageUri
@@ -111,6 +101,14 @@ contract VSkillUserNft is ERC721 {
         skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
 
         emit SkillDomainsForNftAdded(skillDomain, newNftImageUri);
+    }
+
+    /**
+     * @return The base URI of the token
+     * @dev Get the base URI of the token
+     */
+    function _baseURI() internal pure override returns (string memory) {
+        return "data:application/json;base64,";
     }
 
     ///////////////////////////////
