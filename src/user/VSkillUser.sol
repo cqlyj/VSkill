@@ -1,27 +1,4 @@
 // SPDX-License-Identifier: MIT
-
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// internal & private view & pure functions
-// external & public view & pure functions
-
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -32,10 +9,6 @@ import {VSkillUserNft} from "../nft/VSkillUserNft.sol";
 import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
-    using PriceConverter for uint256;
-    using StructDefinition for StructDefinition.VSkillUserEvidence;
-    using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
-
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
@@ -47,6 +20,14 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     );
     error VSkillUser__EvidenceIndexOutOfRange();
 
+    /**
+     * @dev PriceConverter library is used to convert the price from ETH to USD and vice versa.
+     * @dev StructDefinition library is used to define the struct of VSkillUserEvidence and VSkillUserSubmissionStatus.
+     */
+    using PriceConverter for uint256;
+    using StructDefinition for StructDefinition.VSkillUserEvidence;
+    using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+
     string[] private skillDomains = [
         "Frontend",
         "Backend",
@@ -55,7 +36,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         "Blockchain"
     ];
 
-    uint256 private submissionFeeInUsd; // 5e18 -> 5 USD for each submission
+    /**
+     * @dev submissionFeeInUsd is the fee that users need to pay to submit their evidence. Here is 5 USD.
+     */
+    uint256 private submissionFeeInUsd;
     mapping(address => StructDefinition.VSkillUserEvidence[])
         public addressToEvidences;
     StructDefinition.VSkillUserEvidence[] public evidences;
@@ -77,6 +61,19 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
+    /**
+     *
+     * @param evidenceIpfsHash The IPFS hash of the evidence user wants to submit.
+     * @param skillDomain The corresponding skill domain of the evidence.
+     * @dev This function is used to submit the evidence of the user.
+     * @dev The user needs to pay the submission fee to submit the evidence.
+     * @dev The evidence will be stored in the mapping addressToEvidences and evidences.
+     * @dev The status of the evidence will be set to SUBMITTED.
+     * @dev The event EvidenceSubmitted will be emitted.
+     * @dev The user can submit the evidence only if the skill domain is valid.
+     * @dev The user can submit the evidence only if the submission fee is enough.
+     * @dev The submissionFee will be stored in the `bonusMoneyInUsd`.
+     */
     function submitEvidence(
         string memory evidenceIpfsHash,
         string memory skillDomain
@@ -91,8 +88,6 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         if (!_isSkillDomainValid(skillDomain)) {
             revert VSkillUser__InvalidSkillDomain();
         }
-
-        // transfer the submission fee to Staking contract and update the bonusMoneyInUsd
 
         // Even though contract VSkillUser inherits from contract Staking, both contracts share the same deployed address for contract VSkillUser.
         // When you deploy contract VSkillUser, you're not deploying contract Staking separately
@@ -132,6 +127,13 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         emit EvidenceSubmitted(msg.sender, evidenceIpfsHash, skillDomain);
     }
 
+    /**
+     *
+     * @param indexOfUserEvidence The index of the evidence that the user have submitted.
+     * @return The feedback of the evidence.
+     * @dev This function is used to check the feedback of the evidence.
+     * @dev The user can check the feedback of the evidence only if the index of the evidence is valid.
+     */
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
     ) external view returns (string[] memory) {
@@ -144,6 +146,12 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
                 .feedbackIpfsHash;
     }
 
+    /**
+     *
+     * @param _evidence The evidence that the user wants to earn the NFT.
+     * @dev This function is used to earn the NFT for the user.
+     * @dev The user can earn the NFT only if the status of the evidence is APPROVED.
+     */
     function earnUserNft(
         StructDefinition.VSkillUserEvidence memory _evidence
     ) external {
@@ -161,11 +169,26 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     //////  Owner Functions  //////
     ///////////////////////////////
 
+    /**
+     *
+     * @param newFeeInUsd The new submission fee that the owner wants to set.
+     * @dev This function is used to change the submission fee.
+     * @dev Only the owner can change the submission fee.
+     * @dev The event SubmissionFeeChanged will be emitted.
+     */
     function changeSubmissionFee(uint256 newFeeInUsd) external onlyOwner {
         submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
     }
 
+    /**
+     *
+     * @param skillDomain The new skill domain that the owner wants to add.
+     * @param newNftImageUri The new NFT image URI that the owner wants to add.
+     * @dev This function is used to add more skill domains.
+     * @dev Only the owner can add more skill domains.
+     * @dev The event SkillDomainAdded will be emitted.
+     */
     function addMoreSkills(
         string memory skillDomain,
         string memory newNftImageUri
@@ -182,6 +205,12 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     /////  Internal Functions  ////
     ///////////////////////////////
 
+    /**
+     *
+     * @param skillDomain The skill domain to be checked.
+     * @return True if the skill domain is valid, otherwise false.
+     * @dev This function is used to check if the skill domain is valid.
+     */
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
@@ -197,6 +226,13 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         return false;
     }
 
+    /**
+     *
+     * @param skillDomain The skill domain to be checked.
+     * @return True if the skill domain already exists, otherwise false.
+     * @dev This function is used to check if the skill domain already exists.
+     * @dev This function is used in the addMoreSkills function.
+     */
     function _skillDomainAlreadyExists(
         string memory skillDomain
     ) internal view returns (bool) {
