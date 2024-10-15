@@ -8,6 +8,12 @@ import {Staking} from "../staking/Staking.sol";
 import {VSkillUserNft} from "../nft/VSkillUserNft.sol";
 import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
+/**
+ * @title VSkillUser contract for user interaction
+ * @author Luo Yingjie
+ * @notice This is the contract for submitting evidence and earning NFTs with skill domains
+ * @dev The user can submit evidence and earn NFTs with skill domains, also they can check the feedback of the evidence
+ */
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
@@ -77,7 +83,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function submitEvidence(
         string memory evidenceIpfsHash,
         string memory skillDomain
-    ) external payable {
+    ) public payable virtual {
         if (msg.value.convertEthToUsd(priceFeed) < submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee(
                 submissionFeeInUsd,
@@ -136,7 +142,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      */
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
-    ) external view returns (string[] memory) {
+    ) public view virtual returns (string[] memory) {
         if (indexOfUserEvidence >= evidences.length) {
             revert VSkillUser__EvidenceIndexOutOfRange();
         }
@@ -154,7 +160,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      */
     function earnUserNft(
         StructDefinition.VSkillUserEvidence memory _evidence
-    ) external {
+    ) public virtual {
         if (
             _evidence.status !=
             StructDefinition.VSkillUserSubmissionStatus.APPROVED
@@ -176,7 +182,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev Only the owner can change the submission fee.
      * @dev The event SubmissionFeeChanged will be emitted.
      */
-    function changeSubmissionFee(uint256 newFeeInUsd) external onlyOwner {
+    function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
         submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
     }
@@ -192,7 +198,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function addMoreSkills(
         string memory skillDomain,
         string memory newNftImageUri
-    ) external onlyOwner {
+    ) public virtual onlyOwner {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }

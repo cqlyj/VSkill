@@ -5,6 +5,12 @@ pragma solidity ^0.8.24;
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
+/**
+ * @title VSkillUserNft contract for minting user NFTs with skill domains
+ * @author Luo Yingjie
+ * @notice This is the contract for minting user NFTs with skill domains
+ * @dev The user NFTs are minted with skill domains, it's a ERC721 svg NFT
+ */
 contract VSkillUserNft is ERC721 {
     uint256 private tokenCounter;
     string[] private skillDomains = [

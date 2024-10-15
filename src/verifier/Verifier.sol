@@ -1,27 +1,4 @@
 // SPDX-License-Identifier: MIT
-
-// Layout of Contract:
-// version
-// imports
-// errors
-// interfaces, libraries, contracts
-// Type declarations
-// State variables
-// Events
-// Modifiers
-// Functions
-
-// Layout of Functions:
-// constructor
-// receive function (if exists)
-// fallback function (if exists)
-// external
-// public
-// internal
-// private
-// internal & private view & pure functions
-// external & public view & pure functions
-
 pragma solidity ^0.8.24;
 
 import {VSkillUser} from "../user/VSkillUser.sol";
@@ -30,18 +7,36 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
+/**
+ * @title Verifier contract for verifiers to provide feedback on user's evidence.
+ * @author Luo Yingjie
+ * @notice This contract is the final contact which inherits from VSkillUser and Distribution contracts
+ * @dev The verifier contract utilizes Chainlink Automation to assign evidence to verifiers and intergrates other contracts
+ */
 contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
+    //////////////////////
+    ///     errors     ///
+    //////////////////////
+
+    error Verifier__NotEnoughVerifiers(uint256 verifiersLength);
+    error Verifier__NotSelectedVerifier();
+    error Verifier__NotAllVerifiersProvidedFeedback();
+    error Verifier__EvidenceStillInReview();
+
+    /////////////////////////
+    ///     libraries     ///
+    /////////////////////////
+
+    /**
+     * @dev Using the StructDefinition library for the struct types
+     */
+
     using StructDefinition for StructDefinition.VerifierConstructorParams;
     using StructDefinition for StructDefinition.VerifierEvidenceIpfsHashInfo;
     using StructDefinition for StructDefinition.VerifierFeedbackProvidedEventParams;
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
     using StructDefinition for StructDefinition.StakingVerifier;
-
-    error Verifier__NotEnoughVerifiers(uint256 verifiersLength);
-    error Verifier__NotSelectedVerifier();
-    error Verifier__NotAllVerifiersProvidedFeedback();
-    error Verifier__EvidenceStillInReview();
 
     //////////////////////////////
     ///        Structs         ///
@@ -102,11 +97,21 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         uint256 indexed currentReputation
     );
 
+    /////////////////////////
+    ///     Modifiers     ///
+    /////////////////////////
+
+    /**
+     * @dev Modifier to check if the address is a verifier
+     */
     modifier isVeifier() {
         _isVerifier(msg.sender);
         _;
     }
 
+    /**
+     * @dev Modifier to check if the number of verifiers in the same domain is enough or not
+     */
     modifier enoughNumberOfVerifiers(string memory skillDomain) {
         _enoughNumberOfVerifiers(skillDomain);
         _;
@@ -137,10 +142,15 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     // https://docs.chain.link/chainlink-automation/reference/automation-interfaces
     // https://docs.chain.link/chainlink-automation/guides/flexible-upkeeps
 
-    // once someone submits an evidence, the contract will automatically assign the evidence to the selected verifiers
-    // those evidence status remains in `submitted` are the evidence that haven't been assigned to the verifiers
-    // once the evidence is assigned to the verifiers, the status will be changed to `InReview`
-
+    /**
+     *
+     * @return upkeepNeeded If the evidence status is `submitted` or `differentOpinion`, this function will return true, otherwise false
+     * @return performData The evidence that needs to be assigned to the verifiers
+     * @notice Once someone submits an evidence, the contract will automatically assign the evidence to the selected verifiers
+     * @notice Those evidence status remains in `submitted` are the evidence that haven't been assigned to the verifiers
+     * @notice Once the evidence is assigned to the verifiers, the status will be changed to `InReview`
+     * @dev This is the Chainlink Automation function to check if the evidence needs to be assigned to the verifiers
+     */
     function checkUpkeep(
         bytes calldata /* checkData */
     )
@@ -167,6 +177,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         return (upkeepNeeded, "");
     }
 
+    /**
+     *
+     * @param performData The evidence that needs to be assigned to the verifiers
+     * @notice This function will assign the evidence to the selected verifiers
+     * @dev This is the Chainlink Automation function to do further actions after the checkUpkeep function
+     * @dev This function call the _requestVerifiersSelection function to assign the evidence to the verifiers
+     */
     function performUpkeep(bytes calldata performData) external override {
         StructDefinition.VSkillUserEvidence memory ev = abi.decode(
             performData,
@@ -179,6 +196,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     /////   External Functions   /////
     //////////////////////////////////
 
+    /**
+     *
+     * @param newSkillDomains The new skill domains that the verifier wants to update
+     * @dev This function allows the verifier to update their skill domains
+     * @dev Only the verifier can update their skill domains
+     * @dev This function emits an event to notify the verifier that their skill domains have been updated
+     */
     function updateSkillDomains(
         string[] memory newSkillDomains
     ) external isVeifier {
@@ -186,6 +210,21 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         emit VerifierSkillDomainUpdated(msg.sender, newSkillDomains);
     }
 
+    /**
+     *
+     * @param feedbackIpfsHash The feedback IPFS hash that the verifier wants to provide
+     * @param evidenceIpfsHash The evidence IPFS hash that the verifier wants to provide feedback
+     * @param user The user who submits the evidence
+     * @param approved Whether the verifier approves the evidence or not
+     * @dev This function allows the verifier to provide feedback on the user's evidence
+     * @dev Only the selected verifier can provide feedback
+     * @dev This function emits an event to notify the verifier that the feedback has been provided
+     * @dev This function emits an event to notify the user that the evidence status has been updated
+     * @dev This function will also do a check to see if all the selected verifiers have provided feedback
+     * @dev If the length of the statusApproveOrNot is less than the number of selected verifiers, the function will return, else it will call the _earnRewardsOrGetPenalized function
+     * @dev If all the selected verifiers have provided feedback, the function will call the _earnRewardsOrGetPenalized function to reward or penalize the verifiers
+     * @dev If the evidence status is `differentOpinion`, the function will wait until the evidence finally gets approved or rejected
+     */
     function provideFeedback(
         string memory feedbackIpfsHash,
         string memory evidenceIpfsHash,
@@ -281,6 +320,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    ////////////////////////////////
+    ///     Public Functions     ///
+    ////////////////////////////////
+
+    /**
+     * @dev The following functions are the public functions that are inherited from the Staking contract
+     */
     function stake() public payable override {
         super.stake();
     }
@@ -289,10 +335,56 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         super.withdrawStake(amountToWithdrawInEth);
     }
 
+    /**
+     *
+     * @dev The follwoing functions are the public functions that are inherited from the VSkillUser contract
+     */
+    function submitEvidence(
+        string memory evidenceIpfsHash,
+        string memory skillDomain
+    ) public payable override {
+        super.submitEvidence(evidenceIpfsHash, skillDomain);
+    }
+
+    function checkFeedbackOfEvidence(
+        uint256 indexOfUserEvidence
+    ) public view override returns (string[] memory) {
+        return super.checkFeedbackOfEvidence(indexOfUserEvidence);
+    }
+
+    function earnUserNft(
+        StructDefinition.VSkillUserEvidence memory _evidence
+    ) public override {
+        super.earnUserNft(_evidence);
+    }
+
+    function changeSubmissionFee(
+        uint256 newFeeInUsd
+    ) public override onlyOwner {
+        super.changeSubmissionFee(newFeeInUsd);
+    }
+
+    function addMoreSkills(
+        string memory skillDomain,
+        string memory newNftImageUri
+    ) public override onlyOwner {
+        super.addMoreSkills(skillDomain, newNftImageUri);
+    }
+
     //////////////////////////////////
     /////   Internal Functions   /////
     //////////////////////////////////
 
+    /**
+     *
+     * @param evidenceIpfsHash The evidence IPFS hash that the verifier provides feedback
+     * @param verifierAddress The verifier address that provides feedback
+     * @param evidenceStatus The current status of the evidence
+     * @dev This function will reward or penalize the verifiers based on the feedback they provide
+     * @dev If the evidence status is `inReview`, the function will revert
+     * @dev If the evidence status is `approved` or `rejected`, the function will reward those verifiers who provide the same feedback as the evidence status
+     * @dev If the evidence status is `differentOpinion`, the function will wait until the evidence finally gets approved or rejected
+     */
     function _earnRewardsOrGetPenalized(
         string memory evidenceIpfsHash,
         address verifierAddress,
@@ -332,7 +424,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         else {
             // first wait until this evidence finally gets approved or rejected
             // then penalize or reward the verifiers
-
             // If different opinion, the verifier need to delete the status of the feedback first, but we still have a copy of the allSelectedVerifiersToFeedbackStatus
 
             evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot.pop();
@@ -341,6 +432,19 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    /**
+     *
+     * @param verifiersAddress The address of the verifier that needs to be rewarded
+     * @dev This function will reward the verifiers.
+     * @dev The reward will be distributed in the form of stake
+     * @dev The reward consists of two parts:
+     * @dev (1) The reputation of the verifier
+     * @dev (2) The bonus money in the staking contract
+     * @dev The reward will be calculated based on the following algorithm:
+     * @dev reward = reputation / HIGHEST_REPUTATION / BONUS_DISTRIBUTION_NUMBER * bonusMoneyInUsd
+     * @dev The reputation will be increased by 1 if the current reputation is less than the highest reputation
+     * @dev Then those bonus money will be stored in the verifier struct so that verifiers can withdraw the bonus money => Pull over push
+     */
     function _rewardVerifiers(address verifiersAddress) internal {
         uint256 currentReputation = verifiers[addressToId[verifiersAddress] - 1]
             .reputation;
@@ -368,6 +472,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         super._rewardVerifierInFormOfStake(verifiersAddress, rewardAmountInEth);
     }
 
+    /**
+     *
+     * @param verifiersAddress The address of the verifier that needs to be penalized
+     * @dev This function will penalize the verifiers.
+     * @dev The penalty will be decrease the reputation of the verifiers if the current reputation is greater than the lowest reputation
+     * @dev If the reputation is less than the lowest reputation, the verifier will be removed from the verifiers array and those stakes will be collected by the bonus money in the staking contract
+     * @dev In this way, it incentivizes the verifiers to provide feedback correctly since the more malicious feedback they provide, the more money they will lose while other verifiers will get more rewards
+     */
     function _penalizeVerifiers(address verifiersAddress) internal {
         if (
             verifiers[addressToId[verifiersAddress] - 1].reputation >
@@ -405,12 +517,25 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    /**
+     *
+     * @param verifierOrUser The address of the verifier or the user
+     * @dev This function will check if the address is a verifier or not
+     * @dev If the address is not a verifier, the function will revert
+     */
     function _isVerifier(address verifierOrUser) internal view {
         if (addressToId[verifierOrUser] == 0) {
             revert Staking__NotVerifier();
         }
     }
 
+    /**
+     *
+     * @param skillDomain The skill domain to be checked
+     * @return verifiersWithinSameDomain The verifiers within the same domain
+     * @return count The number of verifiers within the same domain
+     * @dev This function will return the verifiers within the same domain
+     */
     function _verifiersWithinSameDomain(
         string memory skillDomain
     ) public view returns (address[] memory, uint256 count) {
@@ -461,6 +586,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         return (verifiersWithinSameDomain, verifiersWithinSameDomainCount);
     }
 
+    /**
+     *
+     * @param skillDomain The skill domain to be checked
+     * @dev This function will check if the number of verifiers within the same domain is enough or not
+     * @dev If the number of verifiers within the same domain is less than the number of words, the function will revert
+     * @dev The number of words is the number of verifiers that required to provide feedback on the user's evidence
+     */
     function _enoughNumberOfVerifiers(string memory skillDomain) public view {
         (, uint256 verifiersWithinSameDomainCount) = _verifiersWithinSameDomain(
             skillDomain
@@ -470,6 +602,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    /**
+     *
+     * @param ev The evidence that needs to be assigned to the verifiers
+     * @dev This function will assign the evidence to the selected verifiers
+     * @dev This function will call the distributionRandomNumberForVerifiers function which then call the _selectedVerifiersAddressCallback function
+     */
     function _requestVerifiersSelection(
         StructDefinition.VSkillUserEvidence memory ev
     ) public {
@@ -477,6 +615,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         super.distributionRandomNumberForVerifiers(address(this), ev);
     }
 
+    /**
+     *
+     * @param ev The evidence that needs to be assigned to the verifiers
+     * @param randomWords The random words that are generated by the Chainlink VRF
+     * @return selectedVerifiers The selected verifiers
+     * @dev This function will select the verifiers based on the random words
+     * @dev This is the callback function in the Distribution to be called after the random words are generated
+     * @dev The selected verifiers will be stored in the evidenceIpfsHashToItsInfo mapping
+     * @dev The evidence status will be updated to `InReview`
+     * @dev The selected verifiers will be assigned to the evidence
+     * @dev This function will call the _updateSelectedVerifiersInfo function to update the selected verifiers info
+     * @dev This function will call the _assignEvidenceToSelectedVerifier function to assign the evidence to the selected verifiers
+     * @dev This function will emit an event to notify the selected verifiers
+     */
     function _selectedVerifiersAddressCallback(
         StructDefinition.VSkillUserEvidence memory ev,
         uint256[] memory randomWords
@@ -533,6 +685,18 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         return selectedVerifiers;
     }
 
+    /**
+     *
+     * @param evidenceIpfsHash The evidence IPFS hash that needs to be updated
+     * @param selectedVerifiers The array of selected verifiers
+     * @dev This function will update the selected verifiers info
+     * @dev The selected verifiers will be stored in the evidenceIpfsHashToItsInfo mapping
+     * @dev This function will emit an event to notify the selected verifiers
+     * @dev If the previous selected verifiers length is greater than 0, that is to say the evidence has been assigned to the verifiers before
+     * @dev The current selected verifiers will be appended to the previous selected verifiers
+     * @dev If the previous selected verifiers length is 0, that is to say the evidence hasn't been assigned to the verifiers before
+     * @dev The current selected verifiers will be stored in the evidenceIpfsHashToItsInfo mapping
+     */
     function _updateSelectedVerifiersInfo(
         string memory evidenceIpfsHash,
         address[] memory selectedVerifiers
@@ -576,6 +740,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    /**
+     *
+     * @param ev The evidence that needs to be assigned to the verifiers
+     * @param selectedVerifiers The array of selected verifiers
+     * @dev This function will update the verifier.evidenceIpfsHash and verifier.evidenceSubmitters
+     * @dev The evidence status will be updated to `InReview`
+     * @dev This function will emit an event to notify the selected verifiers
+     */
     function _assignEvidenceToSelectedVerifier(
         StructDefinition.VSkillUserEvidence memory ev,
         address[] memory selectedVerifiers
@@ -604,6 +776,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         );
     }
 
+    /**
+     *
+     * @param evidenceIpfsHash The evidence IPFS hash that the verifier provides feedback
+     * @param verifierAddress The address of the verifier that provides feedback
+     * @dev This function will check if the verifier is the selected verifier
+     * @dev If the verifier is not the selected verifier, the function will revert
+     */
     function _onlySelectedVerifier(
         string memory evidenceIpfsHash,
         address verifierAddress
@@ -626,6 +805,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         revert Verifier__NotSelectedVerifier();
     }
 
+    /**
+     *
+     * @param evidenceIpfsHash The evidence Ipfs hash that the corresponding evidence to be checked
+     * @dev This function will check if all the verifiers have provided feedback
+     * @dev If the length of the statusApproveOrNot is less than the number of selected verifiers, the function will revert, that is to say not all the verifiers have provided feedback
+     */
     function _waitForConfirmation(
         string memory evidenceIpfsHash
     ) internal view {
@@ -636,6 +821,24 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
     }
 
+    /**
+     *
+     * @param evidenceIpfsHash The evidence IPFS hash that needs to be updated
+     * @param user The user who submits the evidence
+     * @return StructDefinition.VSkillUserSubmissionStatus The status after modification of the evidence
+     * @dev This function will update the status of the evidence
+     * @dev If all three verifiers approve or reject the evidence, the status of the evidence will be updated
+     * @dev Anyone of them gives a different feedback, the status be differentOpinion
+     * @dev And the evidence will be assigned again randomly to three verifiers(may be the same verifiers => it's possible)
+     * @dev The process will be repeated until all three verifiers give the same feedback
+     * @dev This function will emit an event to notify the user that the evidence status has been updated
+     * @dev This function will return the status of the evidence
+     * @dev If the status is `approved`, the function will return `APPROVED`
+     * @dev If the status is `rejected`, the function will return `REJECTED`
+     * @dev If the status is `differentOpinion`, the function will return `DIFFERENTOPINION`
+     * @dev The status of the evidence will be updated in the evidenceIpfsHashToItsInfo mapping
+     * @dev The status of the evidence will be updated in the addressToEvidences mapping
+     */
     function _updateEvidenceStatus(
         string memory evidenceIpfsHash,
         address user
@@ -657,11 +860,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 break;
             }
         }
-
-        // If all three verifiers approve or reject the evidence, the status of the evidence will be updated
-        // Anyone of them gives a different feedback, the status be differentOpinion
-        // And the evidence will be assigned again randomly to three verifiers(may be the same verifiers => it's possible)
-        // The process will be repeated until all three verifiers give the same feedback
 
         uint256 statusLength = status.length;
 
