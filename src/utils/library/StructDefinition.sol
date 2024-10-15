@@ -2,6 +2,11 @@
 
 pragma solidity ^0.8.24;
 
+/**
+ * @title StructDefinition library that will be used to define the struct in the contract
+ * @author Luo Yingjie
+ * @notice Those structs are used to define the struct in the contract to prevent the stack too deep error
+ */
 library StructDefinition {
     struct VerifierConstructorParams {
         address priceFeed;
