@@ -558,3 +558,11 @@ Fix this or not? => follow up.
 - Write integration tests for the `VSkillUserNft` and `Oracle` contract.
 - Since the verifier contract cannot be deployed due to the contract size limit, no integration tests for this contract now. => leave this for audit later.
 - Final refactor and add natspec comments for `Staking` contract.
+
+---
+
+### 2024/10/15
+
+**What I did today:**
+
+- Final refactor for the rest contracts and add natspec comments for them.
