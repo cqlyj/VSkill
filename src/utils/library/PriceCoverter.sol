@@ -4,6 +4,12 @@ pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
+/**
+ * @title PriceConverter library that will be used to convert ETH to USD and USD to ETH
+ * @author Luo Yingjie
+ * @notice This library uitilize the Chainlink Price Feed to get the latest price of ETH/USD
+ * @dev This library is used to convert ETH to USD and USD to ETH
+ */
 library PriceConverter {
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
