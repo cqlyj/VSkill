@@ -566,3 +566,11 @@ Fix this or not? => follow up.
 **What I did today:**
 
 - Final refactor for the rest contracts and add natspec comments for them.
+
+---
+
+### 2024/10/16
+
+**What I did today:**
+
+- Update the `README.md` and VSkill version 1 is done now.
