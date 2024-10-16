@@ -3,7 +3,7 @@
 </div>
 
  <h1 align="center">
-VSkill (VeriSkill)
+VSkill - version 1.0
 </h1>
 
 ## About the Project
