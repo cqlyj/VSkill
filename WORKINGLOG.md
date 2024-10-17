@@ -574,3 +574,11 @@ Fix this or not? => follow up.
 **What I did today:**
 
 - Update the `README.md` and VSkill version 1 is done now.
+
+---
+
+### 2024/10/17
+
+**What I did today:**
+
+- Add the better solution for the private key stored in the `.env` file. => Solution in `.notes.md` file.
