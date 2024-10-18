@@ -3,7 +3,7 @@
 </div>
 
  <h1 align="center">
-VSkill (VeriSkill)
+VSkill - v1
 </h1>
 
 ## About the Project
@@ -138,6 +138,10 @@ To deploy VSkill to a testnet or mainnet:
    ```
 
 Make sure to configure the Chainlink oracles and other necessary parameters after deployment.
+
+## zkSync local node instructions
+
+In case you want to deploy to the layer 2 zkSync local network, you can follow the instructions in file `zksync-node-instructions.md`.
 
 ## License
 

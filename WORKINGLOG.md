@@ -574,3 +574,11 @@ Fix this or not? => follow up.
 **What I did today:**
 
 - Update the `README.md` and VSkill version 1 is done now.
+
+---
+
+### 2024/10/17
+
+**What I did today:**
+
+- Add `zkSync` instructions and update the `Makefile` and `README.md` to introduce deploying the contracts on `zkSync`.
