@@ -8,7 +8,11 @@ install:
 
 build:; @forge build
 
+build-zksync:; @forge build --zksync
+
 compile:; @forge compile
+
+compile-zksync:; @forge compile --zksync
 
 snapshot:; @forge snapshot
 
@@ -20,6 +24,33 @@ test-sepolia:
 
 test-mainnet:
 	@forge test --fork-url $(MAINNET_RPC_URL)
+
+# docker
+
+docker-start:
+	@sudo systemctl start docker
+
+docker-stop:
+	@sudo systemctl stop docker.socket
+
+docker-status:
+	@sudo systemctl status docker
+
+docker-ps:
+	@docker ps
+
+# zkSync local node
+
+zksync-start:
+	@npx zksync-cli dev start
+
+# deploy contracts zkSync
+
+# deploy-staking-zksync-local:
+# 	@forge create src/staking/Staking.sol:Staking --rpc-url $(ZKSYNC_LOCAL_RPC_URL) --private-key $(ZKSYNC_LOCAL_PRIVATE_KEY) --legacy --zksync --constructor-args 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+
+# deploy-staking-zksync-sepolia:
+# 	@forge create src/staking/Staking.sol:Staking --rpc-url $(ZKSYNC_SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --legacy --zksync --constructor-args 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
 
 # deploy contracts
 
