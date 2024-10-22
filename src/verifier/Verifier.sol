@@ -43,12 +43,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     //////////////////////////////
 
     uint256 private constant INITIAL_REPUTATION = 2;
-    uint256 private immutable LOWEST_REPUTATION = 0;
-    uint256 private immutable HIGHEST_REPUTATION = 10;
+    uint256 private constant LOWEST_REPUTATION = 0;
+    uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant BONUS_DISTRIBUTION_NUMBER = 20;
 
     mapping(string => StructDefinition.VerifierEvidenceIpfsHashInfo)
-        private evidenceIpfsHashToItsInfo;
+        private s_evidenceIpfsHashToItsInfo;
 
     //////////////////////////////
     ///         Events         ///
@@ -132,7 +132,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             params.callbackGasLimit
         )
     {
-        priceFeed = AggregatorV3Interface(params.priceFeed);
+        s_priceFeed = AggregatorV3Interface(params.priceFeed);
     }
 
     ////////////////////////////////////////////
@@ -160,16 +160,16 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         returns (bool upkeepNeeded, bytes memory performData)
     {
         // if the evidence status is `submitted` or `differentOpinion`, this function will return true
-        uint256 length = evidences.length;
+        uint256 length = s_evidences.length;
         for (uint256 i = 0; i < length; i++) {
             if (
-                evidences[i].status ==
+                s_evidences[i].status ==
                 StructDefinition.VSkillUserSubmissionStatus.SUBMITTED ||
-                evidences[i].status ==
+                s_evidences[i].status ==
                 StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION
             ) {
                 upkeepNeeded = true;
-                performData = abi.encode(evidences[i]);
+                performData = abi.encode(s_evidences[i]);
                 return (upkeepNeeded, performData);
             }
         }
@@ -206,7 +206,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function updateSkillDomains(
         string[] memory newSkillDomains
     ) external isVeifier {
-        verifiers[addressToId[msg.sender] - 1].skillDomains = newSkillDomains;
+        s_verifiers[s_addressToId[msg.sender] - 1]
+            .skillDomains = newSkillDomains;
         emit VerifierSkillDomainUpdated(msg.sender, newSkillDomains);
     }
 
@@ -233,7 +234,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ) external {
         _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
         StructDefinition.VSkillUserEvidence[]
-            memory userEvidences = addressToEvidences[user];
+            memory userEvidences = s_addressToEvidences[user];
         uint256 length = userEvidences.length;
         uint256 currentEvidenceIndex;
         for (uint256 i = 0; i < length; i++) {
@@ -247,11 +248,11 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
-        addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
+        s_addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
 
-        verifiers[addressToId[msg.sender] - 1].feedbackIpfsHash.push(
+        s_verifiers[s_addressToId[msg.sender] - 1].feedbackIpfsHash.push(
             feedbackIpfsHash
         );
 
@@ -266,12 +267,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         );
 
         if (approved) {
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot.push(
-                    true
-                );
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .push(true);
             emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, true);
 
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[msg.sender] = true;
             emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
                 msg.sender,
@@ -279,12 +280,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 true
             );
         } else {
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot.push(
-                    false
-                );
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .push(false);
             emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, false);
 
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[msg.sender] = false;
             emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
                 msg.sender,
@@ -296,13 +297,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
 
         if (
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
-                .length < numWords
+                .length < s_numWords
         ) {
             return;
         } else {
-            address[] memory allSelectedVerifiers = evidenceIpfsHashToItsInfo[
+            address[] memory allSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
                 evidenceIpfsHash
             ].selectedVerifiers;
             uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
@@ -401,7 +402,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             evidenceStatus ==
             StructDefinition.VSkillUserSubmissionStatus.APPROVED
         ) {
-            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            bool status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[verifierAddress];
             if (status) {
                 _rewardVerifiers(verifierAddress);
@@ -412,7 +413,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             evidenceStatus ==
             StructDefinition.VSkillUserSubmissionStatus.REJECTED
         ) {
-            bool status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            bool status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[verifierAddress];
             if (status) {
                 _penalizeVerifiers(verifierAddress);
@@ -426,7 +427,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             // then penalize or reward the verifiers
             // If different opinion, the verifier need to delete the status of the feedback first, but we still have a copy of the allSelectedVerifiersToFeedbackStatus
 
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot.pop();
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .pop();
 
             return;
         }
@@ -446,16 +449,17 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
      * @dev Then those bonus money will be stored in the verifier struct so that verifiers can withdraw the bonus money => Pull over push
      */
     function _rewardVerifiers(address verifiersAddress) internal {
-        uint256 currentReputation = verifiers[addressToId[verifiersAddress] - 1]
-            .reputation;
+        uint256 currentReputation = s_verifiers[
+            s_addressToId[verifiersAddress] - 1
+        ].reputation;
 
         if (currentReputation < HIGHEST_REPUTATION) {
-            verifiers[addressToId[verifiersAddress] - 1].reputation++;
+            s_verifiers[s_addressToId[verifiersAddress] - 1].reputation++;
 
             emit VerifierReputationUpdated(
                 verifiersAddress,
-                verifiers[addressToId[verifiersAddress] - 1].reputation - 1,
-                verifiers[addressToId[verifiersAddress] - 1].reputation
+                s_verifiers[s_addressToId[verifiersAddress] - 1].reputation - 1,
+                s_verifiers[s_addressToId[verifiersAddress] - 1].reputation
             );
         }
         // get the reward from the contract => what's the ratio of the reward?
@@ -482,20 +486,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
      */
     function _penalizeVerifiers(address verifiersAddress) internal {
         if (
-            verifiers[addressToId[verifiersAddress] - 1].reputation >
+            s_verifiers[s_addressToId[verifiersAddress] - 1].reputation >
             LOWEST_REPUTATION
         ) {
-            verifiers[addressToId[verifiersAddress] - 1].reputation--;
+            s_verifiers[s_addressToId[verifiersAddress] - 1].reputation--;
 
             emit VerifierReputationUpdated(
                 verifiersAddress,
-                verifiers[addressToId[verifiersAddress] - 1].reputation + 1,
-                verifiers[addressToId[verifiersAddress] - 1].reputation
+                s_verifiers[s_addressToId[verifiersAddress] - 1].reputation + 1,
+                s_verifiers[s_addressToId[verifiersAddress] - 1].reputation
             );
         } else {
             StructDefinition.StakingVerifier
-                memory verifierToBeRemoved = verifiers[
-                    addressToId[verifiersAddress] - 1
+                memory verifierToBeRemoved = s_verifiers[
+                    s_addressToId[verifiersAddress] - 1
                 ];
 
             uint256 verifierStakedMoneyInEth = verifierToBeRemoved
@@ -524,7 +528,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
      * @dev If the address is not a verifier, the function will revert
      */
     function _isVerifier(address verifierOrUser) internal view {
-        if (addressToId[verifierOrUser] == 0) {
+        if (s_addressToId[verifierOrUser] == 0) {
             revert Staking__NotVerifier();
         }
     }
@@ -539,16 +543,16 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function _verifiersWithinSameDomain(
         string memory skillDomain
     ) public view returns (address[] memory, uint256 count) {
-        uint256 length = verifiers.length;
+        uint256 length = s_verifiers.length;
 
         uint256 verifiersWithinSameDomainCount = 0;
         for (uint256 i = 0; i < length; i++) {
-            if (verifiers[i].skillDomains.length > 0) {
-                uint256 skillDomainLength = verifiers[i].skillDomains.length;
+            if (s_verifiers[i].skillDomains.length > 0) {
+                uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
                 for (uint256 j = 0; j < skillDomainLength; j++) {
                     if (
                         keccak256(
-                            abi.encodePacked(verifiers[i].skillDomains[j])
+                            abi.encodePacked(s_verifiers[i].skillDomains[j])
                         ) == keccak256(abi.encodePacked(skillDomain))
                     ) {
                         verifiersWithinSameDomainCount++;
@@ -565,17 +569,17 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         uint256 verifiersWithinSameDomainIndex = 0;
 
         for (uint256 i = 0; i < length; i++) {
-            if (verifiers[i].skillDomains.length > 0) {
-                uint256 skillDomainLength = verifiers[i].skillDomains.length;
+            if (s_verifiers[i].skillDomains.length > 0) {
+                uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
                 for (uint256 j = 0; j < skillDomainLength; j++) {
                     if (
                         keccak256(
-                            abi.encodePacked(verifiers[i].skillDomains[j])
+                            abi.encodePacked(s_verifiers[i].skillDomains[j])
                         ) == keccak256(abi.encodePacked(skillDomain))
                     ) {
                         verifiersWithinSameDomain[
                             verifiersWithinSameDomainIndex
-                        ] = verifiers[i].verifierAddress;
+                        ] = s_verifiers[i].verifierAddress;
                         verifiersWithinSameDomainIndex++;
                         break; // No need to check other domains for this verifier
                     }
@@ -597,7 +601,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         (, uint256 verifiersWithinSameDomainCount) = _verifiersWithinSameDomain(
             skillDomain
         );
-        if (verifiersWithinSameDomainCount < numWords) {
+        if (verifiersWithinSameDomainCount < s_numWords) {
             revert Verifier__NotEnoughVerifiers(verifiersWithinSameDomainCount);
         }
     }
@@ -637,7 +641,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         enoughNumberOfVerifiers(ev.skillDomain)
         returns (address[] memory)
     {
-        address[] memory selectedVerifiers = new address[](numWords);
+        address[] memory selectedVerifiers = new address[](s_numWords);
 
         (
             address[] memory verifiersWithinSameDomain,
@@ -652,8 +656,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         uint256 totalReputationScore = 0;
         for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
-            totalReputationScore += verifiers[
-                addressToId[verifiersWithinSameDomain[i]] - 1
+            totalReputationScore += s_verifiers[
+                s_addressToId[verifiersWithinSameDomain[i]] - 1
             ].reputation;
         }
 
@@ -662,8 +666,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         uint256 selectedIndicesCount = 0;
 
         for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
-            uint256 reputation = verifiers[
-                addressToId[verifiersWithinSameDomain[i]] - 1
+            uint256 reputation = s_verifiers[
+                s_addressToId[verifiersWithinSameDomain[i]] - 1
             ].reputation;
             for (uint256 j = 0; j < reputation; j++) {
                 selectedIndices[selectedIndicesCount] = i;
@@ -671,7 +675,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
-        for (uint256 i = 0; i < numWords; i++) {
+        for (uint256 i = 0; i < s_numWords; i++) {
             uint256 randomIndex = randomWords[i] % totalReputationScore;
             selectedVerifiers[i] = verifiersWithinSameDomain[
                 selectedIndices[randomIndex]
@@ -701,7 +705,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         string memory evidenceIpfsHash,
         address[] memory selectedVerifiers
     ) internal {
-        address[] memory prevSelectedVerifiers = evidenceIpfsHashToItsInfo[
+        address[] memory prevSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
             evidenceIpfsHash
         ].selectedVerifiers;
 
@@ -709,20 +713,20 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         if (prevSelectedVerifiersLength > 0) {
             address[] memory prevAndCurrentSelectedVerifiers = new address[](
-                prevSelectedVerifiersLength + numWords
+                prevSelectedVerifiersLength + s_numWords
             );
 
             for (uint256 i = 0; i < prevSelectedVerifiersLength; i++) {
                 prevAndCurrentSelectedVerifiers[i] = prevSelectedVerifiers[i];
             }
 
-            for (uint256 i = 0; i < numWords; i++) {
+            for (uint256 i = 0; i < s_numWords; i++) {
                 prevAndCurrentSelectedVerifiers[
                     prevSelectedVerifiersLength + i
                 ] = selectedVerifiers[i];
             }
 
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .selectedVerifiers = prevAndCurrentSelectedVerifiers;
 
             emit EvidenceIpfsHashToSelectedVerifiersUpdated(
@@ -730,7 +734,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                 prevAndCurrentSelectedVerifiers
             );
         } else {
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .selectedVerifiers = selectedVerifiers;
 
             emit EvidenceIpfsHashToSelectedVerifiersUpdated(
@@ -752,12 +756,12 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         StructDefinition.VSkillUserEvidence memory ev,
         address[] memory selectedVerifiers
     ) internal {
-        for (uint256 i = 0; i < numWords; i++) {
-            verifiers[addressToId[selectedVerifiers[i]] - 1]
+        for (uint256 i = 0; i < s_numWords; i++) {
+            s_verifiers[s_addressToId[selectedVerifiers[i]] - 1]
                 .evidenceIpfsHash
                 .push(ev.evidenceIpfsHash);
 
-            verifiers[addressToId[selectedVerifiers[i]] - 1]
+            s_verifiers[s_addressToId[selectedVerifiers[i]] - 1]
                 .evidenceSubmitters
                 .push(ev.submitter);
 
@@ -787,14 +791,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         string memory evidenceIpfsHash,
         address verifierAddress
     ) internal view isVeifier {
-        uint256 length = verifiers[addressToId[verifierAddress] - 1]
+        uint256 length = s_verifiers[s_addressToId[verifierAddress] - 1]
             .evidenceIpfsHash
             .length;
         for (uint256 i = 0; i < length; i++) {
             if (
                 keccak256(
                     abi.encodePacked(
-                        verifiers[addressToId[verifierAddress] - 1]
+                        s_verifiers[s_addressToId[verifierAddress] - 1]
                             .evidenceIpfsHash[i]
                     )
                 ) == keccak256(abi.encodePacked(evidenceIpfsHash))
@@ -814,9 +818,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function _waitForConfirmation(
         string memory evidenceIpfsHash
     ) internal view {
-        bool[] memory status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+        bool[] memory status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
             .statusApproveOrNot;
-        if (status.length < numWords) {
+        if (status.length < s_numWords) {
             revert Verifier__NotAllVerifiersProvidedFeedback();
         }
     }
@@ -844,15 +848,15 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         address user
     ) internal returns (StructDefinition.VSkillUserSubmissionStatus) {
         _waitForConfirmation(evidenceIpfsHash);
-        bool[] memory status = evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+        bool[] memory status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
             .statusApproveOrNot;
-        uint256 length = addressToEvidences[user].length;
+        uint256 length = s_addressToEvidences[user].length;
         uint256 currentEvidenceIndex;
         for (uint256 i = 0; i < length; i++) {
             if (
                 keccak256(
                     abi.encodePacked(
-                        addressToEvidences[user][i].evidenceIpfsHash
+                        s_addressToEvidences[user][i].evidenceIpfsHash
                     )
                 ) == keccak256(abi.encodePacked(evidenceIpfsHash))
             ) {
@@ -866,7 +870,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         for (uint256 i = 1; i < statusLength; i++) {
             if (status[i] != status[i - 1]) {
                 StructDefinition.VSkillUserEvidence
-                    storage ev = addressToEvidences[user][currentEvidenceIndex];
+                    storage ev = s_addressToEvidences[user][
+                        currentEvidenceIndex
+                    ];
                 ev.status = StructDefinition
                     .VSkillUserSubmissionStatus
                     .DIFFERENTOPINION;
@@ -883,9 +889,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         }
 
         if (status[0]) {
-            StructDefinition.VSkillUserEvidence storage ev = addressToEvidences[
-                user
-            ][currentEvidenceIndex];
+            StructDefinition.VSkillUserEvidence
+                storage ev = s_addressToEvidences[user][currentEvidenceIndex];
             ev.status = StructDefinition.VSkillUserSubmissionStatus.APPROVED;
             emit EvidenceStatusUpdated(
                 user,
@@ -894,9 +899,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             );
             return StructDefinition.VSkillUserSubmissionStatus.APPROVED;
         } else {
-            StructDefinition.VSkillUserEvidence storage ev = addressToEvidences[
-                user
-            ][currentEvidenceIndex];
+            StructDefinition.VSkillUserEvidence
+                storage ev = s_addressToEvidences[user][currentEvidenceIndex];
             ev.status = StructDefinition.VSkillUserSubmissionStatus.REJECTED;
             emit EvidenceStatusUpdated(
                 user,
@@ -914,13 +918,13 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function getEvidenceToStatusApproveOrNot(
         string memory evidenceIpfsHash
     ) external view returns (bool[] memory) {
-        return evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot;
+        return s_evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot;
     }
 
     function getEvidenceIpfsHashToSelectedVerifiers(
         string memory evidenceIpfsHash
     ) external view returns (address[] memory) {
-        return evidenceIpfsHashToItsInfo[evidenceIpfsHash].selectedVerifiers;
+        return s_evidenceIpfsHashToItsInfo[evidenceIpfsHash].selectedVerifiers;
     }
 
     function getEvidenceToAllSelectedVerifiersToFeedbackStatus(
@@ -928,7 +932,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         address verifierAddress
     ) external view returns (bool) {
         return
-            evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[verifierAddress];
     }
 }

@@ -12,17 +12,17 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
  * @dev The user NFTs are minted with skill domains, it's a ERC721 svg NFT
  */
 contract VSkillUserNft is ERC721 {
-    uint256 private tokenCounter;
-    string[] private skillDomains = [
+    uint256 private s_tokenCounter;
+    string[] private s_skillDomains = [
         "Frontend",
         "Backend",
         "Fullstack",
         "DevOps",
         "Blockchain"
     ];
-    string[] private userNftImageUris;
-    mapping(string => string) private skillDomainToUserNftImageUri;
-    mapping(uint256 => string) private tokenIdToSkillDomain;
+    string[] private s_userNftImageUris;
+    mapping(string => string) private s_skillDomainToUserNftImageUri;
+    mapping(uint256 => string) private s_tokenIdToSkillDomain;
 
     ////////////////
     //   Events   //
@@ -36,11 +36,13 @@ contract VSkillUserNft is ERC721 {
     constructor(
         string[] memory _userNftImageUris
     ) ERC721("VSkillUserNft", "VSU") {
-        tokenCounter = 0;
-        userNftImageUris = _userNftImageUris;
-        uint256 skillDomainLength = skillDomains.length;
+        s_tokenCounter = 0;
+        s_userNftImageUris = _userNftImageUris;
+        uint256 skillDomainLength = s_skillDomains.length;
         for (uint256 i = 0; i < skillDomainLength; i++) {
-            skillDomainToUserNftImageUri[skillDomains[i]] = userNftImageUris[i];
+            s_skillDomainToUserNftImageUri[
+                s_skillDomains[i]
+            ] = s_userNftImageUris[i];
         }
     }
 
@@ -50,11 +52,11 @@ contract VSkillUserNft is ERC721 {
      * @dev Mint a user NFT with the skill domain
      */
     function mintUserNft(string memory skillDomain) public {
-        _safeMint(msg.sender, tokenCounter);
-        tokenIdToSkillDomain[tokenCounter] = skillDomain;
-        tokenCounter++;
+        _safeMint(msg.sender, s_tokenCounter);
+        s_tokenIdToSkillDomain[s_tokenCounter] = skillDomain;
+        s_tokenCounter++;
 
-        emit MintNftSuccess(tokenCounter - 1, skillDomain);
+        emit MintNftSuccess(s_tokenCounter - 1, skillDomain);
     }
 
     /**
@@ -66,8 +68,8 @@ contract VSkillUserNft is ERC721 {
     function tokenURI(
         uint256 tokenId
     ) public view override returns (string memory) {
-        string memory skillDomain = tokenIdToSkillDomain[tokenId];
-        string memory imageUri = skillDomainToUserNftImageUri[skillDomain];
+        string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
+        string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
 
         return
             string(
@@ -102,9 +104,9 @@ contract VSkillUserNft is ERC721 {
         string memory skillDomain,
         string memory newNftImageUri
     ) public {
-        skillDomains.push(skillDomain);
-        userNftImageUris.push(newNftImageUri);
-        skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
+        s_skillDomains.push(skillDomain);
+        s_userNftImageUris.push(newNftImageUri);
+        s_skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
 
         emit SkillDomainsForNftAdded(skillDomain, newNftImageUri);
     }
@@ -122,27 +124,27 @@ contract VSkillUserNft is ERC721 {
     ///////////////////////////////
 
     function getTokenCounter() external view returns (uint256) {
-        return tokenCounter;
+        return s_tokenCounter;
     }
 
     function getSkillDomains() external view returns (string[] memory) {
-        return skillDomains;
+        return s_skillDomains;
     }
 
     function getUserNftImageUris() external view returns (string[] memory) {
-        return userNftImageUris;
+        return s_userNftImageUris;
     }
 
     function getSkillDomainToUserNftImageUri(
         string memory skillDomain
     ) external view returns (string memory) {
-        return skillDomainToUserNftImageUri[skillDomain];
+        return s_skillDomainToUserNftImageUri[skillDomain];
     }
 
     function getTokenIdToSkillDomain(
         uint256 tokenId
     ) external view returns (string memory) {
-        return tokenIdToSkillDomain[tokenId];
+        return s_tokenIdToSkillDomain[tokenId];
     }
 
     function getBaseURI() external pure returns (string memory) {

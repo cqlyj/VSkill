@@ -34,7 +34,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
-    string[] private skillDomains = [
+    string[] private s_skillDomains = [
         "Frontend",
         "Backend",
         "Fullstack",
@@ -45,10 +45,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     /**
      * @dev submissionFeeInUsd is the fee that users need to pay to submit their evidence. Here is 5 USD.
      */
-    uint256 private submissionFeeInUsd;
+    uint256 private s_submissionFeeInUsd;
     mapping(address => StructDefinition.VSkillUserEvidence[])
-        public addressToEvidences;
-    StructDefinition.VSkillUserEvidence[] public evidences;
+        public s_addressToEvidences;
+    StructDefinition.VSkillUserEvidence[] public s_evidences;
 
     event EvidenceSubmitted(
         address indexed submitter,
@@ -63,8 +63,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         address _priceFeed,
         string[] memory _userNftImageUris
     ) Ownable(msg.sender) Staking(_priceFeed) VSkillUserNft(_userNftImageUris) {
-        submissionFeeInUsd = _submissionFeeInUsd;
-        priceFeed = AggregatorV3Interface(_priceFeed);
+        s_submissionFeeInUsd = _submissionFeeInUsd;
+        s_priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
     /**
@@ -84,10 +84,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         string memory evidenceIpfsHash,
         string memory skillDomain
     ) public payable virtual {
-        if (msg.value.convertEthToUsd(priceFeed) < submissionFeeInUsd) {
+        if (msg.value.convertEthToUsd(s_priceFeed) < s_submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee(
-                submissionFeeInUsd,
-                msg.value.convertEthToUsd(priceFeed)
+                s_submissionFeeInUsd,
+                msg.value.convertEthToUsd(s_priceFeed)
             );
         }
 
@@ -110,7 +110,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
         super._addBonusMoney(msg.value);
 
-        addressToEvidences[msg.sender].push(
+        s_addressToEvidences[msg.sender].push(
             StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
@@ -120,7 +120,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             })
         );
 
-        evidences.push(
+        s_evidences.push(
             StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
                 evidenceIpfsHash: evidenceIpfsHash,
@@ -143,12 +143,12 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
     ) public view virtual returns (string[] memory) {
-        if (indexOfUserEvidence >= evidences.length) {
+        if (indexOfUserEvidence >= s_evidences.length) {
             revert VSkillUser__EvidenceIndexOutOfRange();
         }
 
         return
-            addressToEvidences[msg.sender][indexOfUserEvidence]
+            s_addressToEvidences[msg.sender][indexOfUserEvidence]
                 .feedbackIpfsHash;
     }
 
@@ -183,7 +183,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev The event SubmissionFeeChanged will be emitted.
      */
     function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
-        submissionFeeInUsd = newFeeInUsd;
+        s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
     }
 
@@ -202,7 +202,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
-        skillDomains.push(skillDomain);
+        s_skillDomains.push(skillDomain);
         super._addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
     }
@@ -220,10 +220,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
-        uint256 length = skillDomains.length;
+        uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
-                keccak256(abi.encodePacked(skillDomains[i])) ==
+                keccak256(abi.encodePacked(s_skillDomains[i])) ==
                 keccak256(abi.encodePacked(skillDomain))
             ) {
                 return true;
@@ -242,10 +242,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _skillDomainAlreadyExists(
         string memory skillDomain
     ) internal view returns (bool) {
-        uint256 length = skillDomains.length;
+        uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
-                keccak256(abi.encodePacked(skillDomains[i])) ==
+                keccak256(abi.encodePacked(s_skillDomains[i])) ==
                 keccak256(abi.encodePacked(skillDomain))
             ) {
                 return true;
@@ -259,20 +259,20 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     ///////////////////////////////
 
     function getSubmissionFeeInUsd() external view returns (uint256) {
-        return submissionFeeInUsd;
+        return s_submissionFeeInUsd;
     }
 
     function getAddressToEvidences(
         address _address
     ) external view returns (StructDefinition.VSkillUserEvidence[] memory) {
-        return addressToEvidences[_address];
+        return s_addressToEvidences[_address];
     }
 
     function getEvidenceStatus(
         address _address,
         uint256 index
     ) external view returns (StructDefinition.VSkillUserSubmissionStatus) {
-        return addressToEvidences[_address][index].status;
+        return s_addressToEvidences[_address][index].status;
     }
 
     function getEvidences()
@@ -280,13 +280,13 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         view
         returns (StructDefinition.VSkillUserEvidence[] memory)
     {
-        return evidences;
+        return s_evidences;
     }
 
     function getEvidenceFeedbackIpfsHash(
         address _address,
         uint256 index
     ) external view returns (string[] memory) {
-        return addressToEvidences[_address][index].feedbackIpfsHash;
+        return s_addressToEvidences[_address][index].feedbackIpfsHash;
     }
 }

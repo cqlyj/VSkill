@@ -22,18 +22,18 @@ contract Distribution is VRFConsumerBaseV2 {
     /**
      * @dev Those variables are used for Chainlink VRF
      */
-    uint64 subscriptionId;
-    VRFCoordinatorV2Interface vrfCoordinator;
-    bytes32 keyHash;
-    uint32 callbackGasLimit;
-    uint16 requestConfirmations = 3;
-    uint32 numWords = 3;
+    uint64 s_subscriptionId;
+    VRFCoordinatorV2Interface s_vrfCoordinator;
+    bytes32 s_keyHash;
+    uint32 s_callbackGasLimit;
+    uint16 s_requestConfirmations = 3;
+    uint32 s_numWords = 3;
 
-    uint256 requestId;
+    uint256 s_requestId;
 
-    uint256[] private randomWords;
+    uint256[] private s_randomWords;
     mapping(uint256 => StructDefinition.DistributionVerifierRequestContext)
-        private requestIdToContext;
+        private s_requestIdToContext;
 
     event RequestIdToContextUpdated(
         uint256 indexed requestId,
@@ -46,10 +46,10 @@ contract Distribution is VRFConsumerBaseV2 {
         bytes32 _keyHash,
         uint32 _callbackGasLimit
     ) VRFConsumerBaseV2(_vrfCoordinator) {
-        subscriptionId = _subscriptionId;
-        vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
-        keyHash = _keyHash;
-        callbackGasLimit = _callbackGasLimit;
+        s_subscriptionId = _subscriptionId;
+        s_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
+        s_keyHash = _keyHash;
+        s_callbackGasLimit = _callbackGasLimit;
     }
 
     /**
@@ -61,20 +61,20 @@ contract Distribution is VRFConsumerBaseV2 {
         address requester,
         StructDefinition.VSkillUserEvidence memory ev
     ) public {
-        requestId = vrfCoordinator.requestRandomWords(
-            keyHash,
-            subscriptionId,
-            requestConfirmations,
-            callbackGasLimit,
-            numWords
+        s_requestId = s_vrfCoordinator.requestRandomWords(
+            s_keyHash,
+            s_subscriptionId,
+            s_requestConfirmations,
+            s_callbackGasLimit,
+            s_numWords
         );
 
-        requestIdToContext[requestId] = StructDefinition
+        s_requestIdToContext[s_requestId] = StructDefinition
             .DistributionVerifierRequestContext(requester, ev);
 
         emit RequestIdToContextUpdated(
-            requestId,
-            requestIdToContext[requestId]
+            s_requestId,
+            s_requestIdToContext[s_requestId]
         );
     }
 
@@ -91,8 +91,8 @@ contract Distribution is VRFConsumerBaseV2 {
         uint256 /*_requestId*/,
         uint256[] memory _randomWords
     ) internal override {
-        randomWords = _randomWords;
-        _processVerifiers(requestId);
+        s_randomWords = _randomWords;
+        _processVerifiers(s_requestId);
     }
 
     /**
@@ -102,10 +102,10 @@ contract Distribution is VRFConsumerBaseV2 {
      */
     function _processVerifiers(uint256 _requestId) internal {
         StructDefinition.DistributionVerifierRequestContext
-            memory context = requestIdToContext[_requestId];
+            memory context = s_requestIdToContext[_requestId];
         VerifierInterface(context.requester)._selectedVerifiersAddressCallback(
             context.ev,
-            randomWords
+            s_randomWords
         );
     }
 
@@ -114,7 +114,7 @@ contract Distribution is VRFConsumerBaseV2 {
     ///////////////////////////////
 
     function getRandomWords() public view returns (uint256[] memory) {
-        return randomWords;
+        return s_randomWords;
     }
 
     function getRequestIdToContext(
@@ -124,11 +124,11 @@ contract Distribution is VRFConsumerBaseV2 {
         view
         returns (StructDefinition.DistributionVerifierRequestContext memory)
     {
-        return requestIdToContext[_requestId];
+        return s_requestIdToContext[_requestId];
     }
 
     function getSubscriptionId() public view returns (uint64) {
-        return subscriptionId;
+        return s_subscriptionId;
     }
 
     function getVrfCoordinator()
@@ -136,18 +136,18 @@ contract Distribution is VRFConsumerBaseV2 {
         view
         returns (VRFCoordinatorV2Interface)
     {
-        return vrfCoordinator;
+        return s_vrfCoordinator;
     }
 
     function getKeyHash() public view returns (bytes32) {
-        return keyHash;
+        return s_keyHash;
     }
 
     function getCallbackGasLimit() public view returns (uint32) {
-        return callbackGasLimit;
+        return s_callbackGasLimit;
     }
 
     function getRequestConfirmations() public view returns (uint16) {
-        return requestConfirmations;
+        return s_requestConfirmations;
     }
 }
