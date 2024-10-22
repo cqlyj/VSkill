@@ -582,3 +582,11 @@ Fix this or not? => follow up.
 **What I did today:**
 
 - Add `zkSync` instructions and update the `Makefile` and `README.md` to introduce deploying the contracts on `zkSync`.
+
+---
+
+### 2024/10/22
+
+**What I did today:**
+
+- Refactor those contracts to follow the best practice for variables. => `s_` for storage variables, `i_` for immutable variables... etc.
