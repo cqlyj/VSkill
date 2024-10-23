@@ -39,21 +39,21 @@ contract Staking {
      */
     uint256 private constant MIN_USD_AMOUNT = 20e18; // 20 USD
     uint256 private constant INITIAL_REPUTATION = 2;
-    uint256 private immutable LOWEST_REPUTATION = 0;
-    uint256 private immutable HIGHEST_REPUTATION = 10;
+    uint256 private constant LOWEST_REPUTATION = 0;
+    uint256 private constant HIGHEST_REPUTATION = 10;
 
     /**
      * @dev id is used to identify the verifier. If id is 0, then the address is not a verifier
      * @dev verifierCount is used to count the number of verifiers
      * @dev bonusMoneyInEth is the amount of bonus money that is added to the contract
      */
-    uint256 private id;
-    uint256 private verifierCount;
-    uint256 private bonusMoneyInEth;
+    uint256 private s_id;
+    uint256 private s_verifierCount;
+    uint256 private s_bonusMoneyInEth;
 
-    AggregatorV3Interface internal priceFeed;
-    mapping(address => uint256) internal addressToId;
-    StructDefinition.StakingVerifier[] internal verifiers;
+    AggregatorV3Interface internal s_priceFeed;
+    mapping(address => uint256) internal s_addressToId;
+    StructDefinition.StakingVerifier[] internal s_verifiers;
 
     event Staked(address indexed staker, uint256 amount);
     event Withdrawn(address indexed staker, uint256 amount);
@@ -70,10 +70,10 @@ contract Staking {
     );
 
     constructor(address _priceFeed) {
-        priceFeed = AggregatorV3Interface(_priceFeed);
-        id = 1;
-        verifierCount = 0;
-        bonusMoneyInEth = 0;
+        s_priceFeed = AggregatorV3Interface(_priceFeed);
+        s_id = 1;
+        s_verifierCount = 0;
+        s_bonusMoneyInEth = 0;
     }
 
     receive() external payable {
@@ -95,16 +95,16 @@ contract Staking {
      * @dev This function emits Withdrawn and VerifierStakeUpdated events once the withdrawal is successful
      */
     function withdrawStake(uint256 amountToWithdrawInEth) public virtual {
-        if (addressToId[msg.sender] == 0) {
+        if (s_addressToId[msg.sender] == 0) {
             revert Staking__NotVerifier();
         }
 
         if (
-            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth <
+            s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth <
             amountToWithdrawInEth
         ) {
             revert Staking__NotEnoughBalanceToWithdraw(
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+                s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth
             );
         }
 
@@ -113,19 +113,19 @@ contract Staking {
             revert Staking__WithdrawFailed();
         }
 
-        verifiers[addressToId[msg.sender] - 1]
+        s_verifiers[s_addressToId[msg.sender] - 1]
             .moneyStakedInEth -= amountToWithdrawInEth;
         emit Withdrawn(msg.sender, amountToWithdrawInEth);
         emit VerifierStakeUpdated(
             msg.sender,
-            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth +
+            s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth +
                 amountToWithdrawInEth,
-            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+            s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth
         );
 
         if (
             !_currentStakedAmountIsStillAboveMinUsdAmount(
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+                s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth
             )
         ) {
             // Remove the verifier from the array
@@ -142,41 +142,42 @@ contract Staking {
      * @dev This function emits Staked and VerifierStakeUpdated events once the staking is successful for existing verifier
      */
     function stake() public payable virtual {
-        uint256 amountInUsd = msg.value.convertEthToUsd(priceFeed);
+        uint256 amountInUsd = msg.value.convertEthToUsd(s_priceFeed);
 
-        if (addressToId[msg.sender] == 0) {
+        if (s_addressToId[msg.sender] == 0) {
             if (amountInUsd < MIN_USD_AMOUNT) {
                 revert Staking__NotEnoughStakeToBecomeVerifier(
                     amountInUsd,
                     MIN_USD_AMOUNT
                 );
             } else {
-                addressToId[msg.sender] = id;
-                verifierCount++;
-                verifiers.push(
+                s_addressToId[msg.sender] = s_id;
+                s_verifierCount++;
+                s_verifiers.push(
                     _initializeVerifier(msg.sender, new string[](0))
                 );
-                emit BecomeVerifier(id, msg.sender);
-                id++;
+                emit BecomeVerifier(s_id, msg.sender);
+                s_id++;
 
                 // Since it's new verifier, the way we find the index is by using the length of the array
-                verifiers[verifiers.length - 1].moneyStakedInEth += msg.value;
+                s_verifiers[s_verifiers.length - 1].moneyStakedInEth += msg
+                    .value;
                 emit Staked(msg.sender, msg.value);
                 emit VerifierStakeUpdated(
                     msg.sender,
                     0,
-                    verifiers[verifiers.length - 1].moneyStakedInEth
+                    s_verifiers[s_verifiers.length - 1].moneyStakedInEth
                 );
             }
         } else {
-            verifiers[addressToId[msg.sender] - 1].moneyStakedInEth += msg
+            s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth += msg
                 .value;
             emit Staked(msg.sender, msg.value);
             emit VerifierStakeUpdated(
                 msg.sender,
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth -
+                s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth -
                     msg.value,
-                verifiers[addressToId[msg.sender] - 1].moneyStakedInEth
+                s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth
             );
         }
     }
@@ -186,8 +187,11 @@ contract Staking {
      * @dev This function emits BonusMoneyUpdated event once the bonus money is added
      */
     function addBonusMoneyForVerifier() public payable {
-        bonusMoneyInEth += msg.value;
-        emit BonusMoneyUpdated(bonusMoneyInEth - msg.value, bonusMoneyInEth);
+        s_bonusMoneyInEth += msg.value;
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth - msg.value,
+            s_bonusMoneyInEth
+        );
     }
 
     /////////////////////////////////
@@ -201,8 +205,11 @@ contract Staking {
      * @dev This function emits BonusMoneyUpdated event once the bonus money is added
      */
     function _addBonusMoney(uint256 amountInEth) internal {
-        bonusMoneyInEth += amountInEth;
-        emit BonusMoneyUpdated(bonusMoneyInEth - amountInEth, bonusMoneyInEth);
+        s_bonusMoneyInEth += amountInEth;
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth - amountInEth,
+            s_bonusMoneyInEth
+        );
     }
 
     /**
@@ -217,16 +224,19 @@ contract Staking {
         address verifierAddress,
         uint256 amountInEth
     ) internal {
-        verifiers[addressToId[verifierAddress] - 1]
+        s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth += amountInEth;
-        bonusMoneyInEth -= amountInEth;
+        s_bonusMoneyInEth -= amountInEth;
 
-        emit BonusMoneyUpdated(bonusMoneyInEth + amountInEth, bonusMoneyInEth);
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth + amountInEth,
+            s_bonusMoneyInEth
+        );
         emit VerifierStakeUpdated(
             verifierAddress,
-            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth -
+            s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth -
                 amountInEth,
-            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth
+            s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth
         );
     }
 
@@ -243,17 +253,20 @@ contract Staking {
         address verifierAddress,
         uint256 amountInEth
     ) internal {
-        verifiers[addressToId[verifierAddress] - 1]
+        s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth -= amountInEth;
-        bonusMoneyInEth += amountInEth;
-        uint256 currentStake = verifiers[addressToId[verifierAddress] - 1]
+        s_bonusMoneyInEth += amountInEth;
+        uint256 currentStake = s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth;
-        emit BonusMoneyUpdated(bonusMoneyInEth - amountInEth, bonusMoneyInEth);
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth - amountInEth,
+            s_bonusMoneyInEth
+        );
         emit VerifierStakeUpdated(
             verifierAddress,
-            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth +
+            s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth +
                 amountInEth,
-            verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth
+            s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth
         );
         if (!_currentStakedAmountIsStillAboveMinUsdAmount(currentStake)) {
             _removeVerifier(verifierAddress);
@@ -268,12 +281,12 @@ contract Staking {
      * @dev This function emits LoseVerifier event once the verifier is removed
      */
     function _removeVerifier(address verifierAddress) internal {
-        uint256 index = addressToId[verifierAddress] - 1;
-        verifiers[index] = verifiers[verifierCount - 1];
-        verifiers.pop();
+        uint256 index = s_addressToId[verifierAddress] - 1;
+        s_verifiers[index] = s_verifiers[s_verifierCount - 1];
+        s_verifiers.pop();
 
-        addressToId[verifierAddress] = 0;
-        verifierCount--;
+        s_addressToId[verifierAddress] = 0;
+        s_verifierCount--;
 
         emit LoseVerifier(verifierAddress);
     }
@@ -290,7 +303,7 @@ contract Staking {
     ) internal view returns (StructDefinition.StakingVerifier memory) {
         return
             StructDefinition.StakingVerifier({
-                id: id,
+                id: s_id,
                 verifierAddress: verifierAddress,
                 reputation: INITIAL_REPUTATION,
                 skillDomains: skillDomains,
@@ -311,7 +324,7 @@ contract Staking {
         uint256 currentStakedAmountInEth
     ) internal view returns (bool) {
         return
-            currentStakedAmountInEth.convertEthToUsd(priceFeed) >=
+            currentStakedAmountInEth.convertEthToUsd(s_priceFeed) >=
             MIN_USD_AMOUNT;
     }
 
@@ -324,53 +337,54 @@ contract Staking {
     }
 
     function getLatestId() external view returns (uint256) {
-        return id;
+        return s_id;
     }
 
     function getVerifierCount() external view returns (uint256) {
-        return verifierCount;
+        return s_verifierCount;
     }
 
     function getVerifierId(
         address verifierAddress
     ) external view returns (uint256) {
-        return addressToId[verifierAddress];
+        return s_addressToId[verifierAddress];
     }
 
     function getVerifierReputation(
         address verifierAddress
     ) external view returns (uint256) {
-        return verifiers[addressToId[verifierAddress] - 1].reputation;
+        return s_verifiers[s_addressToId[verifierAddress] - 1].reputation;
     }
 
     function getVerifierSkillDomains(
         address verifierAddress
     ) external view returns (string[] memory) {
-        return verifiers[addressToId[verifierAddress] - 1].skillDomains;
+        return s_verifiers[s_addressToId[verifierAddress] - 1].skillDomains;
     }
 
     function getVerifierMoneyStakedInEth(
         address verifierAddress
     ) external view returns (uint256) {
-        return verifiers[addressToId[verifierAddress] - 1].moneyStakedInEth;
+        return s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth;
     }
 
     function getVerifierEvidenceSubmitters(
         address verifierAddress
     ) external view returns (address[] memory) {
-        return verifiers[addressToId[verifierAddress] - 1].evidenceSubmitters;
+        return
+            s_verifiers[s_addressToId[verifierAddress] - 1].evidenceSubmitters;
     }
 
     function getVerifierEvidenceIpfsHash(
         address verifierAddress
     ) public view returns (string[] memory) {
-        return verifiers[addressToId[verifierAddress] - 1].evidenceIpfsHash;
+        return s_verifiers[s_addressToId[verifierAddress] - 1].evidenceIpfsHash;
     }
 
     function getVerifierFeedbackIpfsHash(
         address verifierAddress
     ) external view returns (string[] memory) {
-        return verifiers[addressToId[verifierAddress] - 1].feedbackIpfsHash;
+        return s_verifiers[s_addressToId[verifierAddress] - 1].feedbackIpfsHash;
     }
 
     function getInitialReputation() external pure returns (uint256) {
@@ -388,25 +402,25 @@ contract Staking {
     function getVerifier(
         address verifierAddress
     ) external view returns (StructDefinition.StakingVerifier memory) {
-        return verifiers[addressToId[verifierAddress] - 1];
+        return s_verifiers[s_addressToId[verifierAddress] - 1];
     }
 
     function getVerifierById(
         uint256 _id
     ) external view returns (StructDefinition.StakingVerifier memory) {
-        return verifiers[_id - 1];
+        return s_verifiers[_id - 1];
     }
 
     function getBonusMoneyInEth() public view returns (uint256) {
-        return bonusMoneyInEth;
+        return s_bonusMoneyInEth;
     }
 
     function getLatestEvidenceSubmitter(
         address verifierAddress
     ) external view returns (address) {
         return
-            verifiers[addressToId[verifierAddress] - 1].evidenceSubmitters[
-                verifiers[addressToId[verifierAddress] - 1]
+            s_verifiers[s_addressToId[verifierAddress] - 1].evidenceSubmitters[
+                s_verifiers[s_addressToId[verifierAddress] - 1]
                     .evidenceSubmitters
                     .length - 1
             ];
@@ -416,14 +430,14 @@ contract Staking {
         address verifierAddress
     ) external view returns (string memory) {
         return
-            verifiers[addressToId[verifierAddress] - 1].evidenceIpfsHash[
-                verifiers[addressToId[verifierAddress] - 1]
+            s_verifiers[s_addressToId[verifierAddress] - 1].evidenceIpfsHash[
+                s_verifiers[s_addressToId[verifierAddress] - 1]
                     .evidenceIpfsHash
                     .length - 1
             ];
     }
 
     function getPriceFeed() external view returns (AggregatorV3Interface) {
-        return priceFeed;
+        return s_priceFeed;
     }
 }
