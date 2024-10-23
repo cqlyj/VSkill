@@ -350,7 +350,7 @@ When I try to withdraw the 2000 USD, the contract will transfer 2 ETH to me. How
 - add new function convert USD to ETH in the `util` module. => The `PriceConverter.sol`
 - write some test for the `verifier` contract.
 
-**Issue:**✅
+**Issue:** ✅
 
 - for now the `forge compile` works well with the help of `--via-ir`, but `forge coverage` doesn't work with this flag. => https://github.com/foundry-rs/foundry/issues/3357
 
@@ -590,3 +590,12 @@ Fix this or not? => follow up.
 **What I did today:**
 
 - Refactor those contracts to follow the best practice for variables. => `s_` for storage variables, `i_` for immutable variables... etc.
+
+---
+
+### 2024/10/23
+
+**What I did today:**
+
+- Add the `minimal-onboarding-questions.md` and `extensive-onboarding-questions.md` to the `audit` folder. => for the preparation of the audit.
+- Add the `minimnal-onboarding-filled.md` and get ready to audit the contracts.

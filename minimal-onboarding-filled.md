@@ -139,7 +139,7 @@ Forking Test is also supported but for now not considered the gas on forked test
 ## Commit Hash
 
 ```bash
-cfc7fb2dad65a4902e83aa9673c4d4ed1e7f1448
+6cf3ee65bb7e3fbc92d97c22e2826e1af0f3d970
 ```
 
 ## Repo URL
