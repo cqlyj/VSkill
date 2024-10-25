@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+// @audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -22,6 +23,9 @@ library PriceConverter {
             /*uint timeStamp*/,
             /*uint80 answeredInRound*/
         ) = priceFeed.latestRoundData();
+
+        // q why multiply by 1e10?
+        // @audit-info magic number
         return answer * 1e10;
     }
 
