@@ -121,3 +121,11 @@ mintUserNftVSkillUserNft-anvil:
 
 distributionRandomNumberForVerifiersDistribution-anvil:
 	@forge script script/oracle/Interactions.s.sol:DistributionRandomNumberForVerifiersDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+# Audit
+
+slither:
+	@slither .
+
+aderyn:
+	@aderyn .
