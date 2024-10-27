@@ -125,7 +125,7 @@ distributionRandomNumberForVerifiersDistribution-anvil:
 # Audit
 
 slither:
-	@slither .
+	@slither . --config-file slither.config.json
 
 aderyn:
 	@aderyn .
