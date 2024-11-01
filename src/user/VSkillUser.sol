@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+
+// @audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -15,6 +17,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  * @dev The user can submit evidence and earn NFTs with skill domains, also they can check the feedback of the evidence
  */
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
+    // @audit-gas the submittedFeeInUsd is set by the user, no need to show it as a parameter
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
@@ -34,6 +37,9 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
+    // @audit why declare this again here?
+    // already declared in VSkillUserNft.sol
+    // q is this updated in the VSkillUserNft contract also?
     string[] private s_skillDomains = [
         "Frontend",
         "Backend",
@@ -110,6 +116,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
         super._addBonusMoney(msg.value);
 
+        // q why here update the mapping and array? can we just use the array or the mapping?
         s_addressToEvidences[msg.sender].push(
             StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
@@ -168,6 +175,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
+        // q can any one just provide an APPROVED evidence and get the NFT?
+        // q is there any check on the evidence?
+        // q what if the skillDomain is invalid? Does this checked in the super function?
+        // @audit Anyone can provide an approved evidence and get the NFT.
         super.mintUserNft(_evidence.skillDomain);
     }
 
@@ -182,6 +193,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev Only the owner can change the submission fee.
      * @dev The event SubmissionFeeChanged will be emitted.
      */
+
+    // @audit centralization of the submission fee, is it a good idea?
     function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
         s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
@@ -202,6 +215,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
+
+        // q what if the newNftImageUri is blank? Is there any way to fix this?
         s_skillDomains.push(skillDomain);
         super._addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
@@ -220,6 +235,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
+        // q what if the length is too long? Will there be DoS attack?
         uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
@@ -242,6 +258,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _skillDomainAlreadyExists(
         string memory skillDomain
     ) internal view returns (bool) {
+        // q Dos
         uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
