@@ -102,7 +102,7 @@ contract Staking {
         }
 
         if (
-            // audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
+            // @audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
             s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth <
             amountToWithdrawInEth
         ) {
