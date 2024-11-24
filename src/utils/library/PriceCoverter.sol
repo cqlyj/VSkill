@@ -24,7 +24,6 @@ library PriceConverter {
             /*uint80 answeredInRound*/
         ) = priceFeed.latestRoundData();
 
-        // q why multiply by 1e10?
         // @audit-info magic number
         return answer * 1e10;
     }

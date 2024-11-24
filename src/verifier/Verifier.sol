@@ -44,7 +44,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ///        Structs         ///
     //////////////////////////////
 
-    // q why declare the constant again here, in the Staking contract, we have already declared the constant
+    // why declare the constant again here, in the Staking contract, we have already declared the constant
+    // because constant is not inherited, so we need to declare it again
     uint256 private constant INITIAL_REPUTATION = 2;
     uint256 private constant LOWEST_REPUTATION = 0;
     uint256 private constant HIGHEST_REPUTATION = 10;
@@ -165,8 +166,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // if the evidence status is `submitted` or `differentOpinion`, this function will return true
         uint256 length = s_evidences.length;
 
-        // q what if the length is 0? upkeepNeeded will be false, so it's OK
-        // q what if the length is too large? ... Dos attack
         // @audit no bound check for the length and DoS attack is possible
         for (uint256 i = 0; i < length; i++) {
             if (
@@ -213,7 +212,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function updateSkillDomains(
         string[] memory newSkillDomains
     ) external isVeifier {
-        // q what if the newSkillDomains is not valid? The verifier can update the skill domains to any value
         // @audit the verifier can update the skill domains to any value, no validation is done
         s_verifiers[s_addressToId[msg.sender] - 1]
             .skillDomains = newSkillDomains;
@@ -241,8 +239,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         address user,
         bool approved
     ) external {
-        // q can the same verifier call multiple time of this function? Yes, the verifier can call multiple times
-        // Any impact?
+        // can the same verifier call multiple time of this function? Yes, the verifier can call multiple times
+        // Any impact? The verifier will be rewarded or penalized multiple times
+        // @audit-high the verifier can call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
         _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
         StructDefinition.VSkillUserEvidence[]
             memory userEvidences = s_addressToEvidences[user];
@@ -308,11 +307,10 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
 
-        // q what if the evidenceIpfsHash is reassigned to other verifiers? The statusApproveOrNot length is reseted or not???
+        // what if the evidenceIpfsHash is reassigned to other verifiers? The statusApproveOrNot length is reseted or not???
         // hold on, the check for the if statement will be passed if the same verifier just call multiple times of this function
         // And it will trigger the _earnRewardsOrGetPenalized function, any impact??
         // Yeah, the verifier can call multiple times of this function, and the verifier will be rewarded or penalized multiple times
-        // @audit-high the verifier can just call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
         if (
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
@@ -445,9 +443,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             // then penalize or reward the verifiers
             // If different opinion, the verifier need to delete the status of the feedback first, but we still have a copy of the allSelectedVerifiersToFeedbackStatus
 
-            // q why only pop once? The verifier can provide feedback multiple times...
-            // q hold on, can a verifier provide feedback multiple times? The verifier can provide feedback multiple times!
-            // that is to say, if a verifier just provide three times feedback, the verifier will be penalized or rewarded three times...?
+            // why only pop once? The verifier can provide feedback multiple times...
 
             // @audit-high the statusApproveOrNot array is not deleted, it only pops once
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
@@ -491,7 +487,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // Here is the algorithm to calculate the reward: reward = reputation / HIGHEST_REPUTATION / 20 * bonusMoneyInUsd
         // 20 is that the verifier needs to stake about 20 USD to be a verifier => This is just a round number
 
-        // q is that possible the protocol will be out of money?
+        // is that possible the protocol will be out of money?
         // let's say one evidence is submitted, the evidence is differentOpinion for multiple times which exceeds 20 times
         // the BonusMoney is made up of the user submission fee + verifier penalty + vulnerable reward
         // if for now no verifier is punished, and no vunerable reward, the bonus money is only made up of the user submission fee
@@ -535,8 +531,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                     s_addressToId[verifiersAddress] - 1
                 ];
 
-            // q what if the user forget to withdraw the additional part over the stake?
+            // what if the user forget to withdraw the additional part over the stake?
             // all the money will be collected by the staking contract... Is this a issue?
+            // @audit user will lost all the money if they forget to withdraw the additional part over the stake
             uint256 verifierStakedMoneyInEth = verifierToBeRemoved
                 .moneyStakedInEth;
 
@@ -651,12 +648,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
      * @dev This function will call the distributionRandomNumberForVerifiers function which then call the _selectedVerifiersAddressCallback function
      */
 
-    // q this is public, so anyone can call this function...
+    // this is public, so anyone can call this function...
     // let's say someone not paying any money and directly call this function, then it will call the distributionRandomNumberForVerifiers function
     // This is indeed a problem! The user can call this function instead of calling that submitEvidence function
     // calling this function will just distribute the evidence to verifiers but the evidence will not be in the evidence array.
 
-    // q any impact if the user call this function directly? How the verifier verify the evidence?
+    // any impact if the user call this function directly? How the verifier verify the evidence?
+    // this should be handled in the web interface, the verifier will get notified when new evidence is distributed to them
+    // @audit the user can call this function directly and the evidence will be assigned to the verifiers without being in the evidence array
     function _requestVerifiersSelection(
         StructDefinition.VSkillUserEvidence memory ev
     ) public {
@@ -699,7 +698,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // (1) Create an array of selected indices with the length of the sum of all reputation scores
         // (2) Fill the array with the verifier's address based on the reputation score
 
-        // q is this too gas expensive? The gas cost is high, is that possible to optimize?
+        // is this too gas expensive? The gas cost is high, is that possible to optimize?
+        // @audit-gas as the number of verifiers increases, the gas cost will increase, the gas cost is high
+        // @audit DoS
         uint256 totalReputationScore = 0;
         for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
             totalReputationScore += s_verifiers[
@@ -818,7 +819,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             );
         }
 
-        // q the ev here is a memory variable, so the status of the evidence will not be updated
         // @audit the status of the evidence will not be updated
         ev.status = StructDefinition.VSkillUserSubmissionStatus.INREVIEW;
         emit EvidenceStatusUpdated(
@@ -839,8 +839,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         string memory evidenceIpfsHash,
         address verifierAddress
     ) internal view isVeifier {
-        // q what if the verifier's evidenceIpfsHash array is empty?  It will revert
-        // q what if the verifier's evidenceIpfsHash array is too large? It will consume more gas
+        // what if the verifier's evidenceIpfsHash array is empty?  It will revert
+        // what if the verifier's evidenceIpfsHash array is too large? It will consume more gas
         // DoS? maybe this line is OK since the verifier's assigned evidence is usually not too large
         uint256 length = s_verifiers[s_addressToId[verifierAddress] - 1]
             .evidenceIpfsHash

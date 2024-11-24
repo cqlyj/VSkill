@@ -54,7 +54,6 @@ contract VSkillUserNft is ERC721 {
      * @dev Mint a user NFT with the skill domain
      */
 
-    // q any skillDomain passed will mint a NFT?
     // @audit-high This function not checking for the skillDomain input, users can mint NFT with non-existing skill domains
     // @audit-high This function is not restricted to any specific user, anyone can mint a NFT
     // Users can directly call this function to mint a NFT with any skill domain instead of providing a proof of skill
@@ -76,9 +75,9 @@ contract VSkillUserNft is ERC721 {
         uint256 tokenId
     ) public view override returns (string memory) {
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
-        // q what if skillDomain is not found?
+        // what if skillDomain is not found?
         // imageUri will not revert, but just be blank
-        // q is this mapping s_singleSkillDomainToUserNftImageUri updated once a new skill domain is added?
+        // @audit if the tokenId is not found, the function will return a blank string
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
 
         return

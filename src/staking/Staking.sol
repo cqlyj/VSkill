@@ -102,7 +102,6 @@ contract Staking {
         }
 
         if (
-            // q why in this way to get the verifier? By its id? What if the verifier is removed, is the id as the index still valid?
             // audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
             s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth <
             amountToWithdrawInEth
@@ -210,7 +209,7 @@ contract Staking {
      * @dev This function emits BonusMoneyUpdated event once the bonus money is added
      */
 
-    // q why this function is the same logic as addBonusMoneyForVerifier? Maybe a waste of gas?
+    // @audit-gas This function is the same as addBonusMoneyForVerifier, so it is a waste of gas
     function _addBonusMoney(uint256 amountInEth) internal {
         s_bonusMoneyInEth += amountInEth;
         emit BonusMoneyUpdated(
@@ -260,10 +259,10 @@ contract Staking {
         address verifierAddress,
         uint256 amountInEth
     ) internal {
-        // q what if the amountInEth is greater than the current stake?
         // moneyStakedInEth is uint256, so it can't be negative
         // This function will revert if the amountInEth is greater than the current stake...
         // Is this revert a issue? If the amountInEth is greater than the current stake, it will revert, and the verifier is not penalized....?
+        // @audit if the amountInEth is greater than the current stake, the function will revert, and the verifier is not penalized
         s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth -= amountInEth;
         s_bonusMoneyInEth += amountInEth;
@@ -326,7 +325,7 @@ contract Staking {
         address verifierAddress,
         string[] memory skillDomains
     ) internal view returns (StructDefinition.StakingVerifier memory) {
-        // q what if the skillDomain is not valid?
+        // never mind, this function is only called internally, so the skillDomain is always blank and valid
         return
             StructDefinition.StakingVerifier({
                 id: s_id,

@@ -39,7 +39,6 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
     // @audit why declare this again here?
     // already declared in VSkillUserNft.sol
-    // q is this updated in the VSkillUserNft contract also?
     string[] private s_skillDomains = [
         "Frontend",
         "Backend",
@@ -116,7 +115,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
         super._addBonusMoney(msg.value);
 
-        // q why here update the mapping and array? can we just use the array or the mapping?
+        // We need the mapping to store the evidence of the user, and the array to store all the evidence.
         s_addressToEvidences[msg.sender].push(
             StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
@@ -150,6 +149,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
     ) public view virtual returns (string[] memory) {
+        // @audit the indexOfUserEvidence should check with the length of the user's evidence array, s_addressToEvidences[msg.sender].length
         if (indexOfUserEvidence >= s_evidences.length) {
             revert VSkillUser__EvidenceIndexOutOfRange();
         }
@@ -175,9 +175,6 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
-        // q can any one just provide an APPROVED evidence and get the NFT?
-        // q is there any check on the evidence?
-        // q what if the skillDomain is invalid? Does this checked in the super function?
         // @audit Anyone can provide an approved evidence and get the NFT.
         super.mintUserNft(_evidence.skillDomain);
     }
@@ -216,7 +213,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
 
-        // q what if the newNftImageUri is blank? Is there any way to fix this?
+        // what if the newNftImageUri is blank? Is there any way to fix this?
+        // this is the owner's responsibility to provide the correct image URI, so no need to check
         s_skillDomains.push(skillDomain);
         super._addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
@@ -235,7 +233,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
-        // q what if the length is too long? Will there be DoS attack?
+        // the skill domains length will within some range, so no DoS attack
         uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
@@ -258,7 +256,6 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _skillDomainAlreadyExists(
         string memory skillDomain
     ) internal view returns (bool) {
-        // q Dos
         uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (
