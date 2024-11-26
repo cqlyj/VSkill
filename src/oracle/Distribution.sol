@@ -65,7 +65,7 @@ contract Distribution is VRFConsumerBaseV2 {
 
     // can anyone call this function to distribute random numbers? yes
     // yes indeed an issue, anyone can call this function to distribute evidence to verifiers without paying any fees
-    // @audit anyone can call this function and distribute random numbers to verifiers without paying any fees
+    // @written audit-high anyone can call this function and distribute random numbers to verifiers without paying any fees, and this will drain the Links from our subscription
     function distributionRandomNumberForVerifiers(
         address requester,
         StructDefinition.VSkillUserEvidence memory ev
