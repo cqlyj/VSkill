@@ -1070,4 +1070,48 @@ contract VerifierTest is Test {
         }
         return verifierWithinSameDomain;
     }
+
+    /*//////////////////////////////////////////////////////////////
+                           AUDIT PROOF TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testAnyoneCanMintUserNftWithoutEnrollingProtocol() external {
+        address randomUser = makeAddr("randomUser");
+        string memory skillDomainRandomUserWants = SKILL_DOMAINS[0];
+        vm.prank(randomUser);
+        verifier.mintUserNft(skillDomainRandomUserWants);
+
+        assert(verifier.getTokenCounter() == 1);
+    }
+
+    event RequestIdToContextUpdated(
+        uint256 indexed requestId,
+        StructDefinition.DistributionVerifierRequestContext context
+    );
+
+    using StructDefinition for StructDefinition.DistributionVerifierRequestContext;
+
+    function testAnyoneCanMakeRequestToVRF() external {
+        address randomUser = makeAddr("randomUser");
+        StructDefinition.VSkillUserEvidence
+            memory dummyEvidence = StructDefinition.VSkillUserEvidence(
+                randomUser,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+
+        StructDefinition.DistributionVerifierRequestContext
+            memory context = StructDefinition
+                .DistributionVerifierRequestContext(randomUser, dummyEvidence);
+
+        vm.expectEmit(true, false, false, false, address(verifier));
+        emit RequestIdToContextUpdated(1, context);
+        vm.prank(randomUser);
+        verifier.distributionRandomNumberForVerifiers(
+            randomUser,
+            dummyEvidence
+        );
+    }
 }
