@@ -15,7 +15,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  */
 contract Staking {
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
-    // @audit the minStakeUsdAmount is a constant, so no need to include it in the error message
+    // @audit-gas the minStakeUsdAmount is a constant, so no need to include it in the error message
     error Staking__NotEnoughStakeToBecomeVerifier(
         uint256 currentStakeUsdAmount,
         uint256 minStakeUsdAmount
@@ -102,7 +102,7 @@ contract Staking {
         }
 
         if (
-            // @audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
+            // @ written audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
             s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth <
             amountToWithdrawInEth
         ) {
@@ -111,7 +111,11 @@ contract Staking {
             );
         }
 
-        // @audit reentrancy
+        // @ written audit-info reentrancy?
+        // Hold on, actually here no reentrancy issue
+        // Although the state changes after sending the money, but once the code reaches to the line of state changes
+        // The function will revert for arithmetic underflow or overflow because the verifier does not have enough balance to be minus
+        // But it's still better to follow the best practice, CEI, Check-Effect-Interact
         (bool success, ) = msg.sender.call{value: amountToWithdrawInEth}("");
         if (!success) {
             revert Staking__WithdrawFailed();
@@ -262,7 +266,8 @@ contract Staking {
         // moneyStakedInEth is uint256, so it can't be negative
         // This function will revert if the amountInEth is greater than the current stake...
         // Is this revert a issue? If the amountInEth is greater than the current stake, it will revert, and the verifier is not penalized....?
-        // @audit if the amountInEth is greater than the current stake, the function will revert, and the verifier is not penalized
+        // if the amountInEth is greater than the current stake, the function will revert, and the verifier is not penalized
+        // This function only be called by the Verifier contract, so the amountInEth is always valid, not an issue
         s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth -= amountInEth;
         s_bonusMoneyInEth += amountInEth;
@@ -305,7 +310,7 @@ contract Staking {
         // Let's say I want to get the verifier 5(id = 5), the index I get is 5 - 1 = 4
         // Hold on, the index 4 now is out of the array, because the array has been poped
 
-        // @audit-high The way to remove the verifier is not safe, because the id is used to get the index, and the index is used to remove the verifier
+        // @ written audit-high The way to remove the verifier is not safe, because the id is used to get the index, and the index is used to remove the verifier
         s_verifiers[index] = s_verifiers[s_verifierCount - 1];
         s_verifiers.pop();
 
