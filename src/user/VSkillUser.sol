@@ -37,7 +37,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
-    // @audit why declare this again here?
+    // @audit-info why declare this again here? => Because private variables are not inherited
     // already declared in VSkillUserNft.sol
     string[] private s_skillDomains = [
         "Frontend",
@@ -149,7 +149,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
     ) public view virtual returns (string[] memory) {
-        // @audit the indexOfUserEvidence should check with the length of the user's evidence array, s_addressToEvidences[msg.sender].length
+        // written @audit-low the indexOfUserEvidence should check with the length of the user's evidence array, s_addressToEvidences[msg.sender].length
+        // user will revert due to the return statement if the index of user evidence is out of range, not the custom error
         if (indexOfUserEvidence >= s_evidences.length) {
             revert VSkillUser__EvidenceIndexOutOfRange();
         }
@@ -175,7 +176,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
-        // @audit Anyone can provide an approved evidence and get the NFT.
+        // written @audit-high Anyone can provide an approved evidence and get the NFT.
         super.mintUserNft(_evidence.skillDomain);
     }
 
@@ -191,7 +192,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev The event SubmissionFeeChanged will be emitted.
      */
 
-    // @audit centralization of the submission fee, is it a good idea?
+    // @audit-info centralization of the submission fee, is it a good idea?
     function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
         s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
