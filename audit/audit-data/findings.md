@@ -222,6 +222,183 @@ There are several ways to fix this issue:
 
 2. We can use a mapping to store the verifiers, and then use the id to get the verifier. This way, the index of the verifiers will not be changed, and we can still fetch verifiers correctly.
 
+### [H-4] No restrictions in `VSkillUser::earnUserNft` function, anyone can directly call it by passing an approved evidence parameter to mint NFTs, ruin the verification process
+
+**Description:**
+
+In the `VSkillUser` contract, the `earnUserNft` function is public and no checks are performed to make sure that the evidence is approved by the verifier. This means that anyone can call this function by passing an approved evidence parameter to mint NFTs.
+
+```javascript
+ function earnUserNft(
+@>      StructDefinition.VSkillUserEvidence memory _evidence
+@>  ) public virtual {
+@>      if (
+@>          _evidence.status !=
+@>          StructDefinition.VSkillUserSubmissionStatus.APPROVED
+        ) {
+            revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
+        }
+
+        super.mintUserNft(_evidence.skillDomain);
+    }
+```
+
+The malicious user can just pass an approved evidence parameter to mint NFTs, which will ruin the verification process.
+
+**Impact:**
+
+Users do not need to pay any fees and being verified before minting NFTs. This can lead to a large number of NFTs being minted by anyone. Ruin the verification process.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/user/uint/VSkillUserTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+
+    function testAnyoneCanMintAnNftWithoutSubmitAndGetVerified() external {
+        StructDefinition.VSkillUserEvidence memory evidence = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAIN,
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED,
+                new string[](0)
+            );
+
+        vm.prank(USER);
+        vskill.earnUserNft(evidence);
+
+        assertEq(vskill.getTokenCounter(), 1);
+    }
+```
+
+</details>
+
+**Recommended Mitigation:**
+
+Add a modifier to ensure that only the verifier can call the `earnUserNft` function.
+
+```diff
+function earnUserNft(
+        StructDefinition.VSkillUserEvidence memory _evidence
+-   ) public virtual {
++   ) public virtual onlyOwner {
+        if (
+            _evidence.status !=
+            StructDefinition.VSkillUserSubmissionStatus.APPROVED
+        ) {
+            revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
+        }
+
+        super.mintUserNft(_evidence.skillDomain);
+    }
+```
+
+## Low
+
+### [L-1] The check condition in `VSkillUser::checkFeedbackOfEvidence` is wrong, user will be reverted due to the return statement, not custom error message
+
+**Description:**
+
+In the `VSkillUser` contract, the `checkFeedbackOfEvidence` function is checking the index of user evidence validity. However, the check condition is wrong.
+
+```javascript
+ function checkFeedbackOfEvidence(
+        uint256 indexOfUserEvidence
+    ) public view virtual returns (string[] memory) {
+@>      if (indexOfUserEvidence >= s_evidences.length) {
+            revert VSkillUser__EvidenceIndexOutOfRange();
+        }
+
+@>      return
+            s_addressToEvidences[msg.sender][indexOfUserEvidence]
+                .feedbackIpfsHash;
+    }
+```
+
+This check checks the index of the user evidence with the overall length of the evidences. However, the index should be checked with the length of the user evidences.
+
+**Impact:**
+
+If user input the index of the evidence that is out of range, the user will be reverted due to the return statement, not custom error message.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/user/uint/VSkillUserTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+ function testCheckFeedbackOfEvidenceAlwaysRevertAsLongAsMoreThanTwoUsersSubmitEvidence()
+        external
+    {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        address anotherUser = makeAddr("anotherUser");
+        vm.deal(anotherUser, INITIAL_BALANCE);
+        vm.startPrank(anotherUser);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        vm.prank(USER);
+        vm.expectRevert();
+        vskill.checkFeedbackOfEvidence(1);
+    }
+```
+
+Then run this test case:
+
+```bash
+forge test --mt testCheckFeedbackOfEvidenceAlwaysRevertAsLongAsMoreThanTwoUsersSubmitEvidence -vvvv
+```
+
+And you will find that the test case revert with the error:
+
+```bash
+ ├─ [697] VSkillUser::checkFeedbackOfEvidence(1) [staticcall]
+    │   └─ ← [Revert] panic: array out-of-bounds access (0x32)
+```
+
+This `array out-of-bounds access (0x32)` error is not our custom error `VSkillUser__EvidenceIndexOutOfRange()` and is from the return statement.
+
+</details>
+
+**Recommended Mitigation:**
+
+Just change the check condition to check the index of the user evidence with the length of the user evidences.
+
+```diff
+function checkFeedbackOfEvidence(
+        uint256 indexOfUserEvidence
+    ) public view virtual returns (string[] memory) {
+-       if (indexOfUserEvidence >= s_evidences.length) {
++       if (indexOfUserEvidence >= s_addressToEvidences[msg.sender].length) {
+            revert VSkillUser__EvidenceIndexOutOfRange();
+        }
+
+        return
+            s_addressToEvidences[msg.sender][indexOfUserEvidence]
+                .feedbackIpfsHash;
+    }
+```
+
 ## Informational
 
 ### [I-1] Best follow the CEI in `Staking::withdrawStake` function
