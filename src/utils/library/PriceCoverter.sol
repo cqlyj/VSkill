@@ -12,7 +12,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
  * @dev This library is used to convert ETH to USD and USD to ETH
  */
 
-// @audit-low Maybe you should make sure the price feed is stable before using it
+// @written audit-low Maybe you should make sure the price feed is stable before using it
 library PriceConverter {
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
