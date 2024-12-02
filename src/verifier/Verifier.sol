@@ -444,8 +444,11 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             // If different opinion, the verifier need to delete the status of the feedback first, but we still have a copy of the allSelectedVerifiersToFeedbackStatus
 
             // why only pop once? The verifier can provide feedback multiple times...
+            // because in the provideFeedback function, there is the for loop to pop this array
 
-            // @audit-high the statusApproveOrNot array is not deleted, it only pops once
+            // @written audit-high if one verifier provides feedback for three times, the statusApproveOrNot array will have three elements, like all trues
+            // Then once the second verifier provide a false feedback, it will trigger the different opinion
+            // And the statusApproveOrNot array will be popped. But there are two more elements in the array and may violate the logic
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
                 .pop();
@@ -496,7 +499,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // that is to say, if there are y verifiers who will get reward, the total reward will be y * x * 2 / 10 / 20 = y * x / 100
         // when will y * x / 100 > x? when y > 100, that is to say, if there are more than 100 verifiers who will get reward, the protocol will be out of money
 
-        // @audit there is possibility that the protocol will be out of money if there are too many verifiers who will get reward
+        // @audit-low there is possibility that the protocol will be out of money if there are too many verifiers who will get reward
         uint256 rewardAmountInEth = (super.getBonusMoneyInEth() *
             currentReputation) /
             HIGHEST_REPUTATION /
