@@ -166,7 +166,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // if the evidence status is `submitted` or `differentOpinion`, this function will return true
         uint256 length = s_evidences.length;
 
-        // @audit no bound check for the length and DoS attack is possible
+        // @written audit-medium no bound check for the length and DoS attack is possible
         for (uint256 i = 0; i < length; i++) {
             if (
                 s_evidences[i].status ==
@@ -212,7 +212,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     function updateSkillDomains(
         string[] memory newSkillDomains
     ) external isVeifier {
-        // @audit the verifier can update the skill domains to any value, no validation is done
+        // @written audit-low the verifier can update the skill domains to any value, no validation is done
         s_verifiers[s_addressToId[msg.sender] - 1]
             .skillDomains = newSkillDomains;
         emit VerifierSkillDomainUpdated(msg.sender, newSkillDomains);
@@ -241,7 +241,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ) external {
         // can the same verifier call multiple time of this function? Yes, the verifier can call multiple times
         // Any impact? The verifier will be rewarded or penalized multiple times
-        // @audit-high the verifier can call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
+        // @written audit-high the verifier can call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
         _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
         StructDefinition.VSkillUserEvidence[]
             memory userEvidences = s_addressToEvidences[user];
