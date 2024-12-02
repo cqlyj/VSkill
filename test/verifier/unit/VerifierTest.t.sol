@@ -1114,4 +1114,159 @@ contract VerifierTest is Test {
             dummyEvidence
         );
     }
+
+    function testCheckUpKeepWillCostMoreGasAsTheEvidencesGrows() external {
+        StructDefinition.VSkillUserEvidence
+            memory dummyEvidence = StructDefinition.VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+
+        vm.prank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(dummyEvidence.evidenceIpfsHash, dummyEvidence.skillDomain);
+
+        uint256 gasBefore = gasleft();
+        vm.prank(USER);
+        verifier.checkUpkeep("");
+        uint256 gasAfter = gasleft();
+        uint256 gasCost = gasBefore - gasAfter;
+        console.log("Gas cost for 1 evidence: ", gasCost);
+
+        for (uint160 i = 0; i < 1000; i++) {
+            vm.pauseGasMetering();
+            verifier.submitEvidence{
+                value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                    AggregatorV3Interface(verifierConstructorParams.priceFeed)
+                )
+            }(dummyEvidence.evidenceIpfsHash, dummyEvidence.skillDomain);
+        }
+
+        vm.resumeGasMetering();
+
+        uint256 gasBefore2 = gasleft();
+        vm.prank(USER);
+        verifier.checkUpkeep("");
+        uint256 gasAfter2 = gasleft();
+        uint256 gasCost2 = gasBefore2 - gasAfter2;
+        console.log("Gas cost for 1001 evidence: ", gasCost2);
+
+        assert(gasCost2 > gasCost);
+
+        for (uint160 i = 0; i < 10000; i++) {
+            vm.pauseGasMetering();
+            verifier.submitEvidence{
+                value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                    AggregatorV3Interface(verifierConstructorParams.priceFeed)
+                )
+            }(dummyEvidence.evidenceIpfsHash, dummyEvidence.skillDomain);
+        }
+
+        vm.resumeGasMetering();
+
+        uint256 gasBefore3 = gasleft();
+        vm.prank(USER);
+        verifier.checkUpkeep("");
+        uint256 gasAfter3 = gasleft();
+        uint256 gasCost3 = gasBefore3 - gasAfter3;
+        console.log("Gas cost for 11001 evidence: ", gasCost3);
+
+        assert(gasCost3 > gasCost2);
+    }
+
+    function testSelectedVerifierCanProvideMultipleFeedbacksCentralizeTheEvidenceStatus()
+        external
+    {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+
+        address selectedVerifierAddressOne = address(
+            uint160(uint256(selectedVerifierOne))
+        );
+
+        uint256 selectedVerifierOneStakeBefore = verifier
+            .getVerifierMoneyStakedInEth(selectedVerifierAddressOne);
+        console.log(
+            "Selected verifier one stake before: ",
+            selectedVerifierOneStakeBefore
+        );
+
+        uint256 selectedVerifierOneReputationBefore = verifier
+            .getVerifierReputation(selectedVerifierAddressOne);
+        console.log(
+            "Selected verifier one reputation before: ",
+            selectedVerifierOneReputationBefore
+        );
+
+        // selectedVerifierOne call multiple times to provide feedback, then earn the rewards
+        for (uint160 i = 0; i < NUM_WORDS; i++) {
+            vm.prank(selectedVerifierAddressOne);
+            verifier.provideFeedback(
+                FEEDBACK_IPFS_HASH,
+                IPFS_HASH,
+                USER,
+                false
+            );
+        }
+
+        uint256 selectedVerifierOneStake = verifier.getVerifierMoneyStakedInEth(
+            selectedVerifierAddressOne
+        );
+
+        uint256 selectedVerifierOneReputation = verifier.getVerifierReputation(
+            selectedVerifierAddressOne
+        );
+
+        console.log(
+            "Selected verifier one stake after: ",
+            selectedVerifierOneStake
+        );
+
+        console.log(
+            "Selected verifier one reputation after: ",
+            selectedVerifierOneReputation
+        );
+
+        assert(selectedVerifierOneStake > selectedVerifierOneStakeBefore);
+        assert(
+            selectedVerifierOneReputation > selectedVerifierOneReputationBefore
+        );
+    }
 }
