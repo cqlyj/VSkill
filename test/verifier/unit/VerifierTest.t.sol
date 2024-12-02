@@ -1269,4 +1269,65 @@ contract VerifierTest is Test {
             selectedVerifierOneReputation > selectedVerifierOneReputationBefore
         );
     }
+
+    function testStatusApprovedOrNotArrayWillBePoppedEvenWhenEmpty() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+        bytes32 selectedVerifierTwo = entriesOfFulfillRandomWords[2].topics[1];
+
+        address selectedVerifierAddressOne = address(
+            uint160(uint256(selectedVerifierOne))
+        );
+        address selectedVerifierAddressTwo = address(
+            uint160(uint256(selectedVerifierTwo))
+        );
+
+        for (uint160 i = 0; i < 3; i++) {
+            vm.prank(selectedVerifierAddressOne);
+            verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        }
+        bool[] memory statusApproveOrNot = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+        console.log("Status approve or not: ", statusApproveOrNot.length);
+
+        vm.prank(selectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        bool[] memory statusApproveOrNot1 = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+        console.log("Status approve or not 1: ", statusApproveOrNot1.length);
+
+        assert(statusApproveOrNot1.length != 0);
+    }
 }
