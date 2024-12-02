@@ -399,6 +399,20 @@ function checkFeedbackOfEvidence(
     }
 ```
 
+### [L-2] Not checking the stability of the price feed in `PriceConverter::getChainlinkDataFeedLatestAnswer`, may lead to wrong conversion
+
+**Description:**
+
+In the `PriceConverter` library, the `getChainlinkDataFeedLatestAnswer` function is used to get the latest price feed from the `Chainlink` oracle. However, the stability of the price feed is not checked.
+
+**Impact:**
+
+This might lead to wrong conversion, if the price feed is not stable.
+
+**Recommended Mitigation:**
+
+Rewrite the `getChainlinkDataFeedLatestAnswer` function to check the stability of the price feed for a certain period of time.
+
 ## Informational
 
 ### [I-1] Best follow the CEI in `Staking::withdrawStake` function
