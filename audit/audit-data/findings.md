@@ -650,6 +650,229 @@ And you will see the console output:
 
 Same as the previous issue, add some restrictions to ensure that the same verifier can only provide feedback once.
 
+### [H-7] If the `Verifier::provideFeedback` function makes the same evidence with `DIFFERENTOPINION` status for more than once, the `statusApproveOrNot` array will be popped when it's empty, ruin the verification process
+
+**Description:**
+
+In the `Verifier` contract, the `provideFeedback` function has the logic below:
+
+```javascript
+function provideFeedback(
+        string memory feedbackIpfsHash,
+        string memory evidenceIpfsHash,
+        address user,
+        bool approved
+    ) external {
+        .
+        .
+        .
+        if (
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .length < s_numWords
+        ) {
+            return;
+        } else {
+            address[] memory allSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
+                evidenceIpfsHash
+            ].selectedVerifiers;
+@>          uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            StructDefinition.VSkillUserSubmissionStatus evidenceStatus = _updateEvidenceStatus(
+                    evidenceIpfsHash,
+                    user
+                );
+
+@>          for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+                _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    allSelectedVerifiers[i],
+                    evidenceStatus
+                );
+            }
+        }
+    }
+```
+
+It will have the for loop for every ever selectedVerifiers to call the `_earnRewardsOrGetPenalized` function. However, in the function we have the logic below for `DIFFERENTOPINION` status condition:
+
+```javascript
+ function _earnRewardsOrGetPenalized(
+        string memory evidenceIpfsHash,
+        address verifierAddress,
+        StructDefinition.VSkillUserSubmissionStatus evidenceStatus
+    ) internal {
+        .
+        .
+        .
+        // DIFFERENTOPINION
+        else {
+@>          s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+@>              .statusApproveOrNot
+@>              .pop();
+
+            return;
+        }
+    }
+```
+
+Here we will pop the `statusApproveOrNot` array for the selectedVerifiers, but what the bug is, in the for loop we are popping the array for every selectedVerifiers ever, that way, if the same evidence has `DIFFERENTOPINION` status for more than once, the `statusApproveOrNot` array will be popped when it's empty.
+
+**Impact:**
+
+When the evidence finally get approved or rejected by the last verifier, this function will revert, And the evidence will be ruined, and the verification process will be ruined.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/verifier/uint/VerifierTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+function testIfMoreThanOneTimeDifferentOpinionWillRevert() external {
+        uint256 numOfVerifiersWithinOneEvidence = 200;
+        address[] memory verifierWithinSameDomain = new address[](
+            numOfVerifiersWithinOneEvidence
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain[i - 1] = verifierAddress;
+        }
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+        bytes32 selectedVerifierTwo = entriesOfFulfillRandomWords[2].topics[1];
+        bytes32 selectedVerifierThree = entriesOfFulfillRandomWords[3].topics[
+            1
+        ];
+        address selectedVerifierAddressOne = address(
+            uint160(uint256(selectedVerifierOne))
+        );
+        address selectedVerifierAddressTwo = address(
+            uint160(uint256(selectedVerifierTwo))
+        );
+        address selectedVerifierAddressThree = address(
+            uint160(uint256(selectedVerifierThree))
+        );
+
+        vm.prank(selectedVerifierAddressOne);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+        vm.prank(selectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+        bool[] memory statusApproveOrNot = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+
+        console.log("Status approve or not: ", statusApproveOrNot.length);
+
+        vm.prank(selectedVerifierAddressThree);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory finalEntries = vm.getRecordedLogs();
+        bytes32 finalRequestId = finalEntries[1].topics[1];
+        VRFCoordinatorV2Mock finalVrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        finalVrfCoordinatorMock.fulfillRandomWords(
+            uint256(finalRequestId),
+            address(verifier)
+        );
+        Vm.Log[] memory finalEntriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 finalSelectedVerifierOne = finalEntriesOfFulfillRandomWords[1]
+            .topics[1];
+        bytes32 finalSelectedVerifierTwo = finalEntriesOfFulfillRandomWords[2]
+            .topics[1];
+        bytes32 finalSelectedVerifierThree = finalEntriesOfFulfillRandomWords[3]
+            .topics[1];
+        address finalSelectedVerifierAddressOne = address(
+            uint160(uint256(finalSelectedVerifierOne))
+        );
+        address finalSelectedVerifierAddressTwo = address(
+            uint160(uint256(finalSelectedVerifierTwo))
+        );
+        address finalSelectedVerifierAddressThree = address(
+            uint160(uint256(finalSelectedVerifierThree))
+        );
+
+        vm.prank(finalSelectedVerifierAddressOne);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+        vm.prank(finalSelectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        vm.expectRevert();
+        vm.prank(finalSelectedVerifierAddressThree);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+    }
+```
+
+Here we have the same evidence be `DIFFERENTOPINION` status for twice, and the `statusApproveOrNot` array will be popped when it's empty.
+
+Then run the test case:
+
+```bash
+forge test --mt testIfMoreThanOneTimeDifferentOpinionWillRevert -vvvv
+```
+
+You can get the logs below:
+
+```bash
+    │   ├─ emit EvidenceStatusUpdated(user: user: [0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D], evidenceIpfsHash: 0x4ec31a7244ef446c1acb5ded1a805b85118d0f808bcb005219f73857ca57896a, status: 4)
+    │   └─ ← [Revert] panic: called `.pop()` on an empty array (0x31)
+```
+
+And yes, we indeed see the error `` panic: called `.pop()` on an empty array ``.
+
+</details>
+
+**Recommended Mitigation:**
+
+Refactor the section of how to rewards the verifiers, maybe add the `Chainlink Automation` to listen for the event when the evidence is finally approved or rejected, and then rewards the verifiers.
+
+Then, in the `_earnRewardsOrGetPenalized` function, we can pop the array only three times each time reach the `DIFFERENTOPINION` status.
+
 ## Medium
 
 ### [M-1] No bounds check in `Verifier::checkUpkeep` for the `s_evidences` array, can cause DoS attack as the array grows
