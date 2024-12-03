@@ -326,6 +326,9 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
                     evidenceIpfsHash,
                     user
                 );
+
+            // @written audit-high the statusApproveOrNot array will call the .pop() function while empty with this setup of allSelectedVerifiersLength
+            // when the evidence is different opinion for more than once.
             for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
                 _earnRewardsOrGetPenalized(
                     evidenceIpfsHash,
@@ -536,7 +539,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
             // what if the user forget to withdraw the additional part over the stake?
             // all the money will be collected by the staking contract... Is this a issue?
-            // @audit user will lost all the money if they forget to withdraw the additional part over the stake
+            // @audit-info user will lost all the money if they forget to withdraw the additional part over the stake
             uint256 verifierStakedMoneyInEth = verifierToBeRemoved
                 .moneyStakedInEth;
 
