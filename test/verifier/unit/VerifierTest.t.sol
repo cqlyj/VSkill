@@ -1330,4 +1330,120 @@ contract VerifierTest is Test {
 
         assert(statusApproveOrNot1.length != 0);
     }
+
+    function testIfMoreThanOneTimeDifferentOpinionWillRevert() external {
+        uint256 numOfVerifiersWithinOneEvidence = 200;
+        address[] memory verifierWithinSameDomain = new address[](
+            numOfVerifiersWithinOneEvidence
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain[i - 1] = verifierAddress;
+        }
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+        Vm.Log[] memory entriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 selectedVerifierOne = entriesOfFulfillRandomWords[1].topics[1];
+        bytes32 selectedVerifierTwo = entriesOfFulfillRandomWords[2].topics[1];
+        bytes32 selectedVerifierThree = entriesOfFulfillRandomWords[3].topics[
+            1
+        ];
+        address selectedVerifierAddressOne = address(
+            uint160(uint256(selectedVerifierOne))
+        );
+        address selectedVerifierAddressTwo = address(
+            uint160(uint256(selectedVerifierTwo))
+        );
+        address selectedVerifierAddressThree = address(
+            uint160(uint256(selectedVerifierThree))
+        );
+
+        vm.prank(selectedVerifierAddressOne);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+        vm.prank(selectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+        bool[] memory statusApproveOrNot = verifier
+            .getEvidenceToStatusApproveOrNot(IPFS_HASH);
+
+        console.log("Status approve or not: ", statusApproveOrNot.length);
+
+        vm.prank(selectedVerifierAddressThree);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory finalEntries = vm.getRecordedLogs();
+        bytes32 finalRequestId = finalEntries[1].topics[1];
+        VRFCoordinatorV2Mock finalVrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vm.recordLogs();
+        finalVrfCoordinatorMock.fulfillRandomWords(
+            uint256(finalRequestId),
+            address(verifier)
+        );
+        Vm.Log[] memory finalEntriesOfFulfillRandomWords = vm.getRecordedLogs();
+        bytes32 finalSelectedVerifierOne = finalEntriesOfFulfillRandomWords[1]
+            .topics[1];
+        bytes32 finalSelectedVerifierTwo = finalEntriesOfFulfillRandomWords[2]
+            .topics[1];
+        bytes32 finalSelectedVerifierThree = finalEntriesOfFulfillRandomWords[3]
+            .topics[1];
+        address finalSelectedVerifierAddressOne = address(
+            uint160(uint256(finalSelectedVerifierOne))
+        );
+        address finalSelectedVerifierAddressTwo = address(
+            uint160(uint256(finalSelectedVerifierTwo))
+        );
+        address finalSelectedVerifierAddressThree = address(
+            uint160(uint256(finalSelectedVerifierThree))
+        );
+
+        vm.prank(finalSelectedVerifierAddressOne);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, true);
+
+        vm.prank(finalSelectedVerifierAddressTwo);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+
+        vm.expectRevert();
+        vm.prank(finalSelectedVerifierAddressThree);
+        verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
+    }
 }
