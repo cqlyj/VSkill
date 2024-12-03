@@ -493,16 +493,11 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // Here is the algorithm to calculate the reward: reward = reputation / HIGHEST_REPUTATION / 20 * bonusMoneyInUsd
         // 20 is that the verifier needs to stake about 20 USD to be a verifier => This is just a round number
 
-        // is that possible the protocol will be out of money?
-        // let's say one evidence is submitted, the evidence is differentOpinion for multiple times which exceeds 20 times
-        // the BonusMoney is made up of the user submission fee + verifier penalty + vulnerable reward
-        // if for now no verifier is punished, and no vunerable reward, the bonus money is only made up of the user submission fee
-        // so the super.getBonusMoneyInEth() will be the user submission fee
-        // now I have a lot verifiers with the initial reputation 2, the reward will be x * 2 / 10 / 20, where x is the amount of the user submission fee
-        // that is to say, if there are y verifiers who will get reward, the total reward will be y * x * 2 / 10 / 20 = y * x / 100
-        // when will y * x / 100 > x? when y > 100, that is to say, if there are more than 100 verifiers who will get reward, the protocol will be out of money
+        // @audit-info the first verifier may get more rewards than the last verifier, is this a issue?
 
-        // @audit-low there is possibility that the protocol will be out of money if there are too many verifiers who will get reward
+        // The reward is distributed one by one, so the BonusMoney will be decreased one by one
+        // That is to say, the protocol cannot be drained but only distribute less and less rewards
+
         uint256 rewardAmountInEth = (super.getBonusMoneyInEth() *
             currentReputation) /
             HIGHEST_REPUTATION /
