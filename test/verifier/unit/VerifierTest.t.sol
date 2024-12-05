@@ -1446,4 +1446,78 @@ contract VerifierTest is Test {
         vm.prank(finalSelectedVerifierAddressThree);
         verifier.provideFeedback(FEEDBACK_IPFS_HASH, IPFS_HASH, USER, false);
     }
+
+    function testDoSHappenWhenTooMuchVerifiers() external {
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence = 100;
+        address[] memory verifierWithinSameDomain = new address[](
+            numOfVerifiersWithinOneEvidence
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        uint256 gasBefore = gasleft();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+        uint256 gasAfter = gasleft();
+        uint256 gasCost = gasBefore - gasAfter;
+
+        console.log("Gas cost for 100 verifiers: ", gasCost);
+
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence2 = 1000;
+        address[] memory verifierWithinSameDomain2 = new address[](
+            numOfVerifiersWithinOneEvidence2
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence2 + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain2[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        uint256 gasBefore2 = gasleft();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+        uint256 gasAfter2 = gasleft();
+        uint256 gasCost2 = gasBefore2 - gasAfter2;
+
+        console.log("Gas cost for 1000 verifiers: ", gasCost2);
+
+        assert(gasCost2 > gasCost);
+
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence3 = 100000;
+        address[] memory verifierWithinSameDomain3 = new address[](
+            numOfVerifiersWithinOneEvidence3
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence3 + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain3[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        vm.expectRevert();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+
+        console.log("Revert due to DoS!");
+    }
 }
