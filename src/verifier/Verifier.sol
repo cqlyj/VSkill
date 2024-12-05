@@ -820,7 +820,8 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             );
         }
 
-        // @audit the status of the evidence will not be updated
+        // written @audit-medium the status of the evidence will not be updated
+        // which then will keep triggering the checkUpkeep function, causing the gas cost to increase
         ev.status = StructDefinition.VSkillUserSubmissionStatus.INREVIEW;
         emit EvidenceStatusUpdated(
             ev.submitter,
