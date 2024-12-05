@@ -1251,6 +1251,89 @@ As the `s_verifiers` array grows, this for loop can cause a DoS attack.
 
 Same as `M-2`, as only a certain amount of verifiers will be first selected as the participants in the final selection. The `verifiersWithinSameDomainCount` will be limited to a certain amount.
 
+### [M-4] Using memory variables to update the status of evidence in `Verifier::_assignEvidenceToSelectedVerifier` function, will drain the `Chainlink Automation` service
+
+**Description:**
+
+In the `Verifier` contract, the `_assignEvidenceToSelectedVerifier` use a memory variable as the evidence to update its `status`, which will not update the status of the evidence in the storage.
+
+```javascript
+function _assignEvidenceToSelectedVerifier(
+@>      StructDefinition.VSkillUserEvidence memory ev,
+        address[] memory selectedVerifiers
+    ) internal {
+        .
+        .
+        .
+@>      ev.status = StructDefinition.VSkillUserSubmissionStatus.INREVIEW;
+        emit EvidenceStatusUpdated(
+            ev.submitter,
+            ev.evidenceIpfsHash,
+            ev.status
+        );
+    }
+
+```
+
+**Impact:**
+
+As a result, the evidence status will not be updated in the storage and remains as `SUBMITTED`, which will trigger the ``checkUpkeep` function being called by `Chainlink Automation` node, cost the money and drain the service.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/verifier/uint/VerifierTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+ function testEvidenceStatusNotUpdateAfterDistributedToVerifiers() external {
+        _createNumWordsNumberOfSameDomainVerifier(SKILL_DOMAINS);
+
+        StructDefinition.VSkillUserEvidence memory ev = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAINS[0],
+                StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                new string[](0)
+            );
+        vm.startPrank(USER);
+        verifier.submitEvidence{
+            value: verifier.getSubmissionFeeInUsd().convertUsdToEth(
+                AggregatorV3Interface(verifierConstructorParams.priceFeed)
+            )
+        }(ev.evidenceIpfsHash, ev.skillDomain);
+        vm.stopPrank();
+
+        vm.recordLogs();
+        verifier._requestVerifiersSelection(ev);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[0].topics[2];
+        VRFCoordinatorV2Mock vrfCoordinatorMock = VRFCoordinatorV2Mock(
+            verifierConstructorParams.vrfCoordinator
+        );
+        vm.pauseGasMetering();
+        vrfCoordinatorMock.fulfillRandomWords(
+            uint256(requestId),
+            address(verifier)
+        );
+
+        StructDefinition.VSkillUserSubmissionStatus status = verifier
+            .getEvidenceStatus(USER, 0);
+        assert(uint256(status) != uint256(SubmissionStatus.INREVIEW));
+        console.log("Evidence status: ", uint256(status));
+    }
+```
+
+</details>
+
+**Recommended Mitigation:**
+
+Change the `ev` variable to the storage variable to update the status of the evidence in the storage. Or just pass some parameters which can be used to get the storage evidence.
+
 ## Low
 
 ### [L-1] The check condition in `VSkillUser::checkFeedbackOfEvidence` is wrong, user will be reverted due to the return statement, not custom error message
