@@ -580,7 +580,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         uint256 verifiersWithinSameDomainCount = 0;
 
-        // @audit DoS
+        // written @audit-medium DoS
         for (uint256 i = 0; i < length; i++) {
             if (s_verifiers[i].skillDomains.length > 0) {
                 uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
@@ -603,7 +603,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         uint256 verifiersWithinSameDomainIndex = 0;
 
-        // @audit DoS
+        // written @audit DoS
         for (uint256 i = 0; i < length; i++) {
             if (s_verifiers[i].skillDomains.length > 0) {
                 uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
@@ -701,7 +701,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         // is this too gas expensive? The gas cost is high, is that possible to optimize?
         // @audit-gas as the number of verifiers increases, the gas cost will increase, the gas cost is high
-        // @audit DoS
+        // written @audit-medium DoS
         uint256 totalReputationScore = 0;
         for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
             totalReputationScore += s_verifiers[
