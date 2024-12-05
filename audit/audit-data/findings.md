@@ -1011,6 +1011,246 @@ And you will find that the gas cost for 11001 evidence is much higher than the g
 
 Instead of this custom logic automation, try to use the `Chainlink log triggering` to trigger the `checkUpkeep` function. Once someone submits the evidence, emit an event to trigger the `checkUpkeep` function.
 
+### [M-2] The two for loops in `Verifier::_verifiersWithinSameDomain` function can cause DoS attack, as the `s_verifiers` array grows
+
+**Description:**
+
+In the `Verifier` contract, the `_verifiersWithinSameDomain` function has the following two for loops:
+
+```javascript
+function _verifiersWithinSameDomain(
+        string memory skillDomain
+    ) public view returns (address[] memory, uint256 count) {
+        uint256 length = s_verifiers.length;
+
+        uint256 verifiersWithinSameDomainCount = 0;
+
+@>      for (uint256 i = 0; i < length; i++) {
+            if (s_verifiers[i].skillDomains.length > 0) {
+                uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
+@>              for (uint256 j = 0; j < skillDomainLength; j++) {
+                    if (
+                        keccak256(
+                            abi.encodePacked(s_verifiers[i].skillDomains[j])
+                        ) == keccak256(abi.encodePacked(skillDomain))
+                    ) {
+                        verifiersWithinSameDomainCount++;
+                        break; // No need to check other domains for this verifier
+                    }
+                }
+            }
+        }
+
+        address[] memory verifiersWithinSameDomain = new address[](
+            verifiersWithinSameDomainCount
+        );
+
+        uint256 verifiersWithinSameDomainIndex = 0;
+
+@>      for (uint256 i = 0; i < length; i++) {
+            if (s_verifiers[i].skillDomains.length > 0) {
+                uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
+@>              for (uint256 j = 0; j < skillDomainLength; j++) {
+                    if (
+                        keccak256(
+                            abi.encodePacked(s_verifiers[i].skillDomains[j])
+                        ) == keccak256(abi.encodePacked(skillDomain))
+                    ) {
+                        verifiersWithinSameDomain[
+                            verifiersWithinSameDomainIndex
+                        ] = s_verifiers[i].verifierAddress;
+                        verifiersWithinSameDomainIndex++;
+                        break; // No need to check other domains for this verifier
+                    }
+                }
+            }
+        }
+
+        return (verifiersWithinSameDomain, verifiersWithinSameDomainCount);
+    }
+```
+
+The first for loop is used to count the number of verifiers within the same domain, and the second for loop is used to get the verifiers within the same domain.
+
+**Impact:**
+
+As the `s_verifiers` array grows, these two for loops can cause a DoS attack.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/verifier/uint/VerifierTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+    function testDoSHappenWhenTooMuchVerifiers() external {
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence = 100;
+        address[] memory verifierWithinSameDomain = new address[](
+            numOfVerifiersWithinOneEvidence
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        uint256 gasBefore = gasleft();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+        uint256 gasAfter = gasleft();
+        uint256 gasCost = gasBefore - gasAfter;
+
+        console.log("Gas cost for 100 verifiers: ", gasCost);
+
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence2 = 1000;
+        address[] memory verifierWithinSameDomain2 = new address[](
+            numOfVerifiersWithinOneEvidence2
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence2 + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain2[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        uint256 gasBefore2 = gasleft();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+        uint256 gasAfter2 = gasleft();
+        uint256 gasCost2 = gasBefore2 - gasAfter2;
+
+        console.log("Gas cost for 1000 verifiers: ", gasCost2);
+
+        assert(gasCost2 > gasCost);
+
+        vm.pauseGasMetering();
+        uint256 numOfVerifiersWithinOneEvidence3 = 100000;
+        address[] memory verifierWithinSameDomain3 = new address[](
+            numOfVerifiersWithinOneEvidence3
+        );
+        for (
+            uint160 i = 1;
+            i < uint160(numOfVerifiersWithinOneEvidence3 + 1);
+            i++
+        ) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, INITIAL_BALANCE);
+            _becomeVerifierWithSkillDomain(verifierAddress, SKILL_DOMAINS);
+            verifierWithinSameDomain3[i - 1] = verifierAddress;
+        }
+        vm.resumeGasMetering();
+
+        vm.expectRevert();
+        verifier._verifiersWithinSameDomain(SKILL_DOMAINS[0]);
+
+        console.log("Revert due to DoS!");
+    }
+```
+
+When we set the num of verifiers to 100000, this function reverts!
+
+And you can run the command below to check the logs see the gas cost for `100` and `1000` verifiers calling this function:
+
+```bash
+forge test --mt testDoSHappenWhenTooMuchVerifiers -vv
+```
+
+Output:
+
+```bash
+  Gas cost for 100 verifiers:  472882
+  Gas cost for 1000 verifiers:  4898941
+  Revert due to DoS!
+```
+
+Here 100 costs `472882`, 1000 costs `4898941`, almost 10 times expensive gas cost!
+
+</details>
+
+**Recommended Mitigation:**
+
+Consider use a map to store the skill domains to the verifiers and when select the verifiers, only a certain amount of verifiers will be first selected as the participants in the final selection.
+
+### [M-3] The for loop in `Verifier::_selectedVerifiersAddressCallback` function can cause DoS attack, as the `s_verifiers` array grows
+
+**Description:**
+
+Same as above but in the `Verifier::_selectedVerifiersAddressCallback` function:
+
+```javascript
+ function _selectedVerifiersAddressCallback(
+        StructDefinition.VSkillUserEvidence memory ev,
+        uint256[] memory randomWords
+    )
+        public
+        enoughNumberOfVerifiers(ev.skillDomain)
+        returns (address[] memory)
+    {
+        address[] memory selectedVerifiers = new address[](s_numWords);
+
+        (
+            address[] memory verifiersWithinSameDomain,
+            uint256 verifiersWithinSameDomainCount
+        ) = _verifiersWithinSameDomain(ev.skillDomain);
+
+        uint256 totalReputationScore = 0;
+@>      for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
+            totalReputationScore += s_verifiers[
+                s_addressToId[verifiersWithinSameDomain[i]] - 1
+            ].reputation;
+        }
+
+        uint256[] memory selectedIndices = new uint256[](totalReputationScore);
+
+        uint256 selectedIndicesCount = 0;
+
+@>      for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
+            uint256 reputation = s_verifiers[
+                s_addressToId[verifiersWithinSameDomain[i]] - 1
+            ].reputation;
+            for (uint256 j = 0; j < reputation; j++) {
+                selectedIndices[selectedIndicesCount] = i;
+                selectedIndicesCount++;
+            }
+        }
+
+        for (uint256 i = 0; i < s_numWords; i++) {
+            uint256 randomIndex = randomWords[i] % totalReputationScore;
+            selectedVerifiers[i] = verifiersWithinSameDomain[
+                selectedIndices[randomIndex]
+            ];
+        }
+
+        _updateSelectedVerifiersInfo(ev.evidenceIpfsHash, selectedVerifiers);
+
+        _assignEvidenceToSelectedVerifier(ev, selectedVerifiers);
+
+        return selectedVerifiers;
+    }
+```
+
+**Impact:**
+
+As the `s_verifiers` array grows, this for loop can cause a DoS attack.
+
+**Recommended Mitigation:**
+
+Same as `M-2`, as only a certain amount of verifiers will be first selected as the participants in the final selection. The `verifiersWithinSameDomainCount` will be limited to a certain amount.
+
 ## Low
 
 ### [L-1] The check condition in `VSkillUser::checkFeedbackOfEvidence` is wrong, user will be reverted due to the return statement, not custom error message
