@@ -168,7 +168,6 @@ In the `Staking` contract, the `_removeVerifier` function is implemented in the 
 ```javascript
 function _removeVerifier(address verifierAddress) internal {
         uint256 index = s_addressToId[verifierAddress] - 1;
-        // @audit-high The way to remove the verifier is not safe, because the id is used to get the index, and the index is used to remove the verifier
         s_verifiers[index] = s_verifiers[s_verifierCount - 1];
         s_verifiers.pop();
 
@@ -1640,9 +1639,6 @@ function tokenURI(
 +           revert VSkillUserNft__InvalidTokenId(tokenId);
 +       }
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
-        // what if skillDomain is not found?
-        // imageUri will not revert, but just be blank
-        // @audit-info/low if the tokenId is not found, the function will return a blank string
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
 
         return
@@ -2220,3 +2216,9 @@ State variables that are should be declared immutable to save gas. Add the `immu
   ```
 
 </details>
+
+### [I-11] It's best to use the most up-to-date version of `Chainlink VRF`
+
+**Description:**
+
+In the `Distribution` contract, we are using the `VRFCoordinatorV2` contract, which is the old version of the `Chainlink VRF`. It's best to use the most up-to-date version of version 2.5.
