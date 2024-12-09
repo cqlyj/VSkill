@@ -1626,3 +1626,415 @@ We didn't see the attacker's balance increase, which means the attacker cannot d
 **Recommended Mitigation:**
 
 Just follow the some best practices.
+
+### [I-2] Solidity pragma should be specific, not wide
+
+Consider using a specific version of Solidity in your contracts instead of a wide version. For example, instead of `pragma solidity ^0.8.24;`, use `pragma solidity 0.8.24;`
+
+<details><summary>6 Found Instances</summary>
+
+- Found in src/nft/VSkillUserNft.sol [Line: 3](src/nft/VSkillUserNft.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 2](src/oracle/Distribution.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/staking/Staking.sol [Line: 3](src/staking/Staking.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 2](src/user/VSkillUser.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/utils/interface/VerifierInterface.sol [Line: 3](src/utils/interface/VerifierInterface.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 2](src/verifier/Verifier.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+</details>
+
+### [I-3] `public` functions not used internally could be marked `external`
+
+Instead of marking a function as `public`, consider marking it as `external` if it is not used internally.
+
+<details><summary>28 Found Instances</summary>
+
+- Found in src/nft/VSkillUserNft.sol [Line: 54](src/nft/VSkillUserNft.sol#L54)
+
+  ```solidity
+      function mintUserNft(string memory skillDomain) public {
+  ```
+
+- Found in src/nft/VSkillUserNft.sol [Line: 68](src/nft/VSkillUserNft.sol#L68)
+
+  ```solidity
+      function tokenURI(
+  ```
+
+- Found in src/nft/VSkillUserNft.sol [Line: 103](src/nft/VSkillUserNft.sol#L103)
+
+  ```solidity
+      function _addMoreSkillsForNft(
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 60](src/oracle/Distribution.sol#L60)
+
+  ```solidity
+      function distributionRandomNumberForVerifiers(
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 116](src/oracle/Distribution.sol#L116)
+
+  ```solidity
+      function getRandomWords() public view returns (uint256[] memory) {
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 120](src/oracle/Distribution.sol#L120)
+
+  ```solidity
+      function getRequestIdToContext(
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 130](src/oracle/Distribution.sol#L130)
+
+  ```solidity
+      function getSubscriptionId() public view returns (uint64) {
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 134](src/oracle/Distribution.sol#L134)
+
+  ```solidity
+      function getVrfCoordinator()
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 142](src/oracle/Distribution.sol#L142)
+
+  ```solidity
+      function getKeyHash() public view returns (bytes32) {
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 146](src/oracle/Distribution.sol#L146)
+
+  ```solidity
+      function getCallbackGasLimit() public view returns (uint32) {
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 150](src/oracle/Distribution.sol#L150)
+
+  ```solidity
+      function getRequestConfirmations() public view returns (uint16) {
+  ```
+
+- Found in src/staking/Staking.sol [Line: 97](src/staking/Staking.sol#L97)
+
+  ```solidity
+      function withdrawStake(uint256 amountToWithdrawInEth) public virtual {
+  ```
+
+- Found in src/staking/Staking.sol [Line: 189](src/staking/Staking.sol#L189)
+
+  ```solidity
+      function addBonusMoneyForVerifier() public payable {
+  ```
+
+- Found in src/staking/Staking.sol [Line: 378](src/staking/Staking.sol#L378)
+
+  ```solidity
+      function getVerifierEvidenceIpfsHash(
+  ```
+
+- Found in src/staking/Staking.sol [Line: 414](src/staking/Staking.sol#L414)
+
+  ```solidity
+      function getBonusMoneyInEth() public view returns (uint256) {
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 83](src/user/VSkillUser.sol#L83)
+
+  ```solidity
+      function submitEvidence(
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 143](src/user/VSkillUser.sol#L143)
+
+  ```solidity
+      function checkFeedbackOfEvidence(
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 161](src/user/VSkillUser.sol#L161)
+
+  ```solidity
+      function earnUserNft(
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 185](src/user/VSkillUser.sol#L185)
+
+  ```solidity
+      function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 198](src/user/VSkillUser.sol#L198)
+
+  ```solidity
+      function addMoreSkills(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 331](src/verifier/Verifier.sol#L331)
+
+  ```solidity
+      function stake() public payable override {
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 335](src/verifier/Verifier.sol#L335)
+
+  ```solidity
+      function withdrawStake(uint256 amountToWithdrawInEth) public override {
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 343](src/verifier/Verifier.sol#L343)
+
+  ```solidity
+      function submitEvidence(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 350](src/verifier/Verifier.sol#L350)
+
+  ```solidity
+      function checkFeedbackOfEvidence(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 356](src/verifier/Verifier.sol#L356)
+
+  ```solidity
+      function earnUserNft(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 362](src/verifier/Verifier.sol#L362)
+
+  ```solidity
+      function changeSubmissionFee(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 368](src/verifier/Verifier.sol#L368)
+
+  ```solidity
+      function addMoreSkills(
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 636](src/verifier/Verifier.sol#L636)
+
+  ```solidity
+      function _selectedVerifiersAddressCallback(
+  ```
+
+</details>
+
+### [I-4] Define and use `constant` variables instead of using literals
+
+If the same constant literal value is used multiple times, create a constant state variable and reference it throughout the contract.
+
+<details><summary>2 Found Instances</summary>
+
+- Found in src/utils/library/PriceCoverter.sol [Line: 33](src/utils/library/PriceCoverter.sol#L33)
+
+  ```solidity
+          return (ethAmount * uint256(ethPrice)) / 1e18;
+  ```
+
+- Found in src/utils/library/PriceCoverter.sol [Line: 41](src/utils/library/PriceCoverter.sol#L41)
+
+  ```solidity
+          return (usdAmount * 1e18) / uint256(ethPrice);
+  ```
+
+</details>
+
+### [I-5] PUSH0 is not supported by all chains
+
+Solc compiler version 0.8.20 switches the default target EVM version to Shanghai, which means that the generated bytecode will include PUSH0 opcodes. Be sure to select the appropriate EVM version in case you intend to deploy on a chain other than mainnet like L2 chains that may not support PUSH0, otherwise deployment of your contracts will fail.
+
+<details><summary>8 Found Instances</summary>
+
+- Found in src/nft/VSkillUserNft.sol [Line: 3](src/nft/VSkillUserNft.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 2](src/oracle/Distribution.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/staking/Staking.sol [Line: 3](src/staking/Staking.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/user/VSkillUser.sol [Line: 2](src/user/VSkillUser.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/utils/interface/VerifierInterface.sol [Line: 3](src/utils/interface/VerifierInterface.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/utils/library/PriceCoverter.sol [Line: 3](src/utils/library/PriceCoverter.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/utils/library/StructDefinition.sol [Line: 3](src/utils/library/StructDefinition.sol#L3)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 2](src/verifier/Verifier.sol#L2)
+
+  ```solidity
+  pragma solidity ^0.8.24;
+  ```
+
+</details>
+
+### [I-6] Modifiers invoked only once can be shoe-horned into the function
+
+<details><summary>1 Found Instances</summary>
+
+- Found in src/verifier/Verifier.sol [Line: 115](src/verifier/Verifier.sol#L115)
+
+  ```solidity
+      modifier enoughNumberOfVerifiers(string memory skillDomain) {
+  ```
+
+</details>
+
+### [I-7] Unused Custom Error
+
+it is recommended that the definition be removed when custom error is unused
+
+<details><summary>1 Found Instances</summary>
+
+- Found in src/staking/Staking.sol [Line: 23](src/staking/Staking.sol#L23)
+
+  ```solidity
+      error Staking__AlreadyVerifier();
+  ```
+
+</details>
+
+### [I-8] Costly operations inside loops.
+
+Invoking `SSTORE`operations in loops may lead to Out-of-gas errors. Use a local variable to hold the loop computation result.
+
+<details><summary>4 Found Instances</summary>
+
+- Found in src/nft/VSkillUserNft.sol [Line: 42](src/nft/VSkillUserNft.sol#L42)
+
+  ```solidity
+          for (uint256 i = 0; i < skillDomainLength; i++) {
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 314](src/verifier/Verifier.sol#L314)
+
+  ```solidity
+              for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 759](src/verifier/Verifier.sol#L759)
+
+  ```solidity
+          for (uint256 i = 0; i < s_numWords; i++) {
+  ```
+
+- Found in src/verifier/Verifier.sol [Line: 870](src/verifier/Verifier.sol#L870)
+
+  ```solidity
+          for (uint256 i = 1; i < statusLength; i++) {
+  ```
+
+</details>
+
+### [I-9] State variable could be declared constant
+
+State variables that are not updated following deployment should be declared constant to save gas. Add the `constant` attribute to state variables that never change.
+
+<details><summary>2 Found Instances</summary>
+
+- Found in src/oracle/Distribution.sol [Line: 29](src/oracle/Distribution.sol#L29)
+
+  ```solidity
+      uint16 s_requestConfirmations = 3;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 30](src/oracle/Distribution.sol#L30)
+
+  ```solidity
+      uint32 s_numWords = 3;
+  ```
+
+</details>
+
+### [I-10] State variable could be declared immutable
+
+State variables that are should be declared immutable to save gas. Add the `immutable` attribute to state variables that are only changed in the constructor
+
+<details><summary>5 Found Instances</summary>
+
+- Found in src/oracle/Distribution.sol [Line: 25](src/oracle/Distribution.sol#L25)
+
+  ```solidity
+      uint64 s_subscriptionId;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 26](src/oracle/Distribution.sol#L26)
+
+  ```solidity
+      VRFCoordinatorV2Interface s_vrfCoordinator;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 27](src/oracle/Distribution.sol#L27)
+
+  ```solidity
+      bytes32 s_keyHash;
+  ```
+
+- Found in src/oracle/Distribution.sol [Line: 28](src/oracle/Distribution.sol#L28)
+
+  ```solidity
+      uint32 s_callbackGasLimit;
+  ```
+
+- Found in src/staking/Staking.sol [Line: 54](src/staking/Staking.sol#L54)
+
+  ```solidity
+      AggregatorV3Interface internal s_priceFeed;
+  ```
+
+</details>
