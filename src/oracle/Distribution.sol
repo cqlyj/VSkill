@@ -16,7 +16,7 @@ import {VerifierInterface} from "../utils/interface/VerifierInterface.sol";
  */
 
 // not really, we should use the latest version of VRF
-// @audit-info we should use the VRF v2.5
+// @written audit-info we should use the VRF v2.5
 contract Distribution is VRFConsumerBaseV2 {
     /**
      * @dev StrcutDefinition is used for defining the struct of DistributionVerifierRequestContext and VSkillUserEvidence
