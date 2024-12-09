@@ -656,7 +656,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
     // any impact if the user call this function directly? How the verifier verify the evidence?
     // this should be handled in the web interface, the verifier will get notified when new evidence is distributed to them
-    // @audit the user can call this function directly and the evidence will be assigned to the verifiers without being in the evidence array
+    // the user can call this function directly and the evidence will be assigned to the verifiers without being in the evidence array, but the provideFeedback function will revert if the evidence is not in the evidence array
     function _requestVerifiersSelection(
         StructDefinition.VSkillUserEvidence memory ev
     ) public {
