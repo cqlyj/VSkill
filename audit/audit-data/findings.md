@@ -2222,3 +2222,51 @@ State variables that are should be declared immutable to save gas. Add the `immu
 **Description:**
 
 In the `Distribution` contract, we are using the `VRFCoordinatorV2` contract, which is the old version of the `Chainlink VRF`. It's best to use the most up-to-date version of version 2.5.
+
+## Gas
+
+### [G-1] Custom error message include a constant `Staking::minStakeUsdAmount` which costs more gas
+
+**Description:**
+
+In the `Staking` contract, the `Staking__NotEnoughStakeToBecomeVerifier` custom error message includes a constant `minStakeUsdAmount`.
+
+```javascript
+ error Staking__NotEnoughStakeToBecomeVerifier(
+        uint256 currentStakeUsdAmount,
+@>      uint256 minStakeUsdAmount
+    );
+```
+
+**Impact:**
+
+This is not necessary and costs more gas.
+
+### [G-2] There are two functions work the same in `Staking` contract and is a waste of gas
+
+**Description:**
+
+In the `Staking` contract, these two functions `addBonusMoneyForVerifier` and `_addBonusMoney` are the same logic:
+
+```javascript
+function addBonusMoneyForVerifier() public payable {
+        s_bonusMoneyInEth += msg.value;
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth - msg.value,
+            s_bonusMoneyInEth
+        );
+    }
+
+function _addBonusMoney(uint256 amountInEth) internal {
+        s_bonusMoneyInEth += amountInEth;
+        emit BonusMoneyUpdated(
+            s_bonusMoneyInEth - amountInEth,
+            s_bonusMoneyInEth
+        );
+    }
+
+```
+
+**Impact:**
+
+This is a waste of gas.
