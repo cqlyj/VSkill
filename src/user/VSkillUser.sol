@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-// @audit-info floating pragma
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-// @audit-info floating pragma
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 import {StructDefinition} from "../library/StructDefinition.sol";
 
