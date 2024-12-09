@@ -15,7 +15,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  */
 contract Staking {
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
-    // @audit-gas the minStakeUsdAmount is a constant, so no need to include it in the error message
+    // @written audit-gas the minStakeUsdAmount is a constant, so no need to include it in the error message
     error Staking__NotEnoughStakeToBecomeVerifier(
         uint256 currentStakeUsdAmount,
         uint256 minStakeUsdAmount
@@ -213,7 +213,7 @@ contract Staking {
      * @dev This function emits BonusMoneyUpdated event once the bonus money is added
      */
 
-    // @audit-gas This function is the same as addBonusMoneyForVerifier, so it is a waste of gas
+    // @written audit-gas This function is the same as addBonusMoneyForVerifier, so it is a waste of gas
     function _addBonusMoney(uint256 amountInEth) internal {
         s_bonusMoneyInEth += amountInEth;
         emit BonusMoneyUpdated(
