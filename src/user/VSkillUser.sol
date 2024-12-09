@@ -17,7 +17,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  * @dev The user can submit evidence and earn NFTs with skill domains, also they can check the feedback of the evidence
  */
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
-    // @audit-gas the submittedFeeInUsd is set by the user, no need to show it as a parameter
+    // @written audit-gas the submittedFeeInUsd is set by the user, no need to show it as a parameter
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
@@ -37,7 +37,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
-    // @audit-info why declare this again here? => Because private variables are not inherited
+    // @why declare this again here? => Because private variables are not inherited
     // already declared in VSkillUserNft.sol
     string[] private s_skillDomains = [
         "Frontend",
@@ -192,7 +192,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev The event SubmissionFeeChanged will be emitted.
      */
 
-    // @audit-info centralization of the submission fee, is it a good idea?
+    // @written audit-info centralization of the submission fee, is it a good idea?
     function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
         s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
