@@ -1484,6 +1484,188 @@ function updateSkillDomains(
 
 This `_validSkillDomains` function should check if the user input skill domains exist in the predefined skill domains.
 
+### [L-4] User can call the `VSkillUserNft::mintUserNft` with non-exist skill domain
+
+**Description:**
+
+In the `VSkillUserNft` contract, the `mintUserNft` function does not check if the skill domain exists.
+
+```javascript
+@>  function mintUserNft(string memory skillDomain) public {
+        _safeMint(msg.sender, s_tokenCounter);
+        s_tokenIdToSkillDomain[s_tokenCounter] = skillDomain;
+        s_tokenCounter++;
+
+        emit MintNftSuccess(s_tokenCounter - 1, skillDomain);
+    }
+```
+
+**Impact:**
+
+The user can call the `mintUserNft` function with a non-exist skill domain, generate a lot of no-sense NFTs.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/nft/uint/VSkillUserNftTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+function testUserCanMintANonExistentSkillDomain() external {
+        vm.prank(USER);
+        vskillUserNft.mintUserNft("non-existent-skill-domain");
+        uint256 tokenCounter = vskillUserNft.getTokenCounter();
+        assertEq(tokenCounter, 1);
+    }
+```
+
+</details>
+
+**Recommended Mitigation:**
+
+Add the validation check for the skill domain value.
+
+```diff
+ function mintUserNft(string memory skillDomain) public {
++       for (uint256 i = 0; i < s_skillDomains.length; i++) {
++           if (
++               keccak256(abi.encodePacked(s_skillDomains[i])) ==
++               keccak256(abi.encodePacked(skillDomain))
++           ) {
++               break;
++           }
++           if (i == s_skillDomains.length - 1) {
++               revert VSkillUserNft__SkillDomainNotFound(skillDomain);
++           }
++       }
+        _safeMint(msg.sender, s_tokenCounter);
+        s_tokenIdToSkillDomain[s_tokenCounter] = skillDomain;
+        s_tokenCounter++;
+
+        emit MintNftSuccess(s_tokenCounter - 1, skillDomain);
+    }
+```
+
+### [L-5] Invalid `tokenId` will result in blank `imageUri` in `VSkillUserNft::tokenURI` function
+
+**Description:**
+
+In the `VSkillUserNft` contract, the `tokenURI` function has no validation check for the `tokenId`.
+
+```javascript
+function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+@>      string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
+@>      string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
+
+        return
+            string(
+                abi.encodePacked(
+                    _baseURI(),
+                    Base64.encode(
+                        bytes( // bytes casting actually unnecessary as 'abi.encodePacked()' returns a bytes
+                            abi.encodePacked(
+                                '{"name":"',
+                                name(),
+                                '", "description":"Proof of capability of the skill", ',
+                                '"attributes": [{"trait_type": "skill", "value": 100}], "image":"',
+                                imageUri,
+                                '"}'
+                            )
+                        )
+                    )
+                )
+            );
+    }
+```
+
+**Impact:**
+
+If the user input an invalid `tokenId`, the `imageUri` will be blank.
+
+**Proof of Concept:**
+
+Add the following test case to `./test/nft/uint/VSkillUserNftTest.t.sol`:
+
+<details>
+<summary>
+Proof of Code
+</summary>
+
+```javascript
+ function testInvalidTokenIdWillReturnBlankString() external view {
+        string memory skillDomain = vskillUserNft.tokenURI(100);
+        assertEq(
+            skillDomain,
+            "data:application/json;base64,eyJuYW1lIjoiVlNraWxsVXNlck5mdCIsICJkZXNjcmlwdGlvbiI6IlByb29mIG9mIGNhcGFiaWxpdHkgb2YgdGhlIHNraWxsIiwgImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogInNraWxsIiwgInZhbHVlIjogMTAwfV0sICJpbWFnZSI6IiJ9"
+        );
+    }
+```
+
+You can copy the `data:application...` to your browser and you will find the output like this:
+
+```json
+{
+  "name": "VSkillUserNft",
+  "description": "Proof of capability of the skill",
+  "attributes": [
+    {
+      "trait_type": "skill",
+      "value": 100
+    }
+  ],
+  "image": ""
+}
+```
+
+The image is blank.
+
+</details>
+
+**Recommended Mitigation:**
+
+Add the validation check for the `tokenId`.
+
+```diff
+error VSkillUserNft__InvalidTokenId(uint256 tokenId);
+
+function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
++       if (_ownerOf(tokenId) == address(0)) {
++           revert VSkillUserNft__InvalidTokenId(tokenId);
++       }
+        string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
+        // what if skillDomain is not found?
+        // imageUri will not revert, but just be blank
+        // @audit-info/low if the tokenId is not found, the function will return a blank string
+        string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
+
+        return
+            string(
+                abi.encodePacked(
+                    _baseURI(),
+                    Base64.encode(
+                        bytes( // bytes casting actually unnecessary as 'abi.encodePacked()' returns a bytes
+                            abi.encodePacked(
+                                '{"name":"',
+                                name(),
+                                '", "description":"Proof of capability of the skill", ',
+                                '"attributes": [{"trait_type": "skill", "value": 100}], "image":"',
+                                imageUri,
+                                '"}'
+                            )
+                        )
+                    )
+                )
+            );
+    }
+```
+
 ## Informational
 
 ### [I-1] Best follow the CEI in `Staking::withdrawStake` function
