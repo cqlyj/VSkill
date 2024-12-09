@@ -54,7 +54,7 @@ contract VSkillUserNft is ERC721 {
      * @dev Mint a user NFT with the skill domain
      */
 
-    // @audit-low This function not checking for the skillDomain input, users can mint NFT with non-existing skill domains, not a big deal
+    // @written audit-low This function not checking for the skillDomain input, users can mint NFT with non-existing skill domains, not a big deal
     // @written audit-high This function is not restricted to any specific user, anyone can mint a NFT
     // Users can directly call this function to mint a NFT with any skill domain instead of providing a proof of skill
     function mintUserNft(string memory skillDomain) public {
@@ -77,7 +77,7 @@ contract VSkillUserNft is ERC721 {
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
         // what if skillDomain is not found?
         // imageUri will not revert, but just be blank
-        // @audit-info/low if the tokenId is not found, the function will return a blank string
+        // @written audit-info/low if the tokenId is not found, the function will return a blank string
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
 
         return
