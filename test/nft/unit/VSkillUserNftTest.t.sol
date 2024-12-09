@@ -205,4 +205,22 @@ contract VSkillUserNftTest is Test {
         vskillUserNft._addMoreSkillsForNft(newSkillDomain, newNftImageUri);
         vm.stopPrank();
     }
+
+    /*//////////////////////////////////////////////////////////////
+                           AUDIT PROOF TESTS
+    //////////////////////////////////////////////////////////////*/
+    function testUserCanMintANonExistentSkillDomain() external {
+        vm.prank(USER);
+        vskillUserNft.mintUserNft("non-existent-skill-domain");
+        uint256 tokenCounter = vskillUserNft.getTokenCounter();
+        assertEq(tokenCounter, 1);
+    }
+
+    function testInvalidTokenIdWillReturnBlankString() external view {
+        string memory skillDomain = vskillUserNft.tokenURI(100);
+        assertEq(
+            skillDomain,
+            "data:application/json;base64,eyJuYW1lIjoiVlNraWxsVXNlck5mdCIsICJkZXNjcmlwdGlvbiI6IlByb29mIG9mIGNhcGFiaWxpdHkgb2YgdGhlIHNraWxsIiwgImF0dHJpYnV0ZXMiOiBbeyJ0cmFpdF90eXBlIjogInNraWxsIiwgInZhbHVlIjogMTAwfV0sICJpbWFnZSI6IiJ9"
+        );
+    }
 }
