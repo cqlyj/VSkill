@@ -2223,18 +2223,40 @@ State variables that are should be declared immutable to save gas. Add the `immu
 
 In the `Distribution` contract, we are using the `VRFCoordinatorV2` contract, which is the old version of the `Chainlink VRF`. It's best to use the most up-to-date version of version 2.5.
 
+### [I-12] Centralization Risk for trusted owners
+
+Contracts have owners with privileged rights to perform admin tasks and need to be trusted to not perform malicious updates or drain funds.
+
+<details><summary>Found Instances</summary>
+
+- Found in src/user/VSkillUser.sol [Line: 185](src/user/VSkillUser.sol#L185)
+
+  ```solidity
+      function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
+  ```
+
+</details>
+
 ## Gas
 
-### [G-1] Custom error message include a constant `Staking::minStakeUsdAmount` which costs more gas
+### [G-1] Custom error message include a constant `Staking::minStakeUsdAmount` and `VSkillUser::submittedFeeInUsd` which costs more gas
 
 **Description:**
 
 In the `Staking` contract, the `Staking__NotEnoughStakeToBecomeVerifier` custom error message includes a constant `minStakeUsdAmount`.
+In the `VSkillUser` contract, the `VSkillUser__NotEnoughSubmissionFee` custom error message includes a constant `submittedFeeInUsd`.
 
 ```javascript
  error Staking__NotEnoughStakeToBecomeVerifier(
         uint256 currentStakeUsdAmount,
 @>      uint256 minStakeUsdAmount
+    );
+```
+
+```javascript
+ error VSkillUser__NotEnoughSubmissionFee(
+        uint256 requiredFeeInUsd,
+@>      uint256 submittedFeeInUsd
     );
 ```
 
