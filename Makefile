@@ -121,3 +121,17 @@ mintUserNftVSkillUserNft-anvil:
 
 distributionRandomNumberForVerifiersDistribution-anvil:
 	@forge script script/oracle/Interactions.s.sol:DistributionRandomNumberForVerifiersDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+
+# Audit
+
+slither:
+	@slither . --config-file slither.config.json
+
+aderyn:
+	@aderyn .
+
+scope:
+	@tree ./src/ | sed 's/└/#/g; s/──/--/g; s/├/#/g; s/│ /|/g; s/│/|/g'
+
+scopeFile:
+	@tree ./src/ | sed 's/└/#/g' | awk -F '── ' '!/\.sol$$/ { path[int((length($$0) - length($$2))/2)] = $$2; next } { p = "src"; for(i=2; i<=int((length($$0) - length($$2))/2); i++) if (path[i] != "") p = p "/" path[i]; print p "/" $$2; }' > scope.txt

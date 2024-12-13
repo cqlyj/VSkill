@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -39,6 +40,7 @@ contract VSkillUserNft is ERC721 {
         s_tokenCounter = 0;
         s_userNftImageUris = _userNftImageUris;
         uint256 skillDomainLength = s_skillDomains.length;
+        // e length here is just 5, it's fine
         for (uint256 i = 0; i < skillDomainLength; i++) {
             s_skillDomainToUserNftImageUri[
                 s_skillDomains[i]
@@ -51,6 +53,10 @@ contract VSkillUserNft is ERC721 {
      * @param skillDomain The domain of the skill
      * @dev Mint a user NFT with the skill domain
      */
+
+    // @written audit-low This function not checking for the skillDomain input, users can mint NFT with non-existing skill domains, not a big deal
+    // @written audit-high This function is not restricted to any specific user, anyone can mint a NFT
+    // Users can directly call this function to mint a NFT with any skill domain instead of providing a proof of skill
     function mintUserNft(string memory skillDomain) public {
         _safeMint(msg.sender, s_tokenCounter);
         s_tokenIdToSkillDomain[s_tokenCounter] = skillDomain;
@@ -69,6 +75,9 @@ contract VSkillUserNft is ERC721 {
         uint256 tokenId
     ) public view override returns (string memory) {
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
+        // what if skillDomain is not found?
+        // imageUri will not revert, but just be blank
+        // @written audit-info/low if the tokenId is not found, the function will return a blank string
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
 
         return

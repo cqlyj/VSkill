@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -10,6 +11,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
  * @notice This library uitilize the Chainlink Price Feed to get the latest price of ETH/USD
  * @dev This library is used to convert ETH to USD and USD to ETH
  */
+
+// @written audit-low Maybe you should make sure the price feed is stable before using it
 library PriceConverter {
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
@@ -22,6 +25,8 @@ library PriceConverter {
             /*uint timeStamp*/,
             /*uint80 answeredInRound*/
         ) = priceFeed.latestRoundData();
+
+        // @written audit-info magic number
         return answer * 1e10;
     }
 

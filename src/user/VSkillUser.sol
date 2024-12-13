@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -15,6 +17,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  * @dev The user can submit evidence and earn NFTs with skill domains, also they can check the feedback of the evidence
  */
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
+    // @written audit-gas the submittedFeeInUsd is set by the user, no need to show it as a parameter
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
@@ -34,6 +37,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     using StructDefinition for StructDefinition.VSkillUserEvidence;
     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
 
+    // @why declare this again here? => Because private variables are not inherited
+    // already declared in VSkillUserNft.sol
     string[] private s_skillDomains = [
         "Frontend",
         "Backend",
@@ -110,6 +115,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
 
         super._addBonusMoney(msg.value);
 
+        // We need the mapping to store the evidence of the user, and the array to store all the evidence.
         s_addressToEvidences[msg.sender].push(
             StructDefinition.VSkillUserEvidence({
                 submitter: msg.sender,
@@ -143,6 +149,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function checkFeedbackOfEvidence(
         uint256 indexOfUserEvidence
     ) public view virtual returns (string[] memory) {
+        // written @audit-low the indexOfUserEvidence should check with the length of the user's evidence array, s_addressToEvidences[msg.sender].length
+        // user will revert due to the return statement if the index of user evidence is out of range, not the custom error
         if (indexOfUserEvidence >= s_evidences.length) {
             revert VSkillUser__EvidenceIndexOutOfRange();
         }
@@ -168,6 +176,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
             revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
         }
 
+        // written @audit-high Anyone can provide an approved evidence and get the NFT.
         super.mintUserNft(_evidence.skillDomain);
     }
 
@@ -182,6 +191,8 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
      * @dev Only the owner can change the submission fee.
      * @dev The event SubmissionFeeChanged will be emitted.
      */
+
+    // @written audit-info centralization of the submission fee, is it a good idea?
     function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
         s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
@@ -202,6 +213,9 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
+
+        // what if the newNftImageUri is blank? Is there any way to fix this?
+        // this is the owner's responsibility to provide the correct image URI, so no need to check
         s_skillDomains.push(skillDomain);
         super._addMoreSkillsForNft(skillDomain, newNftImageUri);
         emit SkillDomainAdded(skillDomain);
@@ -220,6 +234,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
+        // the skill domains length will within some range, so no DoS attack
         uint256 length = s_skillDomains.length;
         for (uint256 i = 0; i < length; i++) {
             if (

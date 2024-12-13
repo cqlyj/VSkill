@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+// @written audit-info floating pragma
 pragma solidity ^0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
@@ -14,6 +15,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  */
 contract Staking {
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
+    // @written audit-gas the minStakeUsdAmount is a constant, so no need to include it in the error message
     error Staking__NotEnoughStakeToBecomeVerifier(
         uint256 currentStakeUsdAmount,
         uint256 minStakeUsdAmount
@@ -100,6 +102,7 @@ contract Staking {
         }
 
         if (
+            // @ written audit this is indeed a problem, after the verifier is removed, the id is still valid, but the index is not valid anymore
             s_verifiers[s_addressToId[msg.sender] - 1].moneyStakedInEth <
             amountToWithdrawInEth
         ) {
@@ -108,6 +111,11 @@ contract Staking {
             );
         }
 
+        // @ written audit-info reentrancy?
+        // Hold on, actually here no reentrancy issue
+        // Although the state changes after sending the money, but once the code reaches to the line of state changes
+        // The function will revert for arithmetic underflow or overflow because the verifier does not have enough balance to be minus
+        // But it's still better to follow the best practice, CEI, Check-Effect-Interact
         (bool success, ) = msg.sender.call{value: amountToWithdrawInEth}("");
         if (!success) {
             revert Staking__WithdrawFailed();
@@ -204,6 +212,8 @@ contract Staking {
      * @notice This function is used to add bonus money to the reward pool for verifiers
      * @dev This function emits BonusMoneyUpdated event once the bonus money is added
      */
+
+    // @written audit-gas This function is the same as addBonusMoneyForVerifier, so it is a waste of gas
     function _addBonusMoney(uint256 amountInEth) internal {
         s_bonusMoneyInEth += amountInEth;
         emit BonusMoneyUpdated(
@@ -253,6 +263,11 @@ contract Staking {
         address verifierAddress,
         uint256 amountInEth
     ) internal {
+        // moneyStakedInEth is uint256, so it can't be negative
+        // This function will revert if the amountInEth is greater than the current stake...
+        // Is this revert a issue? If the amountInEth is greater than the current stake, it will revert, and the verifier is not penalized....?
+        // if the amountInEth is greater than the current stake, the function will revert, and the verifier is not penalized
+        // This function only be called by the Verifier contract, so the amountInEth is always valid, not an issue
         s_verifiers[s_addressToId[verifierAddress] - 1]
             .moneyStakedInEth -= amountInEth;
         s_bonusMoneyInEth += amountInEth;
@@ -282,6 +297,20 @@ contract Staking {
      */
     function _removeVerifier(address verifierAddress) internal {
         uint256 index = s_addressToId[verifierAddress] - 1;
+        // e swap the last element with the element to be removed
+        // then pop the last element
+        // hold on let's simulate this process
+        // verifiers: 1 2 3 4 5
+        // index:     0 1 2 3 4
+        // remove verifier 3
+        // 1. get the index: 3 - 1 = 2
+        // 2. swap the last element with the element to be removed => 1 2 5 4 5
+        // 3. pop the last element => 1 2 5 4
+        // now, what happened if I try to get the index by using the id?
+        // Let's say I want to get the verifier 5(id = 5), the index I get is 5 - 1 = 4
+        // Hold on, the index 4 now is out of the array, because the array has been poped
+
+        // @ written audit-high The way to remove the verifier is not safe, because the id is used to get the index, and the index is used to remove the verifier
         s_verifiers[index] = s_verifiers[s_verifierCount - 1];
         s_verifiers.pop();
 
@@ -301,6 +330,7 @@ contract Staking {
         address verifierAddress,
         string[] memory skillDomains
     ) internal view returns (StructDefinition.StakingVerifier memory) {
+        // never mind, this function is only called internally, so the skillDomain is always blank and valid
         return
             StructDefinition.StakingVerifier({
                 id: s_id,

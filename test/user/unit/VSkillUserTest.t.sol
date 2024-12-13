@@ -257,4 +257,50 @@ contract VSkillUserTest is Test {
         emit VSkillUser.SkillDomainAdded(NEW_SKILL_DOMAIN);
         vskill.addMoreSkills(NEW_SKILL_DOMAIN, NEW_NFT_IMAGE_URI);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                           AUDIT PROOF TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testCheckFeedbackOfEvidenceAlwaysRevertAsLongAsMoreThanTwoUsersSubmitEvidence()
+        external
+    {
+        vm.startPrank(USER);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        address anotherUser = makeAddr("anotherUser");
+        vm.deal(anotherUser, INITIAL_BALANCE);
+        vm.startPrank(anotherUser);
+        vskill.submitEvidence{value: SUBMISSION_FEE_IN_ETH}(
+            IPFS_HASH,
+            SKILL_DOMAIN
+        );
+        vm.stopPrank();
+
+        vm.prank(USER);
+        vm.expectRevert();
+        vskill.checkFeedbackOfEvidence(1);
+    }
+
+    using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
+
+    function testAnyoneCanMintAnNftWithoutSubmitAndGetVerified() external {
+        StructDefinition.VSkillUserEvidence memory evidence = StructDefinition
+            .VSkillUserEvidence(
+                USER,
+                IPFS_HASH,
+                SKILL_DOMAIN,
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED,
+                new string[](0)
+            );
+
+        vm.prank(USER);
+        vskill.earnUserNft(evidence);
+
+        assertEq(vskill.getTokenCounter(), 1);
+    }
 }
