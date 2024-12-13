@@ -276,7 +276,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             })
         );
 
-        // @audit-info separate the rest of the function into another function, this one is too long
+        // @written audit-info separate the rest of the function into another function, this one is too long
         if (approved) {
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
@@ -409,7 +409,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         address verifierAddress,
         StructDefinition.VSkillUserSubmissionStatus evidenceStatus
     ) internal {
-        // @audit-gas since this function is only called by the provideFeedback function, the evidenceIpfsHash is already checked
+        // @written audit-gas since this function is only called by the provideFeedback function, the evidenceIpfsHash is already checked
         _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
 
         if (
@@ -493,7 +493,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // Here is the algorithm to calculate the reward: reward = reputation / HIGHEST_REPUTATION / 20 * bonusMoneyInUsd
         // 20 is that the verifier needs to stake about 20 USD to be a verifier => This is just a round number
 
-        // @audit-info the first verifier may get more rewards than the last verifier, is this a issue?
+        // @written audit-info the first verifier may get more rewards than the last verifier, is this a issue?
 
         // The reward is distributed one by one, so the BonusMoney will be decreased one by one
         // That is to say, the protocol cannot be drained but only distribute less and less rewards
@@ -534,7 +534,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
             // what if the user forget to withdraw the additional part over the stake?
             // all the money will be collected by the staking contract... Is this a issue?
-            // @audit-info user will lost all the money if they forget to withdraw the additional part over the stake
+            // @written audit-high user will lost all the money if they forget to withdraw the additional part over the stake
             uint256 verifierStakedMoneyInEth = verifierToBeRemoved
                 .moneyStakedInEth;
 
@@ -700,7 +700,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         // (2) Fill the array with the verifier's address based on the reputation score
 
         // is this too gas expensive? The gas cost is high, is that possible to optimize?
-        // @audit-gas as the number of verifiers increases, the gas cost will increase, the gas cost is high
+        // @written audit-gas as the number of verifiers increases, the gas cost will increase, the gas cost is high
         // written @audit-medium DoS
         uint256 totalReputationScore = 0;
         for (uint256 i = 0; i < verifiersWithinSameDomainCount; i++) {
@@ -848,7 +848,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             .evidenceIpfsHash
             .length;
         for (uint256 i = 0; i < length; i++) {
-            // @audit-gas each time compute the keccak256 of the evidenceIpfsHash, it will consume more gas
+            // @written audit-gas each time compute the keccak256 of the evidenceIpfsHash, it will consume more gas
             // it's better to use a memory variable to store the keccak256 of the evidenceIpfsHash
             if (
                 keccak256(
@@ -910,7 +910,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         uint256 length = s_addressToEvidences[user].length;
         uint256 currentEvidenceIndex;
         for (uint256 i = 0; i < length; i++) {
-            // @audit-gas store the keccak256 of the evidenceIpfsHash in a memory variable
+            // @written audit-gas store the keccak256 of the evidenceIpfsHash in a memory variable
             if (
                 keccak256(
                     abi.encodePacked(
