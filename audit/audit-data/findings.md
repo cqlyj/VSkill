@@ -872,6 +872,54 @@ Refactor the section of how to rewards the verifiers, maybe add the `Chainlink A
 
 Then, in the `_earnRewardsOrGetPenalized` function, we can pop the array only three times each time reach the `DIFFERENTOPINION` status.
 
+### [H-8] Verifier will lose all the stake when reputation is less than `LOWEST_REPUTATION` and get penalized again
+
+**Description:**
+
+In the `Verifier` contract, the `_penalizeVerifiers` function have the following logic to handle the penalty:
+
+```javascript
+function _penalizeVerifiers(address verifiersAddress) internal {
+        if (
+            s_verifiers[s_addressToId[verifiersAddress] - 1].reputation >
+            LOWEST_REPUTATION
+        ) {
+            .
+            .
+            .
+        } else {
+            .
+            .
+            .
+@>          uint256 verifierStakedMoneyInEth = verifierToBeRemoved
+@>              .moneyStakedInEth;
+
+@>          super._penalizeVerifierStakeToBonusMoney(
+@>              verifiersAddress,
+@>              verifierStakedMoneyInEth
+@>          );
+
+            super._removeVerifier(verifiersAddress);
+
+            emit LoseVerifier(verifierToBeRemoved.verifierAddress);
+        }
+    }
+
+```
+
+As the logic shows, if the reputation is less than `LOWEST_REPUTATION`, the verifier will be switched to the `else` branch, and then the `_penalizeVerifierStakeToBonusMoney` function will be called to penalize the verifier, but the penalty amount is the same as the verifier's stake!!!
+
+**Impact:**
+
+Verifier will lose all the stake when reputation is less than `LOWEST_REPUTATION` if get penalized again!!!
+
+**Recommended Mitigation:**
+
+There are several ways to consider:
+
+1. Change the penalty amount to a reasonable amount, like `MIN_USD_AMOUNT`
+2. Set a upper limit for the stake, like `MAX_STAKE`, and force the verifier to withdraw the stake when exceed the limit.
+
 ## Medium
 
 ### [M-1] No bounds check in `Verifier::checkUpkeep` for the `s_evidences` array, can cause DoS attack as the array grows
@@ -2237,6 +2285,155 @@ Contracts have owners with privileged rights to perform admin tasks and need to 
 
 </details>
 
+### [I-13] The `Verifier::provideFeedback` function is too long, making the maintenance difficult
+
+**Description:**
+
+In the `Verifier` contract, the `provideFeedback` function is as follows:
+
+<detail>
+<summary>Code</summary>
+
+```javascript
+function provideFeedback(
+        string memory feedbackIpfsHash,
+        string memory evidenceIpfsHash,
+        address user,
+        bool approved
+    ) external {
+        // can the same verifier call multiple time of this function? Yes, the verifier can call multiple times
+        // Any impact? The verifier will be rewarded or penalized multiple times
+        // @written audit-high the verifier can call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
+        _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
+        StructDefinition.VSkillUserEvidence[]
+            memory userEvidences = s_addressToEvidences[user];
+        uint256 length = userEvidences.length;
+        uint256 currentEvidenceIndex;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(
+                    abi.encodePacked(userEvidences[i].evidenceIpfsHash)
+                ) == keccak256(abi.encodePacked(evidenceIpfsHash))
+            ) {
+                currentEvidenceIndex = i;
+                break;
+            }
+        }
+
+        s_addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
+            feedbackIpfsHash
+        );
+
+        s_verifiers[s_addressToId[msg.sender] - 1].feedbackIpfsHash.push(
+            feedbackIpfsHash
+        );
+
+        emit FeedbackProvided(
+            StructDefinition.VerifierFeedbackProvidedEventParams({
+                verifierAddress: msg.sender,
+                user: user,
+                approved: approved,
+                feedbackIpfsHash: feedbackIpfsHash,
+                evidenceIpfsHash: evidenceIpfsHash
+            })
+        );
+
+        // @audit-info separate the rest of the function into another function, this one is too long
+        if (approved) {
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .push(true);
+            emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, true);
+
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .allSelectedVerifiersToFeedbackStatus[msg.sender] = true;
+            emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+                msg.sender,
+                evidenceIpfsHash,
+                true
+            );
+        } else {
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .push(false);
+            emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, false);
+
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .allSelectedVerifiersToFeedbackStatus[msg.sender] = false;
+            emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
+                msg.sender,
+                evidenceIpfsHash,
+                false
+            );
+        }
+
+        // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
+
+        // what if the evidenceIpfsHash is reassigned to other verifiers? The statusApproveOrNot length is reseted or not???
+        // hold on, the check for the if statement will be passed if the same verifier just call multiple times of this function
+        // And it will trigger the _earnRewardsOrGetPenalized function, any impact??
+        // Yeah, the verifier can call multiple times of this function, and the verifier will be rewarded or penalized multiple times
+        if (
+            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
+                .statusApproveOrNot
+                .length < s_numWords
+        ) {
+            return;
+        } else {
+            address[] memory allSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
+                evidenceIpfsHash
+            ].selectedVerifiers;
+            uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
+            StructDefinition.VSkillUserSubmissionStatus evidenceStatus = _updateEvidenceStatus(
+                    evidenceIpfsHash,
+                    user
+                );
+
+            // @written audit-high the statusApproveOrNot array will call the .pop() function while empty with this setup of allSelectedVerifiersLength
+            // when the evidence is different opinion for more than once.
+            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+                _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    allSelectedVerifiers[i],
+                    evidenceStatus
+                );
+            }
+        }
+    }
+```
+
+</detail>
+
+**Impact:**
+
+The maintainance of the contract will be difficult.
+
+**Recommended Mitigation:**
+
+Separate some logic into another function.
+
+### [I-14] The first verifier who submit the evidence will be rewarded more than the following verifiers
+
+**Description:**
+
+In the `Verifier::_rewardVerifiers` function, the logic is as follows:
+
+```javascript
+function _rewardVerifiers(address verifiersAddress) internal {
+        .
+        .
+        .
+@>      uint256 rewardAmountInEth = (super.getBonusMoneyInEth() *
+@>          currentReputation) /
+@>          HIGHEST_REPUTATION /
+@>          BONUS_DISTRIBUTION_NUMBER;
+
+        super._rewardVerifierInFormOfStake(verifiersAddress, rewardAmountInEth);
+    }
+```
+
+As the `rewardAmountInEth` is calculated based on the each time `super.getBonusMoneyInEth()`, thus the first verifier who submit the evidence will be rewarded more than the following verifiers since the `super.getBonusMoneyInEth()` will be decreased.
+
 ## Gas
 
 ### [G-1] Custom error message include a constant `Staking::minStakeUsdAmount` and `VSkillUser::submittedFeeInUsd` which costs more gas
@@ -2292,3 +2489,183 @@ function _addBonusMoney(uint256 amountInEth) internal {
 **Impact:**
 
 This is a waste of gas.
+
+### [G-3] Double check in `Verifier::_earnRewardsOrGetPenalized` function, spend unnecessary gas
+
+**Description:**
+
+In the `Verifier` contract, the `_earnRewardsOrGetPenalized` function is only called by the `Verifier::provideFeedback` function and is marked as `internal`. However, it has also check for `_onlySelectedVerifier` function
+
+```javascript
+function provideFeedback(
+        string memory feedbackIpfsHash,
+        string memory evidenceIpfsHash,
+        address user,
+        bool approved
+    ) external {
+@>      _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
+        .
+        .
+        .
+            for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
+@>              _earnRewardsOrGetPenalized(
+                    evidenceIpfsHash,
+                    allSelectedVerifiers[i],
+                    evidenceStatus
+                );
+            }
+        }
+    }
+```
+
+```javascript
+function _earnRewardsOrGetPenalized(
+        string memory evidenceIpfsHash,
+        address verifierAddress,
+        StructDefinition.VSkillUserSubmissionStatus evidenceStatus
+    ) internal {
+@>      _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
+        .
+        .
+        .
+    }
+```
+
+**Impact:**
+
+This double check will cost unnecessary gas.
+
+**Recommended Mitigation:**
+
+Remove the `_onlySelectedVerifier` check in the `_earnRewardsOrGetPenalized` function.
+
+```diff
+function _earnRewardsOrGetPenalized(
+        string memory evidenceIpfsHash,
+        address verifierAddress,
+        StructDefinition.VSkillUserSubmissionStatus evidenceStatus
+    ) internal {
+-       _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
+        .
+        .
+        .
+    }
+```
+
+### [G-4] Compute the same `Verifier::keccak256(abi.encodePacked(evidenceIpfsHash))` costs unnecessary gas
+
+**Description:**
+
+In the `Verifier` contract, the `_onlySelectedVerifier` function computes the same `keccak256(abi.encodePacked(evidenceIpfsHash))` in each loop iteration.
+Also in the `_updateEvidenceStatus` function, the same `keccak256(abi.encodePacked(evidenceIpfsHash))` is computed in each loop iteration.
+
+```javascript
+ function _onlySelectedVerifier(
+        string memory evidenceIpfsHash,
+        address verifierAddress
+    ) internal view isVeifier {
+        uint256 length = s_verifiers[s_addressToId[verifierAddress] - 1]
+            .evidenceIpfsHash
+            .length;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        s_verifiers[s_addressToId[verifierAddress] - 1]
+                            .evidenceIpfsHash[i]
+                    )
+@>              ) == keccak256(abi.encodePacked(evidenceIpfsHash))
+            ) {
+                return;
+            }
+        }
+        revert Verifier__NotSelectedVerifier();
+    }
+
+```
+
+```javascript
+function _updateEvidenceStatus(
+        string memory evidenceIpfsHash,
+        address user
+    ) internal returns (StructDefinition.VSkillUserSubmissionStatus) {
+        .
+        .
+        .
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        s_addressToEvidences[user][i].evidenceIpfsHash
+                    )
+@>              ) == keccak256(abi.encodePacked(evidenceIpfsHash))
+            ) {
+                currentEvidenceIndex = i;
+                break;
+            }
+        }
+        .
+        .
+        .
+    }
+```
+
+**Impact:**
+
+Since the `evidenceIpfsHash` is the same in each loop iteration, this will cost unnecessary gas.
+
+**Recommended Mitigation:**
+
+Use the memory variable to store the `keccak256(abi.encodePacked(evidenceIpfsHash))` value.
+
+```diff
+ function _onlySelectedVerifier(
+        string memory evidenceIpfsHash,
+        address verifierAddress
+    ) internal view isVeifier {
++       bytes32 evidenceHash = keccak256(abi.encodePacked(evidenceIpfsHash));
+        uint256 length = s_verifiers[s_addressToId[verifierAddress] - 1]
+            .evidenceIpfsHash
+            .length;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        s_verifiers[s_addressToId[verifierAddress] - 1]
+                            .evidenceIpfsHash[i]
+                    )
+                ) == evidenceHash
+            ) {
+                return;
+            }
+        }
+        revert Verifier__NotSelectedVerifier();
+    }
+```
+
+```diff
+function _updateEvidenceStatus(
+        string memory evidenceIpfsHash,
+        address user
+    ) internal returns (StructDefinition.VSkillUserSubmissionStatus) {
++       bytes32 evidenceHash = keccak256(abi.encodePacked(evidenceIpfsHash));
+        .
+        .
+        .
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(
+                    abi.encodePacked(
+                        s_addressToEvidences[user][i].evidenceIpfsHash
+                    )
+                ) == evidenceHash
+            ) {
+                currentEvidenceIndex = i;
+                break;
+            }
+        }
+        .
+        .
+        .
+    }
+```
