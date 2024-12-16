@@ -15,11 +15,7 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  */
 contract Staking {
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
-    // @written audit-gas the minStakeUsdAmount is a constant, so no need to include it in the error message
-    error Staking__NotEnoughStakeToBecomeVerifier(
-        uint256 currentStakeUsdAmount,
-        uint256 minStakeUsdAmount
-    );
+    error Staking__NotEnoughStakeToBecomeVerifier();
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
 
@@ -149,10 +145,7 @@ contract Staking {
 
         if (s_addressToId[msg.sender] == 0) {
             if (amountInUsd < MIN_USD_AMOUNT) {
-                revert Staking__NotEnoughStakeToBecomeVerifier(
-                    amountInUsd,
-                    MIN_USD_AMOUNT
-                );
+                revert Staking__NotEnoughStakeToBecomeVerifier();
             } else {
                 s_addressToId[msg.sender] = s_id;
                 s_verifierCount++;
