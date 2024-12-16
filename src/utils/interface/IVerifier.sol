@@ -10,7 +10,7 @@ import {StructDefinition} from "../library/StructDefinition.sol";
  * @author Luo Yingjie
  * @notice This interface is for the Distribution contract call the Verifier contract callback function => _selectedVerifiersAddressCallback
  */
-interface VerifierInterface {
+interface IVerifier {
     function _selectedVerifiersAddressCallback(
         StructDefinition.VSkillUserEvidence memory ev,
         uint256[] memory randomWords

@@ -6,7 +6,7 @@ pragma solidity 0.8.26;
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 import {StructDefinition} from "../utils/library/StructDefinition.sol";
-import {VerifierInterface} from "../utils/interface/VerifierInterface.sol";
+import {IVerifier} from "../utils/interface/IVerifier.sol";
 
 /**
  * @title Distribution contract for generating random numbers for verifiers
@@ -116,7 +116,7 @@ contract Distribution is VRFConsumerBaseV2 {
     function _processVerifiers(uint256 _requestId) internal {
         StructDefinition.DistributionVerifierRequestContext
             memory context = s_requestIdToContext[_requestId];
-        VerifierInterface(context.requester)._selectedVerifiersAddressCallback(
+        IVerifier(context.requester)._selectedVerifiersAddressCallback(
             context.ev,
             s_randomWords
         );
