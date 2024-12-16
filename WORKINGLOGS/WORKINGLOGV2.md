@@ -30,24 +30,24 @@
 
 **Informational**
 
-- [ ] **[I-1]** Follow the Checks-Effects-Interactions (CEI) pattern in `Staking::withdrawStake` function.
+- [x] **[I-1]** Follow the Checks-Effects-Interactions (CEI) pattern in `Staking::withdrawStake` function.
 - [x] **[I-2]** Solidity pragma should be specific, not wide.
 - [ ] **[I-3]** Public functions not used internally could be marked `external`.
-- [ ] **[I-4]** Define and use constant variables instead of literals.
+- [x] **[I-4]** Define and use constant variables instead of literals.
 - [ ] **[I-5]** `PUSH0` is not supported by all chains.
 - [ ] **[I-6]** Modifiers invoked only once could be integrated directly into the function.
-- [ ] **[I-7]** Unused custom error definitions.
+- [x] **[I-7]** Unused custom error definitions.
 - [ ] **[I-8]** Avoid costly operations inside loops.
-- [ ] **[I-9]** State variables could be declared `constant`.
-- [ ] **[I-10]** State variables could be declared `immutable`.
+- [x] **[I-9]** State variables could be declared `constant`.
+- [x] **[I-10]** State variables could be declared `immutable`.
 - [ ] **[I-11]** Use the most up-to-date version of Chainlink VRF.
-- [ ] **[I-12]** Centralization risk for trusted owners.
+- [x] **[I-12]** Centralization risk for trusted owners.
 - [ ] **[I-13]** `Verifier::provideFeedback` function is too long, making maintenance difficult.
 - [x] **[I-14]** The first verifier who submits feedback is rewarded more than subsequent verifiers.
 
 **Gas Optimization**
 
-- [ ] **[G-1]** Custom error messages include constants (`Staking::minStakeUsdAmount` and `VSkillUser::submittedFeeInUsd`), which cost more gas.
+- [x] **[G-1]** Custom error messages include constants (`Staking::minStakeUsdAmount` and `VSkillUser::submittedFeeInUsd`), which cost more gas.
 - [ ] **[G-2]** Two functions in the `Staking` contract perform the same task, wasting gas.
-- [ ] **[G-3]** Double checks in `Verifier::_earnRewardsOrGetPenalized` function result in unnecessary gas consumption.
+- [x] **[G-3]** Double checks in `Verifier::_earnRewardsOrGetPenalized` function result in unnecessary gas consumption.
 - [ ] **[G-4]** Repeated computation of `Verifier::keccak256(abi.encodePacked(evidenceIpfsHash))` wastes gas.
