@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // @written audit-info floating pragma
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 import {VSkillUser} from "../user/VSkillUser.sol";
 import {Distribution} from "../oracle/Distribution.sol";

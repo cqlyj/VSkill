@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // @written audit-info floating pragma
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";

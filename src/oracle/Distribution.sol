@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // @written audit-info floating pragma
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";

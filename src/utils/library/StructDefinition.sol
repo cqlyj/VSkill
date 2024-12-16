@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 // @written audit-info floating pragma
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
 /**
  * @title StructDefinition library that will be used to define the struct in the contract
