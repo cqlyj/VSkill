@@ -31,8 +31,8 @@ contract Distribution is VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface s_vrfCoordinator;
     bytes32 s_keyHash;
     uint32 s_callbackGasLimit;
-    uint16 s_requestConfirmations = 3;
-    uint32 s_numWords = 3;
+    uint16 constant REQUEST_CONFIRMATIONS = 3;
+    uint32 constant NUM_WORDS = 3;
 
     uint256 s_requestId;
 
@@ -73,9 +73,9 @@ contract Distribution is VRFConsumerBaseV2 {
         s_requestId = s_vrfCoordinator.requestRandomWords(
             s_keyHash,
             s_subscriptionId,
-            s_requestConfirmations,
+            REQUEST_CONFIRMATIONS,
             s_callbackGasLimit,
-            s_numWords
+            NUM_WORDS
         );
 
         s_requestIdToContext[s_requestId] = StructDefinition
@@ -160,7 +160,7 @@ contract Distribution is VRFConsumerBaseV2 {
         return s_callbackGasLimit;
     }
 
-    function getRequestConfirmations() public view returns (uint16) {
-        return s_requestConfirmations;
+    function getRequestConfirmations() public pure returns (uint16) {
+        return REQUEST_CONFIRMATIONS;
     }
 }

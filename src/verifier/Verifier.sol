@@ -314,7 +314,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         if (
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .statusApproveOrNot
-                .length < s_numWords
+                .length < NUM_WORDS
         ) {
             return;
         } else {
@@ -634,7 +634,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         (, uint256 verifiersWithinSameDomainCount) = _verifiersWithinSameDomain(
             skillDomain
         );
-        if (verifiersWithinSameDomainCount < s_numWords) {
+        if (verifiersWithinSameDomainCount < NUM_WORDS) {
             revert Verifier__NotEnoughVerifiers(verifiersWithinSameDomainCount);
         }
     }
@@ -683,7 +683,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         enoughNumberOfVerifiers(ev.skillDomain)
         returns (address[] memory)
     {
-        address[] memory selectedVerifiers = new address[](s_numWords);
+        address[] memory selectedVerifiers = new address[](NUM_WORDS);
 
         (
             address[] memory verifiersWithinSameDomain,
@@ -720,7 +720,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             }
         }
 
-        for (uint256 i = 0; i < s_numWords; i++) {
+        for (uint256 i = 0; i < NUM_WORDS; i++) {
             uint256 randomIndex = randomWords[i] % totalReputationScore;
             selectedVerifiers[i] = verifiersWithinSameDomain[
                 selectedIndices[randomIndex]
@@ -758,14 +758,14 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
 
         if (prevSelectedVerifiersLength > 0) {
             address[] memory prevAndCurrentSelectedVerifiers = new address[](
-                prevSelectedVerifiersLength + s_numWords
+                prevSelectedVerifiersLength + NUM_WORDS
             );
 
             for (uint256 i = 0; i < prevSelectedVerifiersLength; i++) {
                 prevAndCurrentSelectedVerifiers[i] = prevSelectedVerifiers[i];
             }
 
-            for (uint256 i = 0; i < s_numWords; i++) {
+            for (uint256 i = 0; i < NUM_WORDS; i++) {
                 prevAndCurrentSelectedVerifiers[
                     prevSelectedVerifiersLength + i
                 ] = selectedVerifiers[i];
@@ -801,7 +801,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         StructDefinition.VSkillUserEvidence memory ev,
         address[] memory selectedVerifiers
     ) internal {
-        for (uint256 i = 0; i < s_numWords; i++) {
+        for (uint256 i = 0; i < NUM_WORDS; i++) {
             s_verifiers[s_addressToId[selectedVerifiers[i]] - 1]
                 .evidenceIpfsHash
                 .push(ev.evidenceIpfsHash);
@@ -874,7 +874,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
     ) internal view {
         bool[] memory status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
             .statusApproveOrNot;
-        if (status.length < s_numWords) {
+        if (status.length < NUM_WORDS) {
             revert Verifier__NotAllVerifiersProvidedFeedback();
         }
     }
