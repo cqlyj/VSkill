@@ -27,10 +27,10 @@ contract Distribution is VRFConsumerBaseV2 {
     /**
      * @dev Those variables are used for Chainlink VRF
      */
-    uint64 s_subscriptionId;
-    VRFCoordinatorV2Interface s_vrfCoordinator;
-    bytes32 s_keyHash;
-    uint32 s_callbackGasLimit;
+    uint64 immutable i_subscriptionId;
+    VRFCoordinatorV2Interface immutable i_vrfCoordinator;
+    bytes32 immutable i_keyHash;
+    uint32 immutable i_callbackGasLimit;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 3;
 
@@ -51,10 +51,10 @@ contract Distribution is VRFConsumerBaseV2 {
         bytes32 _keyHash,
         uint32 _callbackGasLimit
     ) VRFConsumerBaseV2(_vrfCoordinator) {
-        s_subscriptionId = _subscriptionId;
-        s_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
-        s_keyHash = _keyHash;
-        s_callbackGasLimit = _callbackGasLimit;
+        i_subscriptionId = _subscriptionId;
+        i_vrfCoordinator = VRFCoordinatorV2Interface(_vrfCoordinator);
+        i_keyHash = _keyHash;
+        i_callbackGasLimit = _callbackGasLimit;
     }
 
     /**
@@ -70,11 +70,11 @@ contract Distribution is VRFConsumerBaseV2 {
         address requester,
         StructDefinition.VSkillUserEvidence memory ev
     ) public {
-        s_requestId = s_vrfCoordinator.requestRandomWords(
-            s_keyHash,
-            s_subscriptionId,
+        s_requestId = i_vrfCoordinator.requestRandomWords(
+            i_keyHash,
+            i_subscriptionId,
             REQUEST_CONFIRMATIONS,
-            s_callbackGasLimit,
+            i_callbackGasLimit,
             NUM_WORDS
         );
 
@@ -141,7 +141,7 @@ contract Distribution is VRFConsumerBaseV2 {
     }
 
     function getSubscriptionId() public view returns (uint64) {
-        return s_subscriptionId;
+        return i_subscriptionId;
     }
 
     function getVrfCoordinator()
@@ -149,15 +149,15 @@ contract Distribution is VRFConsumerBaseV2 {
         view
         returns (VRFCoordinatorV2Interface)
     {
-        return s_vrfCoordinator;
+        return i_vrfCoordinator;
     }
 
     function getKeyHash() public view returns (bytes32) {
-        return s_keyHash;
+        return i_keyHash;
     }
 
     function getCallbackGasLimit() public view returns (uint32) {
-        return s_callbackGasLimit;
+        return i_callbackGasLimit;
     }
 
     function getRequestConfirmations() public pure returns (uint16) {
