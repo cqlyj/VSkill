@@ -14,6 +14,9 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 
 // @written audit-low Maybe you should make sure the price feed is stable before using it
 library PriceConverter {
+    uint256 private constant PRICE_FEED_DECIMALS = 1e8;
+    uint256 private constant DECIMALS = 1e18;
+
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
     ) internal view returns (int) {
@@ -26,8 +29,7 @@ library PriceConverter {
             /*uint80 answeredInRound*/
         ) = priceFeed.latestRoundData();
 
-        // @written audit-info magic number
-        return answer * 1e10;
+        return (answer * int(DECIMALS)) / int(PRICE_FEED_DECIMALS);
     }
 
     function convertEthToUsd(
@@ -35,7 +37,7 @@ library PriceConverter {
         AggregatorV3Interface priceFeed
     ) internal view returns (uint256) {
         int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
-        return (ethAmount * uint256(ethPrice)) / 1e18;
+        return (ethAmount * uint256(ethPrice)) / DECIMALS;
     }
 
     function convertUsdToEth(
@@ -43,6 +45,6 @@ library PriceConverter {
         AggregatorV3Interface priceFeed
     ) internal view returns (uint256) {
         int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
-        return (usdAmount * 1e18) / uint256(ethPrice);
+        return (usdAmount * DECIMALS) / uint256(ethPrice);
     }
 }
