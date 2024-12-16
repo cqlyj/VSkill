@@ -3,9 +3,9 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
-import {DeployVSkillUserNft} from "../../../script/nft/DeployVSkillUserNft.s.sol";
-import {VSkillUserNft} from "../../../src/nft/VSkillUserNft.sol";
-import {HelperConfig} from "../../../script/nft/HelperConfig.s.sol";
+import {DeployVSkillUserNft} from "script/nft/DeployVSkillUserNft.s.sol";
+import {VSkillUserNft} from "src/nft/VSkillUserNft.sol";
+import {HelperConfig} from "script/nft/HelperConfig.s.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 contract VSkillUserNftTest is Test {

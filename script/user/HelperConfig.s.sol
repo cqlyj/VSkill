@@ -3,7 +3,7 @@
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
-import {MockV3Aggregator} from "../../test/mock/MockV3Aggregator.sol";
+import {MockV3Aggregator} from "../../test/v1/mock/MockV3Aggregator.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 contract HelperConfig is Script {

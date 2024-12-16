@@ -3,8 +3,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {DeployVSkillUserNft} from "../../../script/nft/DeployVSkillUserNft.s.sol";
-import {HelperConfig} from "../../../script/nft/HelperConfig.s.sol";
+import {DeployVSkillUserNft} from "script/nft/DeployVSkillUserNft.s.sol";
+import {HelperConfig} from "script/nft/HelperConfig.s.sol";
 
 contract HelperConfigTest is Test {
     DeployVSkillUserNft deployer;

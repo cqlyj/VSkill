@@ -3,12 +3,12 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
-import {DeployVSkillUser} from "../../../script/user/DeployVSkillUser.s.sol";
-import {VSkillUser} from "../../../src/user/VSkillUser.sol";
-import {HelperConfig} from "../../../script/user/HelperConfig.s.sol";
+import {DeployVSkillUser} from "script/user/DeployVSkillUser.s.sol";
+import {VSkillUser} from "src/user/VSkillUser.sol";
+import {HelperConfig} from "script/user/HelperConfig.s.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {StructDefinition} from "../../../src/utils/library/StructDefinition.sol";
-import {PriceConverter} from "../../../src/utils/library/PriceCoverter.sol";
+import {StructDefinition} from "src/utils/library/StructDefinition.sol";
+import {PriceConverter} from "src/utils/library/PriceCoverter.sol";
 
 contract VSkillUserTest is Test {
     using StructDefinition for StructDefinition.VSkillUserEvidence;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
-import {MockV3Aggregator} from "../../test/mock/MockV3Aggregator.sol";
+import {MockV3Aggregator} from "test/v1/mock/MockV3Aggregator.sol";
 import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
 import {MockLinkToken} from "@chainlink/contracts/src/v0.8/mocks/MockLinkToken.sol";
 
