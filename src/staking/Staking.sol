@@ -22,7 +22,6 @@ contract Staking {
     );
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
-    error Staking__AlreadyVerifier();
 
     /**
      * @dev PriceConverter is used to convert the amount of money from USD to ETH and vice versa
