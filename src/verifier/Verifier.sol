@@ -409,9 +409,6 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
         address verifierAddress,
         StructDefinition.VSkillUserSubmissionStatus evidenceStatus
     ) internal {
-        // @written audit-gas since this function is only called by the provideFeedback function, the evidenceIpfsHash is already checked
-        _onlySelectedVerifier(evidenceIpfsHash, verifierAddress);
-
         if (
             evidenceStatus ==
             StructDefinition.VSkillUserSubmissionStatus.INREVIEW
