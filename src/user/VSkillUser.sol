@@ -17,7 +17,6 @@ import {StructDefinition} from "../utils/library/StructDefinition.sol";
  * @dev The user can submit evidence and earn NFTs with skill domains, also they can check the feedback of the evidence
  */
 contract VSkillUser is Ownable, Staking, VSkillUserNft {
-    // @written audit-gas the submittedFeeInUsd is set by the user, no need to show it as a parameter
     error VSkillUser__NotEnoughSubmissionFee(
         uint256 requiredFeeInUsd,
         uint256 submittedFeeInUsd
