@@ -111,18 +111,14 @@ contract Staking {
             );
         }
 
-        // @ written audit-info reentrancy?
-        // Hold on, actually here no reentrancy issue
-        // Although the state changes after sending the money, but once the code reaches to the line of state changes
-        // The function will revert for arithmetic underflow or overflow because the verifier does not have enough balance to be minus
-        // But it's still better to follow the best practice, CEI, Check-Effect-Interact
+        s_verifiers[s_addressToId[msg.sender] - 1]
+            .moneyStakedInEth -= amountToWithdrawInEth;
+
         (bool success, ) = msg.sender.call{value: amountToWithdrawInEth}("");
         if (!success) {
             revert Staking__WithdrawFailed();
         }
 
-        s_verifiers[s_addressToId[msg.sender] - 1]
-            .moneyStakedInEth -= amountToWithdrawInEth;
         emit Withdrawn(msg.sender, amountToWithdrawInEth);
         emit VerifierStakeUpdated(
             msg.sender,
