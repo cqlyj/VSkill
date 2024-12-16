@@ -69,7 +69,7 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         string[] memory _userNftImageUris
     ) Ownable(msg.sender) Staking(_priceFeed) VSkillUserNft(_userNftImageUris) {
         s_submissionFeeInUsd = _submissionFeeInUsd;
-        s_priceFeed = AggregatorV3Interface(_priceFeed);
+        i_priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
     /**
@@ -89,10 +89,10 @@ contract VSkillUser is Ownable, Staking, VSkillUserNft {
         string memory evidenceIpfsHash,
         string memory skillDomain
     ) public payable virtual {
-        if (msg.value.convertEthToUsd(s_priceFeed) < s_submissionFeeInUsd) {
+        if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee(
                 s_submissionFeeInUsd,
-                msg.value.convertEthToUsd(s_priceFeed)
+                msg.value.convertEthToUsd(i_priceFeed)
             );
         }
 

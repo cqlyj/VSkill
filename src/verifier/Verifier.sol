@@ -136,7 +136,7 @@ contract Verifier is VSkillUser, Distribution, AutomationCompatibleInterface {
             params.callbackGasLimit
         )
     {
-        s_priceFeed = AggregatorV3Interface(params.priceFeed);
+        i_priceFeed = AggregatorV3Interface(params.priceFeed);
     }
 
     ////////////////////////////////////////////

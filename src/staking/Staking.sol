@@ -52,7 +52,7 @@ contract Staking {
     uint256 private s_verifierCount;
     uint256 private s_bonusMoneyInEth;
 
-    AggregatorV3Interface internal s_priceFeed;
+    AggregatorV3Interface immutable i_priceFeed;
     mapping(address => uint256) internal s_addressToId;
     StructDefinition.StakingVerifier[] internal s_verifiers;
 
@@ -71,7 +71,7 @@ contract Staking {
     );
 
     constructor(address _priceFeed) {
-        s_priceFeed = AggregatorV3Interface(_priceFeed);
+        i_priceFeed = AggregatorV3Interface(_priceFeed);
         s_id = 1;
         s_verifierCount = 0;
         s_bonusMoneyInEth = 0;
@@ -145,7 +145,7 @@ contract Staking {
      * @dev This function emits Staked and VerifierStakeUpdated events once the staking is successful for existing verifier
      */
     function stake() public payable virtual {
-        uint256 amountInUsd = msg.value.convertEthToUsd(s_priceFeed);
+        uint256 amountInUsd = msg.value.convertEthToUsd(i_priceFeed);
 
         if (s_addressToId[msg.sender] == 0) {
             if (amountInUsd < MIN_USD_AMOUNT) {
@@ -349,7 +349,7 @@ contract Staking {
         uint256 currentStakedAmountInEth
     ) internal view returns (bool) {
         return
-            currentStakedAmountInEth.convertEthToUsd(s_priceFeed) >=
+            currentStakedAmountInEth.convertEthToUsd(i_priceFeed) >=
             MIN_USD_AMOUNT;
     }
 
@@ -463,6 +463,6 @@ contract Staking {
     }
 
     function getPriceFeed() external view returns (AggregatorV3Interface) {
-        return s_priceFeed;
+        return i_priceFeed;
     }
 }
