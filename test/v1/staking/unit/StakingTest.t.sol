@@ -1,6 +1,6 @@
-// // SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
-// pragma solidity ^0.8.24;
+pragma solidity ^0.8.24;
 
 // import {Test, console} from "lib/forge-std/src/Test.sol";
 // import {Staking} from "src/staking/Staking.sol";
