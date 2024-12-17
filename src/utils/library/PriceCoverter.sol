@@ -4,6 +4,7 @@
 pragma solidity 0.8.26;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./OracleLib.sol";
 
 /**
  * @title PriceConverter library that will be used to convert ETH to USD and USD to ETH
@@ -14,6 +15,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 
 // @written audit-low Maybe you should make sure the price feed is stable before using it
 library PriceConverter {
+    using OracleLib for AggregatorV3Interface;
+
     uint256 private constant PRICE_FEED_DECIMALS = 1e8;
     uint256 private constant DECIMALS = 1e18;
 
