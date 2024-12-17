@@ -23,7 +23,7 @@
 **Low Severity**
 
 - [ ] **[L-1]** The check condition in `VSkillUser::checkFeedbackOfEvidence` is incorrect, causing a revert without the custom error message.
-- [ ] **[L-2]** No stability check for the price feed in `PriceConverter::getChainlinkDataFeedLatestAnswer`, which may lead to incorrect conversions.
+- [x] **[L-2]** No stability check for the price feed in `PriceConverter::getChainlinkDataFeedLatestAnswer`, which may lead to incorrect conversions.
 - [ ] **[L-3]** No validation in `Verifier::updateSkillDomains` function, allowing verifiers to set arbitrary skill domains.
 - [ ] **[L-4]** Users can call `VSkillUserNft::mintUserNft` with non-existent skill domains.
 - [ ] **[L-5]** Invalid `tokenId` results in a blank `imageUri` in `VSkillUserNft::tokenURI` function.
@@ -51,3 +51,23 @@
 - [ ] **[G-2]** Two functions in the `Staking` contract perform the same task, wasting gas.
 - [x] **[G-3]** Double checks in `Verifier::_earnRewardsOrGetPenalized` function result in unnecessary gas consumption.
 - [ ] **[G-4]** Repeated computation of `Verifier::keccak256(abi.encodePacked(evidenceIpfsHash))` wastes gas.
+
+---
+
+### 2024/12/17
+
+**Plan for version 2**
+
+- This version should first solve those issues that are of high severity.
+- We will add the zksync chain and other chains like polygon, avalanche, and arbitrum...
+- We will separate the contracts instead of inheriting them.
+- We will conduct another more verbose audit including fuzzing and symbolic execution.
+- We will make a bunch of changes to the structure!!!
+  - The main actors are the verifiers and the users. => Two separate contracts working together.
+  - cross-chain features can be considered. That is, the user can use the same NFT on different chains. => maybe leave to version 3.
+- We will write a bunch of scripts to make the deployment process more automated.
+
+**What did I do today**
+
+- Update the checklist of issues.
+- Using OracleLib library for to ensure the price feed stability.
