@@ -71,3 +71,38 @@
 
 - Update the checklist of issues.
 - Using OracleLib library for to ensure the price feed stability.
+
+### 2025/1/2
+
+**The new structure of the contracts**
+
+- Two main actors: Verifiers and Users.
+- Verifiers contract will contain the staking and verification logic.
+- Users contract will contain the NFT minting and evidence submission logic.
+- The two contracts will be two separate contracts, not inherited.
+- A `Relayer` contract will be used to communicate between the two contracts:
+  - Once a user submits evidence, the relayer contract will get the random number to assign the evidence to verifiers.
+  - Once the verifiers submit feedback, the relayer contract will update the status of the evidence.
+  - The relayer contract will also be responsible for the distribution of rewards and penalties. => All the stake and submission fees will be stored in the relayer contract. Act as a pool thus the distribution will be easier.
+
+**What did I do today**
+
+- Remove some unnecessary variables in the `StructDefinition` library. Those variables actually not needed to record on-chain.
+
+```diff
+ struct StakingVerifier {
+-        uint256 id;
+        address verifierAddress;
+        uint256 reputation;
+        string[] skillDomains;
+        uint256 moneyStakedInEth;
+-        address[] evidenceSubmitters;
+-        string[] evidenceIpfsHash;
+-        string[] feedbackIpfsHash;
+    }
+```
+
+- Refactor the `Staking` contract.
+  - This contract will be served as some inherited functions for the `Verifier` contract.
+  - Only three functions will be left in this contract: `stake` and `withdrawStake` and `withdrawStakeAndLoseVerifier`
+  - As for `addBonusMoneyForVerifier` functions, will be moved to the `Relayer` contract.
