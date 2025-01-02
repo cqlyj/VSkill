@@ -54,14 +54,9 @@ library StructDefinition {
         string[] feedbackIpfsHash;
     }
 
-    struct StakingVerifier {
-        uint256 id;
-        address verifierAddress;
+    struct VerifierInfo {
         uint256 reputation;
         string[] skillDomains;
         uint256 moneyStakedInEth;
-        address[] evidenceSubmitters;
-        string[] evidenceIpfsHash;
-        string[] feedbackIpfsHash;
     }
 }
