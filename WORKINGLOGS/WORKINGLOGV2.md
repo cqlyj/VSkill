@@ -130,3 +130,25 @@
   - This contract will be inherited by the `Relayer` contract.
 
 ---
+
+### 2025/1/4
+
+**What did I do today**
+
+- Clean the `VSkillUser` contract
+  - This contract will be deployed separately from the `Verifier` contract.
+  - The `VSkillUser` contract will be responsible for submitting evidence and retrieving the feedbacks.
+  - The `VSkillUser` contract will be able to read the feedbacks from the `protocolLab` service.
+  - The `VSkillUser` contract will send the submission fee to the `Relayer` contract.
+  - The actual refactor will be done after researching the `protocolLab` service.
+- Clean the `Verifier` contract
+  - This contract will be deployed separately from the `VSkillUser` contract.
+  - The `Verifier` contract will be responsible for submitting feedbacks.
+  - The `Verifier` contract will be able to read the evidence from the `protocolLab` service.
+  - As for the rewards and penalties, the `Relayer` contract will be responsible for that.
+  - The actual refactor will be done after researching the `protocolLab` service and implementing the `Relayer` contract.
+- Update the `Staking` contract
+  - Stake the Ether will be better than stake certain amount of USD.
+- Come back to keep refactoring after researching the `protocolLab` service...
+
+---
