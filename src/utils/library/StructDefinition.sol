@@ -57,6 +57,5 @@ library StructDefinition {
     struct VerifierInfo {
         uint256 reputation;
         string[] skillDomains;
-        uint256 moneyStakedInEth;
     }
 }
