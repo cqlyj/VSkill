@@ -2,8 +2,6 @@
 
 pragma solidity 0.8.26;
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceConverter} from "../utils/library/PriceCoverter.sol";
 import {StructDefinition} from "../utils/library/StructDefinition.sol";
 
 contract Staking {
@@ -12,23 +10,21 @@ contract Staking {
     //////////////////////////////////////////////////////////////*/
 
     error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
-    error Staking__NotEnoughStakeToBecomeVerifier();
+    error Staking__NotCorrectStakeAmount();
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
-
-    using PriceConverter for uint256;
+    error Staking__AlreadyVerifier();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    uint256 private constant MIN_USD_AMOUNT = 20e18; // 20 USD
+    uint256 private constant STAKE_ETH_AMOUNT = 0.1 ether; // 0.1 ether staking amount
     uint256 private constant INITIAL_REPUTATION = 2;
     // uint256 private constant LOWEST_REPUTATION = 0;
     // uint256 private constant HIGHEST_REPUTATION = 10;
 
     uint256 private s_verifierCount;
-    AggregatorV3Interface immutable i_priceFeed;
     mapping(address verifier => StructDefinition.VerifierInfo verifierInformation)
         internal s_verifierToInfo;
     mapping(address verifier => bool isVerifier) internal s_addressToIsVerifier;
@@ -38,12 +34,8 @@ contract Staking {
     //////////////////////////////////////////////////////////////*/
 
     event Withdrawn(address indexed staker, uint256 amount);
-    event BecomeVerifier(address indexed verifier);
+    event StakeSuccess(address indexed staker);
     event LoseVerifier(address indexed verifier);
-    event VerifierStakeUpdated(
-        address indexed verifier,
-        uint256 indexed newAmountInEth
-    );
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -56,12 +48,18 @@ contract Staking {
         _;
     }
 
+    modifier onlyNonVerifier() {
+        if (s_addressToIsVerifier[msg.sender]) {
+            revert Staking__AlreadyVerifier();
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _priceFeed) {
-        i_priceFeed = AggregatorV3Interface(_priceFeed);
+    constructor() {
         s_verifierCount = 0;
     }
 
@@ -78,91 +76,44 @@ contract Staking {
     //////////////////////////////////////////////////////////////*/
 
     // @update we will transfer the stake to Relayer contract and let the Relayer contract handle the stake
-    function stake() public payable {
-        if (s_addressToIsVerifier[msg.sender]) {
-            _verifierStake(msg.sender, msg.value);
-        } else {
-            _nonVerifierStake(msg.sender, msg.value);
-        }
-    }
-
-    // This function will withdraw all the stake except the minimum stake required to be a verifier
-    function withdrawStake() public onlyVerifier {
-        uint256 currentStakeInEth = s_verifierToInfo[msg.sender]
-            .moneyStakedInEth;
-        uint256 amountToWithdrawInEth = currentStakeInEth -
-            MIN_USD_AMOUNT.convertUsdToEth(i_priceFeed);
-
-        // This can happen if the value of eth is too low
-        if (amountToWithdrawInEth <= 0) {
-            revert Staking__NotEnoughBalanceToWithdraw(currentStakeInEth);
+    // The actual become verifier function will be in the Verifier contract
+    // This only handles the stake
+    function stake() public payable onlyNonVerifier {
+        if (msg.value != STAKE_ETH_AMOUNT) {
+            revert Staking__NotCorrectStakeAmount();
         }
 
-        s_verifierToInfo[msg.sender].moneyStakedInEth -= amountToWithdrawInEth;
+        s_verifierCount += 1;
+        s_addressToIsVerifier[msg.sender] = true;
+        s_verifierToInfo[msg.sender] = StructDefinition.VerifierInfo(
+            INITIAL_REPUTATION,
+            new string[](0)
+        );
 
-        (bool success, ) = msg.sender.call{value: amountToWithdrawInEth}("");
-        if (!success) {
-            revert Staking__WithdrawFailed();
-        }
-
-        emit Withdrawn(msg.sender, amountToWithdrawInEth);
+        emit StakeSuccess(msg.sender);
     }
 
     // This function will withdraw all the stake and remove the verifier
-    function withdrawStakeAndLoseVerifier() public onlyVerifier {
-        uint256 currentStakeInEth = s_verifierToInfo[msg.sender]
-            .moneyStakedInEth;
-
-        s_verifierToInfo[msg.sender].moneyStakedInEth = 0;
-        s_addressToIsVerifier[msg.sender] = false;
-        s_verifierCount--;
-
-        (bool success, ) = msg.sender.call{value: currentStakeInEth}("");
+    function withdrawStake() public onlyVerifier {
+        (bool success, ) = msg.sender.call{value: STAKE_ETH_AMOUNT}("");
         if (!success) {
             revert Staking__WithdrawFailed();
         }
 
-        emit Withdrawn(msg.sender, currentStakeInEth);
+        s_verifierCount -= 1;
+        s_addressToIsVerifier[msg.sender] = false;
+        delete s_verifierToInfo[msg.sender];
+
         emit LoseVerifier(msg.sender);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                     INTERNAL AND PRIVATE FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _verifierStake(address verifier, uint256 amountInEth) internal {
-        s_verifierToInfo[verifier].moneyStakedInEth += amountInEth;
-
-        emit VerifierStakeUpdated(
-            verifier,
-            s_verifierToInfo[verifier].moneyStakedInEth
-        );
-    }
-
-    function _nonVerifierStake(address user, uint256 amountInEth) internal {
-        uint256 amountInUsd = amountInEth.convertEthToUsd(i_priceFeed);
-        if (amountInUsd < MIN_USD_AMOUNT) {
-            revert Staking__NotEnoughStakeToBecomeVerifier();
-        }
-
-        s_addressToIsVerifier[user] = true;
-        s_verifierToInfo[user] = StructDefinition.VerifierInfo({
-            reputation: INITIAL_REPUTATION,
-            skillDomains: new string[](0),
-            moneyStakedInEth: amountInEth
-        });
-        s_verifierCount++;
-
-        emit BecomeVerifier(user);
-        emit VerifierStakeUpdated(user, amountInEth);
+        emit Withdrawn(msg.sender, STAKE_ETH_AMOUNT);
     }
 
     /*//////////////////////////////////////////////////////////////
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function getMinUsdAmount() external pure returns (uint256) {
-        return MIN_USD_AMOUNT;
+    function getStakeEthAmount() external pure returns (uint256) {
+        return STAKE_ETH_AMOUNT;
     }
 
     function getVerifierCount() external view returns (uint256) {
@@ -171,10 +122,6 @@ contract Staking {
 
     function getInitialReputation() external pure returns (uint256) {
         return INITIAL_REPUTATION;
-    }
-
-    function getPriceFeed() external view returns (AggregatorV3Interface) {
-        return i_priceFeed;
     }
 
     function getVerifierInfo(
