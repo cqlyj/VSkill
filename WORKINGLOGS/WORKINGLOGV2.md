@@ -4,9 +4,9 @@
 
 **High Severity**
 
-- [ ] **[H-1]** No restrictions in `VSKillUserNft::mintUserNft` function, anyone can directly call and mint NFTs.
+- [x] **[H-1]** No restrictions in `VSKillUserNft::mintUserNft` function, anyone can directly call and mint NFTs.
 - [ ] **[H-2]** No restrictions in `Distribution::distributionRandomNumberForVerifiers` function, anyone can directly call it and drain the subscription Link tokens.
-- [ ] **[H-3]** The way verifiers are deleted in `Staking::_removeVerifier` function is incorrect, potentially ruining the process of fetching verifiers.
+- [x] **[H-3]** The way verifiers are deleted in `Staking::_removeVerifier` function is incorrect, potentially ruining the process of fetching verifiers.
 - [ ] **[H-4]** No restrictions in `VSkillUser::earnUserNft` function, anyone can directly call it with an approved evidence parameter to mint NFTs, ruining the verification process.
 - [ ] **[H-5]** The same verifier can call `Verifier::provideFeedback` multiple times to dominate the evidence status, ruining the verification process.
 - [ ] **[H-6]** The same verifier can call `Verifier::provideFeedback` multiple times and exploit `Verifier::_earnRewardsOrGetPenalized` for the `DIFFERENTOPINION` status.
@@ -26,7 +26,7 @@
 - [x] **[L-2]** No stability check for the price feed in `PriceConverter::getChainlinkDataFeedLatestAnswer`, which may lead to incorrect conversions.
 - [ ] **[L-3]** No validation in `Verifier::updateSkillDomains` function, allowing verifiers to set arbitrary skill domains.
 - [ ] **[L-4]** Users can call `VSkillUserNft::mintUserNft` with non-existent skill domains.
-- [ ] **[L-5]** Invalid `tokenId` results in a blank `imageUri` in `VSkillUserNft::tokenURI` function.
+- [x] **[L-5]** Invalid `tokenId` results in a blank `imageUri` in `VSkillUserNft::tokenURI` function.
 
 **Informational**
 
@@ -48,7 +48,7 @@
 **Gas Optimization**
 
 - [x] **[G-1]** Custom error messages include constants (`Staking::minStakeUsdAmount` and `VSkillUser::submittedFeeInUsd`), which cost more gas.
-- [ ] **[G-2]** Two functions in the `Staking` contract perform the same task, wasting gas.
+- [x] **[G-2]** Two functions in the `Staking` contract perform the same task, wasting gas.
 - [x] **[G-3]** Double checks in `Verifier::_earnRewardsOrGetPenalized` function result in unnecessary gas consumption.
 - [ ] **[G-4]** Repeated computation of `Verifier::keccak256(abi.encodePacked(evidenceIpfsHash))` wastes gas.
 
@@ -71,6 +71,8 @@
 
 - Update the checklist of issues.
 - Using OracleLib library for to ensure the price feed stability.
+
+---
 
 ### 2025/1/2
 
@@ -106,3 +108,25 @@
   - This contract will be served as some inherited functions for the `Verifier` contract.
   - Only three functions will be left in this contract: `stake` and `withdrawStake` and `withdrawStakeAndLoseVerifier`
   - As for `addBonusMoneyForVerifier` functions, will be moved to the `Relayer` contract.
+
+---
+
+### 2025/1/3
+
+**What did I do today**
+
+- Refactor the `VSkillUserNft` contract.
+  - This contract will be deployed separately from the `Verifier` contract.
+  - Later only the Relayer contract will be able to mint the NFTs for the users.
+  - This may need RBAC (Role-Based Access Control) to be implemented. => The Relayer contract will be able to mint, the owner (us) will be able to add new domains
+- The design of how the `Oracle` and `Verifier` contract coordinate needs redesign.
+  - The `Oracle` contract will be responsible for getting the random number, btw, the `Oracle` contract needs to upgrade to the latest version of Chainlink VRF.
+  - The `Relayer` contract will be responsible for reading the random number from the `Oracle` contract and assigning the evidence to the verifiers.
+  - The `Verifier` contract will be responsible for submitting feedback, for those evidence and feedbacks
+    - => Consider the user of `protocolLab` service to store the evidence and feedbacks.
+    - => Consider use the blob storage service to store the evidence and feedbacks since they are not sensitive data and do we want to store those on-chain forever?
+- Refactor the `Oracle` contract.
+  - This contract will now only be responsible for getting the random number. And we will still use the subscription method, we want to pay the random number fee for the users.
+  - This contract will be inherited by the `Relayer` contract.
+
+---
