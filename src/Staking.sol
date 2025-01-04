@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.26;
 
-import {StructDefinition} from "../utils/library/StructDefinition.sol";
+import {StructDefinition} from "src/library/StructDefinition.sol";
 
 contract Staking {
     /*//////////////////////////////////////////////////////////////

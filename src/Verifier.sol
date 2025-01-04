@@ -4,8 +4,8 @@ pragma solidity 0.8.26;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
-import {StructDefinition} from "../utils/library/StructDefinition.sol";
-import {Staking} from "../staking/Staking.sol";
+import {StructDefinition} from "src/library/StructDefinition.sol";
+import {Staking} from "src/Staking.sol";
 
 contract Verifier is AutomationCompatibleInterface, Staking {
     /*//////////////////////////////////////////////////////////////

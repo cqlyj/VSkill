@@ -3,9 +3,9 @@
 pragma solidity 0.8.26;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PriceConverter} from "../../src/utils/library/PriceCoverter.sol";
+import {PriceConverter} from "src/library/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {StructDefinition} from "../utils/library/StructDefinition.sol";
+import {StructDefinition} from "src/library/StructDefinition.sol";
 
 contract VSkillUser is Ownable {
     using PriceConverter for uint256;
