@@ -48,10 +48,10 @@ library StructDefinition {
 
     struct VSkillUserEvidence {
         address submitter;
-        string evidenceIpfsHash;
+        string cid;
         string skillDomain;
         VSkillUserSubmissionStatus status;
-        string[] feedbackIpfsHash;
+        string[] feedbackCids;
     }
 
     struct VerifierInfo {
