@@ -149,7 +149,7 @@ packToCar:
 		exit 1; \
 	fi
 	mkdir -p evidence/car
-	npx ipfs-car pack --no-wrap evidence/origin/$(evidence) > evidence/car/$(basename $(evidence)).car
+	ipfs-car pack --no-wrap evidence/origin/$(evidence) > evidence/car/$(basename $(evidence)).car
 
 unpackToOrigin:
 	@if [ -z "$(carfile)" ]; then \
@@ -165,4 +165,4 @@ unpackToOrigin:
 		exit 1; \
 	fi
 	mkdir -p evidence/origin
-	npx ipfs-car unpack --no-wrap evidence/car/$(carfile) > evidence/origin/$(output)
+	ipfs-car unpack --no-wrap evidence/car/$(carfile) > evidence/origin/$(output)
