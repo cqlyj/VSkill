@@ -14,10 +14,7 @@ contract VSkillUser is Ownable {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error VSkillUser__NotEnoughSubmissionFee(
-        uint256 requiredFeeInUsd,
-        uint256 submittedFeeInUsd
-    );
+    error VSkillUser__NotEnoughSubmissionFee();
     error VSkillUser__InvalidSkillDomain();
     error VSkillUser__SkillDomainAlreadyExists();
     error VSkillUser__EvidenceNotApprovedYet(
@@ -51,7 +48,7 @@ contract VSkillUser is Ownable {
 
     event EvidenceSubmitted(
         address indexed submitter,
-        string evidenceIpfsHash,
+        string cid,
         string skillDomain
     );
     event SubmissionFeeChanged(uint256 newFeeInUsd);
@@ -73,7 +70,41 @@ contract VSkillUser is Ownable {
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function submitEvidence() public {}
+    // cid is the lighthouse cid of the evidence
+    function submitEvidence(
+        string memory cid,
+        string memory skillDomain
+    ) public payable {
+        if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
+            revert VSkillUser__NotEnoughSubmissionFee();
+        }
+
+        if (!_isSkillDomainValid(skillDomain)) {
+            revert VSkillUser__InvalidSkillDomain();
+        }
+
+        s_addressToEvidences[msg.sender].push(
+            StructDefinition.VSkillUserEvidence({
+                submitter: msg.sender,
+                cid: cid,
+                skillDomain: skillDomain,
+                status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                feedbackCids: new string[](0)
+            })
+        );
+
+        s_evidences.push(
+            StructDefinition.VSkillUserEvidence({
+                submitter: msg.sender,
+                cid: cid,
+                skillDomain: skillDomain,
+                status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                feedbackCids: new string[](0)
+            })
+        );
+
+        emit EvidenceSubmitted(msg.sender, cid, skillDomain);
+    }
 
     function checkFeedback() public {}
 
@@ -163,68 +194,7 @@ contract VSkillUser is Ownable {
     {
         return s_evidences;
     }
-
-    function getEvidenceFeedbackIpfsHash(
-        address _address,
-        uint256 index
-    ) external view returns (string[] memory) {
-        return s_addressToEvidences[_address][index].feedbackIpfsHash;
-    }
 }
-
-// function submitEvidence(
-//     string memory evidenceIpfsHash,
-//     string memory skillDomain
-// ) public payable virtual {
-//     if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
-//         revert VSkillUser__NotEnoughSubmissionFee(
-//             s_submissionFeeInUsd,
-//             msg.value.convertEthToUsd(i_priceFeed)
-//         );
-//     }
-
-//     if (!_isSkillDomainValid(skillDomain)) {
-//         revert VSkillUser__InvalidSkillDomain();
-//     }
-
-//     // Even though contract VSkillUser inherits from contract Staking, both contracts share the same deployed address for contract VSkillUser.
-//     // When you deploy contract VSkillUser, you're not deploying contract Staking separately
-//     // Instead, all of contract Staking's functionality is incorporated into contract VSkillUser's code.
-//     // So whenever a function is executed, this always refers to the current instance, which is contract VSkillUser.
-
-//     // Contract Staking’s balance will not hold Ether unless you directly send Ether to contract Staking's address.
-//     // Contract VSkillUser will hold all the Ether if you interact with contract VSkillUser or if contract VSkillUser calls contract Staking’s payable function.
-//     // Both functions in contract Staking’s and VSkillUser will store Ether in contract VSkillUser's balance when you interact with contract VSkillUser.
-
-//     // When you deploy contract B, both contract A and contract B share the same address because contract B inherits from contract A.
-//     // Any Ether sent to either contract A's or contract B's payable function is stored in the same contract address (which is contract B’s address in this case).
-//     // The total balance of the contract is available at that address, no matter which function (from contract A or contract B) received the Ether.
-
-//     super._addBonusMoney(msg.value);
-
-//     // We need the mapping to store the evidence of the user, and the array to store all the evidence.
-//     s_addressToEvidences[msg.sender].push(
-//         StructDefinition.VSkillUserEvidence({
-//             submitter: msg.sender,
-//             evidenceIpfsHash: evidenceIpfsHash,
-//             skillDomain: skillDomain,
-//             status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
-//             feedbackIpfsHash: new string[](0)
-//         })
-//     );
-
-//     s_evidences.push(
-//         StructDefinition.VSkillUserEvidence({
-//             submitter: msg.sender,
-//             evidenceIpfsHash: evidenceIpfsHash,
-//             skillDomain: skillDomain,
-//             status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
-//             feedbackIpfsHash: new string[](0)
-//         })
-//     );
-
-//     emit EvidenceSubmitted(msg.sender, evidenceIpfsHash, skillDomain);
-// }
 
 // function checkFeedbackOfEvidence(
 //     uint256 indexOfUserEvidence
