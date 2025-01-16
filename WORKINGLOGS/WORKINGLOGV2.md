@@ -152,3 +152,13 @@
 - Come back to keep refactoring after researching the `protocolLab` service...
 
 ---
+
+### 2025/1/16
+
+**What did I do today**
+
+- Research the `protocolLab` service.
+  - Implement the `Filecoin` and `lighthouse` service to store the evidence
+  - now we can simply run the Makefile command to store the evidence file on the `lighthouse`.
+
+---
