@@ -20,12 +20,17 @@ contract VSkillUserNft is ERC721, AccessControl {
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 private constant SKILL_DOMAIN_ADDER_ROLE =
         keccak256("SKILL_DOMAIN_ADDER_ROLE");
+    address private skillHandler;
+    bool private s_initialized;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error VSkillUserNft__InvalidSkillDomain();
+    error VSkillUserNft__NotInitialized();
+    error VSkillUserNft__AlreadyInitialized();
+    error VSkillUserNft__NotSkillHandler();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -41,13 +46,29 @@ contract VSkillUserNft is ERC721, AccessControl {
     );
 
     /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyInitialized() {
+        if (!s_initialized) {
+            revert VSkillUserNft__NotInitialized();
+        }
+        _;
+    }
+
+    modifier onlyNotInitialized() {
+        if (s_initialized) {
+            revert VSkillUserNft__AlreadyInitialized();
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
     // Later we will set the Relayer contract as the owner of this contract
     // That is the minter will be the Relayer contract address
-    // the msg.sender here is the deployer of the contract, that's me
-    // I will be the one who can add more skills for the NFT
     constructor(
         address minter,
         string[] memory _skillDomains,
@@ -63,9 +84,18 @@ contract VSkillUserNft is ERC721, AccessControl {
                 s_skillDomains[i]
             ] = s_userNftImageUris[i];
         }
+        s_initialized = false;
 
-        _grantRole(SKILL_DOMAIN_ADDER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, minter);
+    }
+
+    // the skillHandler is the one who can add more skills
+    function initializeSkillHandler(
+        address _skillHandler
+    ) external onlyRole(SKILL_DOMAIN_ADDER_ROLE) onlyNotInitialized {
+        skillHandler = _skillHandler;
+        _grantRole(SKILL_DOMAIN_ADDER_ROLE, _skillHandler);
+        s_initialized = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -84,7 +114,7 @@ contract VSkillUserNft is ERC721, AccessControl {
 
     function mintUserNft(
         string memory skillDomain
-    ) public onlyRole(MINTER_ROLE) {
+    ) public onlyRole(MINTER_ROLE) onlyInitialized {
         if (!_validSkillDomain(skillDomain)) {
             revert VSkillUserNft__InvalidSkillDomain();
         }
@@ -129,7 +159,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     function addMoreSkillsForNft(
         string memory skillDomain,
         string memory newNftImageUri
-    ) public onlyRole(SKILL_DOMAIN_ADDER_ROLE) {
+    ) public onlyRole(SKILL_DOMAIN_ADDER_ROLE) onlyInitialized {
         s_skillDomains.push(skillDomain);
         s_userNftImageUris.push(newNftImageUri);
         s_skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
