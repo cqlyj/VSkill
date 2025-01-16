@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: packToCar unpackToOrigin
+.PHONY: packToCar unpackToOrigin lighthouse-import-wallet lighthouse-upload
 
 help:
 	@echo "Usage: make <target>"
@@ -166,3 +166,28 @@ unpackToOrigin:
 	fi
 	mkdir -p evidence/origin
 	ipfs-car unpack --no-wrap evidence/car/$(carfile) > evidence/origin/$(output)
+
+# Upload file to Lighthouse
+
+# import your wallet first
+lighthouse-import-wallet:
+	@if [ -z "$(private-key)" ]; then \
+		echo "Error: Please specify the private key using the 'private-key' variable (e.g., make lighthouse-import-wallet private-key=your-private-key)"; \
+		exit 1; \
+	fi
+	lighthouse-web3 import-wallet --key $(private-key)
+
+# generate the api key
+lighthouse-generate-api-key:
+	@lighthouse-web3 api-key -n
+
+lighthouse-upload:
+	@if [ -z "$(carfile)" ]; then \
+		echo "Error: Please specify the .car file using the 'carfile' variable (e.g., make lighthouse-upload carfile=evidence.car)"; \
+		exit 1; \
+	fi
+	@if [ ! -f evidence/car/$(carfile) ]; then \
+		echo "Error: The file 'evidence/car/$(carfile)' does not exist. Please provide a valid file name."; \
+		exit 1; \
+	fi
+	lighthouse-web3 upload evidence/car/$(carfile)
