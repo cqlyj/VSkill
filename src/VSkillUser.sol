@@ -21,6 +21,9 @@ contract VSkillUser is Ownable {
         StructDefinition.VSkillUserSubmissionStatus status
     );
     error VSkillUser__EvidenceIndexOutOfRange();
+    error VSkillUser__NotInitialized();
+    error VSkillUser__AlreadyInitialized();
+    error VSkillUser__NotSkillHandler();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -41,6 +44,8 @@ contract VSkillUser is Ownable {
         public s_addressToEvidences;
     StructDefinition.VSkillUserEvidence[] public s_evidences;
     AggregatorV3Interface private i_priceFeed;
+    address private skillHandler;
+    bool private s_initialized;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -55,6 +60,33 @@ contract VSkillUser is Ownable {
     event SkillDomainAdded(string skillDomain);
 
     /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyInitialized() {
+        if (!s_initialized) {
+            revert VSkillUser__NotInitialized();
+        }
+        _;
+    }
+
+    modifier onlyNotInitialized() {
+        if (s_initialized) {
+            revert VSkillUser__AlreadyInitialized();
+        }
+        _;
+    }
+
+    modifier onlySkillHandler() {
+        // The skillHandler is the one who can add more skills
+        // The tx.origin is the user who is calling the function to add more skills
+        if (msg.sender != skillHandler || tx.origin != owner()) {
+            revert VSkillUser__NotSkillHandler();
+        }
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
@@ -64,6 +96,14 @@ contract VSkillUser is Ownable {
     ) Ownable(msg.sender) {
         s_submissionFeeInUsd = _submissionFeeInUsd;
         i_priceFeed = AggregatorV3Interface(_priceFeed);
+        s_initialized = false;
+    }
+
+    function initializeSkillHandler(
+        address _skillHandler
+    ) external onlyOwner onlyNotInitialized {
+        skillHandler = _skillHandler;
+        s_initialized = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -74,7 +114,7 @@ contract VSkillUser is Ownable {
     function submitEvidence(
         string memory cid,
         string memory skillDomain
-    ) public payable {
+    ) public payable onlyInitialized {
         if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee();
         }
@@ -111,15 +151,16 @@ contract VSkillUser is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     // @written audit-info centralization of the submission fee, is it a good idea?
-    function changeSubmissionFee(uint256 newFeeInUsd) public virtual onlyOwner {
+    function changeSubmissionFee(
+        uint256 newFeeInUsd
+    ) public onlyOwner onlyInitialized {
         s_submissionFeeInUsd = newFeeInUsd;
         emit SubmissionFeeChanged(newFeeInUsd);
     }
 
-    // This function will be called together with the addMoreSkillsForNft function
     function addMoreSkills(
         string memory skillDomain
-    ) external virtual onlyOwner {
+    ) external virtual onlyOwner onlyInitialized onlySkillHandler {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
