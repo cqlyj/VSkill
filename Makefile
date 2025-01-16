@@ -1,5 +1,7 @@
 -include .env
 
+.PHONY: packToCar unpackToOrigin
+
 help:
 	@echo "Usage: make <target>"
 
@@ -135,3 +137,32 @@ scope:
 
 scopeFile:
 	@tree ./src/ | sed 's/└/#/g' | awk -F '── ' '!/\.sol$$/ { path[int((length($$0) - length($$2))/2)] = $$2; next } { p = "src"; for(i=2; i<=int((length($$0) - length($$2))/2); i++) if (path[i] != "") p = p "/" path[i]; print p "/" $$2; }' > scope.txt
+
+# File conversion
+packToCar:
+	@if [ -z "$(evidence)" ]; then \
+		echo "Error: Please specify an evidence file using the 'evidence' variable (e.g., make packToCar evidence=xxx.txt)"; \
+		exit 1; \
+	fi
+	@if [ ! -f evidence/origin/$(evidence) ]; then \
+		echo "Error: evidence/origin/$(evidence) does not exist."; \
+		exit 1; \
+	fi
+	mkdir -p evidence/car
+	npx ipfs-car pack --no-wrap evidence/origin/$(evidence) > evidence/car/$(basename $(evidence)).car
+
+unpackToOrigin:
+	@if [ -z "$(carfile)" ]; then \
+		echo "Error: Please specify a .car file using the 'carfile' variable (e.g., make unpackToOrigin carfile=xxx.car)"; \
+		exit 1; \
+	fi
+	@if [ -z "$(output)" ]; then \
+		echo "Error: Please specify the output file using the 'output' variable (e.g., make unpackToOrigin carfile=xxx.car output=xxx.pdf)"; \
+		exit 1; \
+	fi
+	@if [ ! -f evidence/car/$(carfile) ]; then \
+		echo "Error: evidence/car/$(carfile) does not exist."; \
+		exit 1; \
+	fi
+	mkdir -p evidence/origin
+	npx ipfs-car unpack --no-wrap evidence/car/$(carfile) > evidence/origin/$(output)
