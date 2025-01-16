@@ -46,6 +46,8 @@ contract VSkillUserNft is ERC721, AccessControl {
 
     // Later we will set the Relayer contract as the owner of this contract
     // That is the minter will be the Relayer contract address
+    // the msg.sender here is the deployer of the contract, that's me
+    // I will be the one who can add more skills for the NFT
     constructor(
         address minter,
         string[] memory _skillDomains,

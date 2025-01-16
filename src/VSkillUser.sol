@@ -116,18 +116,16 @@ contract VSkillUser is Ownable {
         emit SubmissionFeeChanged(newFeeInUsd);
     }
 
+    // This function will be called together with the addMoreSkillsForNft function
     function addMoreSkills(
-        string memory skillDomain,
-        string memory newNftImageUri
-    ) public virtual onlyOwner {
-        // if (_skillDomainAlreadyExists(skillDomain)) {
-        //     revert VSkillUser__SkillDomainAlreadyExists();
-        // }
-        // // what if the newNftImageUri is blank? Is there any way to fix this?
-        // // this is the owner's responsibility to provide the correct image URI, so no need to check
-        // s_skillDomains.push(skillDomain);
-        // super._addMoreSkillsForNft(skillDomain, newNftImageUri);
-        // emit SkillDomainAdded(skillDomain);
+        string memory skillDomain
+    ) external virtual onlyOwner {
+        if (_skillDomainAlreadyExists(skillDomain)) {
+            revert VSkillUser__SkillDomainAlreadyExists();
+        }
+
+        s_skillDomains.push(skillDomain);
+        emit SkillDomainAdded(skillDomain);
     }
 
     /*//////////////////////////////////////////////////////////////
