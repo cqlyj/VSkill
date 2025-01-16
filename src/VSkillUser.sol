@@ -106,8 +106,6 @@ contract VSkillUser is Ownable {
         emit EvidenceSubmitted(msg.sender, cid, skillDomain);
     }
 
-    function checkFeedback() public {}
-
     /*//////////////////////////////////////////////////////////////
                             OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -194,21 +192,22 @@ contract VSkillUser is Ownable {
     {
         return s_evidences;
     }
+
+    function getSkillDomains() external view returns (string[] memory) {
+        return s_skillDomains;
+    }
+
+    function getFeedbackOfEvidence(
+        uint256 indexOfUserEvidence
+    ) public view returns (string[] memory) {
+        if (indexOfUserEvidence >= s_evidences.length) {
+            revert VSkillUser__EvidenceIndexOutOfRange();
+        }
+
+        return
+            s_addressToEvidences[msg.sender][indexOfUserEvidence].feedbackCids;
+    }
 }
-
-// function checkFeedbackOfEvidence(
-//     uint256 indexOfUserEvidence
-// ) public view virtual returns (string[] memory) {
-//     // written @audit-low the indexOfUserEvidence should check with the length of the user's evidence array, s_addressToEvidences[msg.sender].length
-//     // user will revert due to the return statement if the index of user evidence is out of range, not the custom error
-//     if (indexOfUserEvidence >= s_evidences.length) {
-//         revert VSkillUser__EvidenceIndexOutOfRange();
-//     }
-
-//     return
-//         s_addressToEvidences[msg.sender][indexOfUserEvidence]
-//             .feedbackIpfsHash;
-// }
 
 // The Nft will be minted by the `Relayer` contract
 // function earnUserNft(
