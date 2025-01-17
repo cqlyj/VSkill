@@ -87,12 +87,13 @@ contract VSkillUserNft is ERC721, AccessControl {
         s_initialized = false;
 
         _grantRole(MINTER_ROLE, minter);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     // the skillHandler is the one who can add more skills
     function initializeSkillHandler(
         address _skillHandler
-    ) external onlyRole(SKILL_DOMAIN_ADDER_ROLE) onlyNotInitialized {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyNotInitialized {
         skillHandler = _skillHandler;
         _grantRole(SKILL_DOMAIN_ADDER_ROLE, _skillHandler);
         s_initialized = true;
