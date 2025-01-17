@@ -5,7 +5,7 @@
 **High Severity**
 
 - [x] **[H-1]** No restrictions in `VSKillUserNft::mintUserNft` function, anyone can directly call and mint NFTs.
-- [ ] **[H-2]** No restrictions in `Distribution::distributionRandomNumberForVerifiers` function, anyone can directly call it and drain the subscription Link tokens.
+- [x] **[H-2]** No restrictions in `Distribution::distributionRandomNumberForVerifiers` function, anyone can directly call it and drain the subscription Link tokens.
 - [x] **[H-3]** The way verifiers are deleted in `Staking::_removeVerifier` function is incorrect, potentially ruining the process of fetching verifiers.
 - [ ] **[H-4]** No restrictions in `VSkillUser::earnUserNft` function, anyone can directly call it with an approved evidence parameter to mint NFTs, ruining the verification process.
 - [ ] **[H-5]** The same verifier can call `Verifier::provideFeedback` multiple times to dominate the evidence status, ruining the verification process.
@@ -22,10 +22,10 @@
 
 **Low Severity**
 
-- [ ] **[L-1]** The check condition in `VSkillUser::checkFeedbackOfEvidence` is incorrect, causing a revert without the custom error message.
+- [x] **[L-1]** The check condition in `VSkillUser::checkFeedbackOfEvidence` is incorrect, causing a revert without the custom error message.
 - [x] **[L-2]** No stability check for the price feed in `PriceConverter::getChainlinkDataFeedLatestAnswer`, which may lead to incorrect conversions.
 - [ ] **[L-3]** No validation in `Verifier::updateSkillDomains` function, allowing verifiers to set arbitrary skill domains.
-- [ ] **[L-4]** Users can call `VSkillUserNft::mintUserNft` with non-existent skill domains.
+- [x] **[L-4]** Users can call `VSkillUserNft::mintUserNft` with non-existent skill domains.
 - [x] **[L-5]** Invalid `tokenId` results in a blank `imageUri` in `VSkillUserNft::tokenURI` function.
 
 **Informational**
@@ -35,12 +35,12 @@
 - [ ] **[I-3]** Public functions not used internally could be marked `external`.
 - [x] **[I-4]** Define and use constant variables instead of literals.
 - [ ] **[I-5]** `PUSH0` is not supported by all chains.
-- [ ] **[I-6]** Modifiers invoked only once could be integrated directly into the function.
+- [x] **[I-6]** Modifiers invoked only once could be integrated directly into the function.
 - [x] **[I-7]** Unused custom error definitions.
 - [ ] **[I-8]** Avoid costly operations inside loops.
 - [x] **[I-9]** State variables could be declared `constant`.
 - [x] **[I-10]** State variables could be declared `immutable`.
-- [ ] **[I-11]** Use the most up-to-date version of Chainlink VRF.
+- [x] **[I-11]** Use the most up-to-date version of Chainlink VRF.
 - [x] **[I-12]** Centralization risk for trusted owners.
 - [ ] **[I-13]** `Verifier::provideFeedback` function is too long, making maintenance difficult.
 - [x] **[I-14]** The first verifier who submits feedback is rewarded more than subsequent verifiers.
@@ -162,3 +162,18 @@
   - now we can simply run the Makefile command to store the evidence file on the `lighthouse`.
 
 ---
+
+### 2025/1/17
+
+**What did I do today**
+
+- Implement the `VSkillUser` contract
+  - We will use the `lighthouse` to store those evidences and send the `cid` as the parameter for verifiers to get the evidence.
+  - Delete explicit `checkFeedbackOfEvidence` function, what we really do here is get the cids from the verifier provided.
+  - The only one who can modify the `skillDomains` will be the deployer of the contract. Don't forget to update the `VSkillUserNft` contract as well. => Maybe consider to force these two operations to be done always together...
+- Add a new contract `SkillHandler` to force the `VSkillUser` and `VSkillUserNft` to be updated together.
+- Update the `Relayer` and `Verifier` contract.
+
+---
+
+### 2025/1/18
