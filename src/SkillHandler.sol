@@ -13,7 +13,7 @@ contract SkillHandler is Ownable {
     VSkillUserNft private s_vSkillUserNft;
 
     constructor(address vskillUser, address vskillUserNft) Ownable(msg.sender) {
-        s_vSkillUser = VSkillUser(vskillUser);
+        s_vSkillUser = VSkillUser(payable(vskillUser));
         s_vSkillUserNft = VSkillUserNft(vskillUserNft);
     }
 
