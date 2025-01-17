@@ -25,6 +25,7 @@ contract VSkillUser is Ownable {
     error VSkillUser__NotInitialized();
     error VSkillUser__AlreadyInitialized();
     error VSkillUser__NotSkillHandler();
+    error VSkillUser__WithdrawFailed();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -50,6 +51,8 @@ contract VSkillUser is Ownable {
     address private skillHandler;
     bool private s_initialized;
     Distribution private immutable i_distribution;
+    uint256 private s_bonus;
+    uint256 private s_profit;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -108,6 +111,11 @@ contract VSkillUser is Ownable {
         s_initialized = true;
     }
 
+    // For those unexpected ETH received, we will take them as the bonus for verifiers
+    receive() external payable {
+        s_bonus += msg.value;
+    }
+
     /*//////////////////////////////////////////////////////////////
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -150,6 +158,12 @@ contract VSkillUser is Ownable {
             .distributionRandomNumberForVerifiers();
         s_requestIdToEvidence[requestId] = s_evidences[s_evidences.length - 1];
 
+        // @audit this partitioning of the money needs further consideration
+        // half will be the bonus for verifiers
+        s_bonus += msg.value / 2;
+        // rest will be the profit or the money required for Chainlink services
+        s_profit += msg.value / 2;
+
         emit EvidenceSubmitted(msg.sender);
     }
 
@@ -174,6 +188,14 @@ contract VSkillUser is Ownable {
 
         s_skillDomains.push(skillDomain);
         emit SkillDomainAdded(skillDomain);
+    }
+
+    function withdrawProfit() external onlyOwner {
+        (bool success, ) = msg.sender.call{value: s_profit}("");
+        if (!success) {
+            revert VSkillUser__WithdrawFailed();
+        }
+        s_profit = 0;
     }
 
     /*//////////////////////////////////////////////////////////////
