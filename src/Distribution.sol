@@ -45,7 +45,12 @@ contract Distribution is VRFConsumerBaseV2Plus {
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function distributionRandomNumberForVerifiers() public onlyOwner {
+    // the VSkillUser contract will call this function to request random numbers for verifierss
+    function distributionRandomNumberForVerifiers()
+        public
+        onlyOwner
+        returns (uint256)
+    {
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
@@ -61,6 +66,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
         );
 
         emit VerifierDistributionRequested(requestId);
+        return requestId;
     }
 
     /*//////////////////////////////////////////////////////////////
