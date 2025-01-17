@@ -178,9 +178,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     }
 
     // This function will handle the skill domains and the stake
-    function stakeToBecomeVerifier(
-        string[] memory /*skillDomains*/
-    ) public payable {
+    function stakeToBecomeVerifier() public payable {
         super.stake();
     }
 
@@ -238,6 +236,18 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         return
             s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
                 .allSelectedVerifiersToFeedbackStatus[verifierAddress];
+    }
+
+    function getSkillDomainToVerifiersWithinSameDomain(
+        string memory skillDomain
+    ) external view returns (address[] memory) {
+        return s_skillDomainToVerifiersWithinSameDomain[skillDomain];
+    }
+
+    function getSkillDomainToVerifiersWithinSameDomainLength(
+        string memory skillDomain
+    ) external view returns (uint256) {
+        return s_skillDomainToVerifiersWithinSameDomain[skillDomain].length;
     }
 }
 
