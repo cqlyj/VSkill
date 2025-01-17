@@ -9,16 +9,6 @@ pragma solidity 0.8.26;
  * @notice Those structs are used to define the struct in the contract to prevent the stack too deep error
  */
 library StructDefinition {
-    struct VerifierConstructorParams {
-        address priceFeed;
-        uint64 subscriptionId;
-        address vrfCoordinator;
-        bytes32 keyHash;
-        uint32 callbackGasLimit;
-        uint256 submissionFeeInUsd;
-        string[] userNftImageUris;
-    }
-
     struct VerifierEvidenceIpfsHashInfo {
         bool[] statusApproveOrNot;
         address[] selectedVerifiers;
