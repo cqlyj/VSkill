@@ -16,6 +16,8 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     error Verifier__NotSelectedVerifier();
     error Verifier__NotAllVerifiersProvidedFeedback();
     error Verifier__EvidenceStillInReview();
+    error Verifier__NotValidSkillDomain();
+    error Verifier__SkillDomainAlreadyAdded(address verifierAddress);
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -32,14 +34,15 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         private s_evidenceIpfsHashToItsInfo;
     AggregatorV3Interface private i_priceFeed;
 
+    mapping(string skillDomain => address[] verifiersWithinSameDomain)
+        private s_skillDomainToVerifiersWithinSameDomain;
+    string[] private s_skillDomains;
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event VerifierSkillDomainUpdated(
-        address indexed verifierAddress,
-        string[] newSkillDomains
-    );
+    event VerifierSkillDomainUpdated();
 
     event FeedbackProvided(
         StructDefinition.VerifierFeedbackProvidedEventParams indexed feedbackInfo
@@ -97,8 +100,9 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(StructDefinition.VerifierConstructorParams memory params) {
-        i_priceFeed = AggregatorV3Interface(params.priceFeed);
+    constructor(address priceFeed, string[] memory skillDomains) {
+        i_priceFeed = AggregatorV3Interface(priceFeed);
+        s_skillDomains = skillDomains;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -147,9 +151,31 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function provideFeedback() public {}
+    function provideFeedback() public onlyVerifier {}
 
-    function updateSkillDomain() public {}
+    function addSkillDomain(string memory skillDomain) public onlyVerifier {
+        if (!_isSkillDomainValid(skillDomain)) {
+            revert Verifier__NotValidSkillDomain();
+        }
+
+        string[] memory currentSkillDomains = s_verifierToInfo[msg.sender]
+            .skillDomains;
+        uint256 length = currentSkillDomains.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(abi.encodePacked(currentSkillDomains[i])) ==
+                keccak256(abi.encodePacked(skillDomain))
+            ) {
+                revert Verifier__SkillDomainAlreadyAdded(msg.sender);
+            }
+        }
+
+        s_verifierToInfo[msg.sender].skillDomains.push(skillDomain);
+        s_skillDomainToVerifiersWithinSameDomain[skillDomain].push(msg.sender);
+
+        emit VerifierSkillDomainUpdated();
+    }
 
     // This function will handle the skill domains and the stake
     function stakeToBecomeVerifier(
@@ -165,6 +191,21 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _isSkillDomainValid(
+        string memory skillDomain
+    ) internal view returns (bool) {
+        uint256 length = s_skillDomains.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (
+                keccak256(abi.encodePacked(s_skillDomains[i])) ==
+                keccak256(abi.encodePacked(skillDomain))
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     function _isVerifier(address verifierOrUser) internal view {}
 
