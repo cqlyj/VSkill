@@ -24,6 +24,7 @@ contract Relayer is ILogAutomation, Ownable {
     //////////////////////////////////////////////////////////////*/
 
     event Relayer__UnhandledRequestIdAdded(uint256 indexed requestId);
+    event Relayer__NoVerifierForThisSkillDomainYet();
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -61,10 +62,20 @@ contract Relayer is ILogAutomation, Ownable {
         StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
             .getRequestIdToEvidence(requestId);
         uint256[] memory randomWords = i_distribution.getRandomWords(requestId);
+
+        // As for the number of verifiers enough or not, since we only require 3 verifiers
+        // At the very beginning of the project, we will make sure that the number of verifiers is enough for each skill domain(above 3)
+        // After that we will allow users to submit the evidence
+        // Even if there are only 2 or 1 verifiers, we will still allow the user to submit the evidence and one of them will need to provide the same feedback twice
+        // If the length is zero: we will emit an event and the owner will need to handle this manually...(but this usually won't happen)
         uint256 verifierWithinSameDomainLength = i_verifier
             .getSkillDomainToVerifiersWithinSameDomainLength(
                 evidence.skillDomain
             );
+        if (verifierWithinSameDomainLength == 0) {
+            emit Relayer__NoVerifierForThisSkillDomainYet();
+            return;
+        }
         // get the randomWords within the range of the verifierWithinSameDomainLength
         // here the length is just 3, no worries about DoS attack
         for (uint8 i = 0; i < randomWords.length; i++) {
