@@ -6,6 +6,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {PriceConverter} from "src/library/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {StructDefinition} from "src/library/StructDefinition.sol";
+import {Distribution} from "src/Distribution.sol";
 
 contract VSkillUser is Ownable {
     using PriceConverter for uint256;
@@ -42,20 +43,19 @@ contract VSkillUser is Ownable {
     uint256 private s_submissionFeeInUsd;
     mapping(address => StructDefinition.VSkillUserEvidence[])
         public s_addressToEvidences;
+    mapping(uint256 requestId => StructDefinition.VSkillUserEvidence)
+        public s_requestIdToEvidence;
     StructDefinition.VSkillUserEvidence[] public s_evidences;
     AggregatorV3Interface private i_priceFeed;
     address private skillHandler;
     bool private s_initialized;
+    Distribution private immutable i_distribution;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event EvidenceSubmitted(
-        address indexed submitter,
-        string cid,
-        string skillDomain
-    );
+    event EvidenceSubmitted(address indexed submitter);
     event SubmissionFeeChanged(uint256 newFeeInUsd);
     event SkillDomainAdded(string skillDomain);
 
@@ -92,11 +92,13 @@ contract VSkillUser is Ownable {
 
     constructor(
         uint256 _submissionFeeInUsd,
-        address _priceFeed
+        address _priceFeed,
+        address _distribution
     ) Ownable(msg.sender) {
         s_submissionFeeInUsd = _submissionFeeInUsd;
         i_priceFeed = AggregatorV3Interface(_priceFeed);
         s_initialized = false;
+        i_distribution = Distribution(_distribution);
     }
 
     function initializeSkillHandler(
@@ -143,7 +145,12 @@ contract VSkillUser is Ownable {
             })
         );
 
-        emit EvidenceSubmitted(msg.sender, cid, skillDomain);
+        // update this mapping so that Relayer can get the evidence
+        uint256 requestId = i_distribution
+            .distributionRandomNumberForVerifiers();
+        s_requestIdToEvidence[requestId] = s_evidences[s_evidences.length - 1];
+
+        emit EvidenceSubmitted(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -245,6 +252,12 @@ contract VSkillUser is Ownable {
 
         return
             s_addressToEvidences[msg.sender][indexOfUserEvidence].feedbackCids;
+    }
+
+    function getRequestIdToEvidence(
+        uint256 requestId
+    ) public view returns (StructDefinition.VSkillUserEvidence memory) {
+        return s_requestIdToEvidence[requestId];
     }
 }
 
