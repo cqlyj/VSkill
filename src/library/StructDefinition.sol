@@ -33,7 +33,8 @@ library StructDefinition {
         INREVIEW,
         APPROVED,
         REJECTED,
-        DIFFERENTOPINION
+        DIFFERENTOPINION_A,
+        DIFFERENTOPINION_B
     }
 
     struct VSkillUserEvidence {
