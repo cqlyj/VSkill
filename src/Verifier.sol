@@ -277,6 +277,12 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     ) external view returns (address[] memory) {
         return s_requestIdToVerifiersProvidedFeedback[requestId];
     }
+
+    function getVerifiersProvidedFeedbackLength(
+        uint256 requestId
+    ) external view returns (uint256) {
+        return s_requestIdToVerifiersProvidedFeedback[requestId].length;
+    }
 }
 
 // Will be handled in Relayer contract
