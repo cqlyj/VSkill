@@ -53,6 +53,8 @@ contract VSkillUser is Ownable {
     Distribution private immutable i_distribution;
     uint256 private s_bonus;
     uint256 private s_profit;
+    mapping(uint256 requestId => address[] verifiersApprovedEvidence)
+        private s_requestIdToVerifiersApprovedEvidence;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -176,7 +178,30 @@ contract VSkillUser is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     // only selected verifiers can call this function
-    function setEvidenceTtatusApproveOrNot(uint256 requestId) public {}
+    // @audit only the selected verifiers can call this function!
+    function approveEvidenceStatus(
+        uint256 requestId,
+        string memory feedbackCid
+    ) public {
+        StructDefinition.VSkillUserEvidence
+            storage evidence = s_requestIdToEvidence[requestId];
+
+        // check for the statusApproveOrNot array
+        // if it's false, we will update it to true
+        // else jump to the next one
+        for (uint8 i = 0; i < evidence.statusApproveOrNot.length; i++) {
+            if (evidence.statusApproveOrNot[i] == false) {
+                evidence.statusApproveOrNot[i] = true;
+                s_requestIdToVerifiersApprovedEvidence[requestId].push(
+                    // the tx.origin is the one who initiated the transaction
+                    // @audit test this!
+                    tx.origin
+                );
+                evidence.feedbackCids.push(feedbackCid);
+                break;
+            }
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                             OWNER FUNCTIONS
