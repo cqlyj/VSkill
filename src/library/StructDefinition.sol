@@ -9,20 +9,6 @@ pragma solidity 0.8.26;
  * @notice Those structs are used to define the struct in the contract to prevent the stack too deep error
  */
 library StructDefinition {
-    struct VerifierEvidenceIpfsHashInfo {
-        bool[] statusApproveOrNot;
-        address[] selectedVerifiers;
-        mapping(address => bool) allSelectedVerifiersToFeedbackStatus;
-    }
-
-    struct VerifierFeedbackProvidedEventParams {
-        address verifierAddress;
-        address user;
-        bool approved;
-        string feedbackIpfsHash;
-        string evidenceIpfsHash;
-    }
-
     enum VSkillUserSubmissionStatus {
         SUBMITTED,
         APPROVED,
