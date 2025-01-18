@@ -51,6 +51,7 @@ contract VSkillUser is Ownable {
     address private skillHandler;
     bool private s_initialized;
     Distribution private immutable i_distribution;
+    // This bonus will be sent to the Verifier contract in a certain interval
     uint256 private s_bonus;
     uint256 private s_profit;
     mapping(uint256 requestId => address[] verifiersApprovedEvidence)
@@ -212,6 +213,13 @@ contract VSkillUser is Ownable {
         s_requestIdToEvidence[requestId].deadline = deadline;
     }
 
+    function setEvidenceStatus(
+        uint256 requestId,
+        StructDefinition.VSkillUserSubmissionStatus status
+    ) public {
+        s_requestIdToEvidence[requestId].status = status;
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -331,6 +339,18 @@ contract VSkillUser is Ownable {
         uint256 requestId
     ) public view returns (uint256) {
         return s_requestIdToEvidence[requestId].deadline;
+    }
+
+    function getRequestIdToVerifiersApprovedEvidence(
+        uint256 requestId
+    ) public view returns (address[] memory) {
+        return s_requestIdToVerifiersApprovedEvidence[requestId];
+    }
+
+    function getRequestIdToVerifiersApprovedEvidenceLength(
+        uint256 requestId
+    ) public view returns (uint256) {
+        return s_requestIdToVerifiersApprovedEvidence[requestId].length;
     }
 }
 
