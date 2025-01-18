@@ -37,5 +37,6 @@ library StructDefinition {
         uint256 reputation;
         string[] skillDomains;
         uint256[] assignedRequestIds;
+        uint256 reward;
     }
 }
