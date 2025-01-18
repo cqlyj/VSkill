@@ -335,6 +335,12 @@ contract VSkillUser is Ownable {
         return s_requestIdToEvidence[requestId];
     }
 
+    function getRequestIdToEvidenceStatus(
+        uint256 requestId
+    ) public view returns (StructDefinition.VSkillUserSubmissionStatus) {
+        return s_requestIdToEvidence[requestId].status;
+    }
+
     function getRequestIdToDeadline(
         uint256 requestId
     ) public view returns (uint256) {
