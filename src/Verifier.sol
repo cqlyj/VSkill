@@ -38,6 +38,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     VSkillUser private immutable i_vSkillUser;
     mapping(uint256 requestId => address[] verifiersProvidedFeedback)
         private s_requestIdToVerifiersProvidedFeedback;
+    uint256 private s_reward;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -50,11 +51,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
-
-    modifier isVeifier() {
-        _isVerifier(msg.sender);
-        _;
-    }
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -193,6 +189,18 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         s_verifierToInfo[verifier].assignedRequestIds.push(requestId);
     }
 
+    // only the Relayer contract will be able to call this function
+    function punishVerifier(address verifier) public {
+        // take all the stake out and remove the verifier
+        s_addressToIsVerifier[verifier] = false;
+        s_verifierCount -= 1;
+        delete s_verifierToInfo[verifier];
+        // what about the stake money? The money will be collected by the staking contract and will be used to reward the verifiers who provide feedback
+        s_reward += super.getStakeEthAmount();
+
+        emit LoseVerifier(verifier);
+    }
+
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -230,8 +238,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         return false;
     }
 
-    function _isVerifier(address verifierOrUser) internal view {}
-
     function _isSelectedVerifier(
         uint256 requestId
     ) internal view returns (bool) {
@@ -240,7 +246,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         // will the id length be too large?
         // No there is the maximum number they can be assigned
         // After reach this number, the verifier needs to withdraw the stake and re-stake to be assigned again
-        // about 3000 evidences
+        // about 3000 evidences? But TBH this can usually cannot be a huge number since there are so many verifiers
         uint256 length = assignedRequestIds.length;
         for (uint256 i = 0; i < length; i++) {
             if (assignedRequestIds[i] == requestId) {
@@ -264,6 +270,12 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         string memory skillDomain
     ) external view returns (uint256) {
         return s_skillDomainToVerifiersWithinSameDomain[skillDomain].length;
+    }
+
+    function getVerifiersProvidedFeedback(
+        uint256 requestId
+    ) external view returns (address[] memory) {
+        return s_requestIdToVerifiersProvidedFeedback[requestId];
     }
 }
 
