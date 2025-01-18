@@ -177,3 +177,21 @@
 ---
 
 ### 2025/1/18
+
+**What did I do today**
+
+- As for the evidence status, here is what will happen after redesign:
+  - If the status is `APPROVED`, the user will be able to mint the NFT. The verifiers will get the rewards.
+  - If the status is `REJECTED`, the user will will not be able to mint the NFT. The verifiers will get the rewards.
+  - If the status is `DIFFERENTOPINION-A`, the user will be able to mint the NFT. The verifiers will be penalized.
+  - If the status is `DIFFERENTOPINION-R`, the user will not be able to mint the NFT. The verifiers will be penalized.
+    - How to decide if it's `DIFFERENTOPINION`? => if more than 2/3 of the verifiers have approved the evidence, then it's `DIFFERENTOPINION-A`. The rest one will be penalized.
+    - If only 1/3 of the verifiers have approved the evidence, the status will be `DIFFERENTOPINION-R`. The rest two will be penalized.
+- The verifier need to provide the feedbacks in a certain time frame, otherwise the status will be `REJECTED`.
+  - About 1 week after being assigned the evidence, the verifier need to provide the feedbacks.
+  - If the verifier doesn't provide the feedbacks in time, their stakes will be took by as the punishment and thus immediately lose the verifier status.
+- Keep building the `Relayer` contract and integrate with the `VSkillUser` and `Verifier` contract along the way.
+
+---
+
+### 2025/1/19
