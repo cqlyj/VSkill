@@ -9,6 +9,11 @@ pragma solidity 0.8.26;
  * @notice Those structs are used to define the struct in the contract to prevent the stack too deep error
  */
 library StructDefinition {
+    enum RelayerBatchStatus {
+        PENDING,
+        PROCESSED
+    }
+
     enum VSkillUserSubmissionStatus {
         SUBMITTED,
         APPROVED,
