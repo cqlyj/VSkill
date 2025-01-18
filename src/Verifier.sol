@@ -151,7 +151,15 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function provideFeedback() public onlyVerifier {}
+    function provideFeedback(
+        uint256 requestId,
+        string memory feedbackCid,
+        bool approve
+    ) public onlyVerifier {
+        if (!_isSelectedVerifier(requestId)) {
+            revert Verifier__NotSelectedVerifier();
+        }
+    }
 
     function addSkillDomain(string memory skillDomain) public onlyVerifier {
         if (!_isSkillDomainValid(skillDomain)) {
@@ -187,6 +195,18 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     }
 
     /*//////////////////////////////////////////////////////////////
+                                 SETTER
+    //////////////////////////////////////////////////////////////*/
+
+    // only the Relayer contract will be able to call this function
+    function setVerifierAssignedRequestIds(
+        uint256 requestId,
+        address verifier
+    ) public {
+        s_verifierToInfo[verifier].assignedRequestIds.push(requestId);
+    }
+
+    /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
@@ -207,11 +227,23 @@ contract Verifier is AutomationCompatibleInterface, Staking {
 
     function _isVerifier(address verifierOrUser) internal view {}
 
-    function _verifiersWithinSameDomain() internal view {}
-
-    function _enoughNumberOfVerifiers() internal view {}
-
-    function _onlySelectedVerifier() internal view {}
+    function _isSelectedVerifier(
+        uint256 requestId
+    ) internal view returns (bool) {
+        uint256[] memory assignedRequestIds = s_verifierToInfo[msg.sender]
+            .assignedRequestIds;
+        // will the id length be too large?
+        // No there is the maximum number they can be assigned
+        // After reach this number, the verifier needs to withdraw the stake and re-stake to be assigned again
+        // about 3000 evidences
+        uint256 length = assignedRequestIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (assignedRequestIds[i] == requestId) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /*//////////////////////////////////////////////////////////////
                                 GETTERS
@@ -250,15 +282,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         return s_skillDomainToVerifiersWithinSameDomain[skillDomain].length;
     }
 }
-
-// function updateSkillDomains(
-//     string[] memory newSkillDomains
-// ) external isVeifier {
-//     // @written audit-low the verifier can update the skill domains to any value, no validation is done
-//     s_verifiers[s_addressToId[msg.sender] - 1]
-//         .skillDomains = newSkillDomains;
-//     emit VerifierSkillDomainUpdated(msg.sender, newSkillDomains);
-// }
 
 // function provideFeedback(
 //     string memory feedbackIpfsHash,
@@ -490,68 +513,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
 //         super._removeVerifier(verifiersAddress);
 
 //         emit LoseVerifier(verifierToBeRemoved.verifierAddress);
-//     }
-// }
-
-// function _verifiersWithinSameDomain(
-//     string memory skillDomain
-// ) public view returns (address[] memory, uint256 count) {
-//     uint256 length = s_verifiers.length;
-
-//     uint256 verifiersWithinSameDomainCount = 0;
-
-//     // written @audit-medium DoS
-//     for (uint256 i = 0; i < length; i++) {
-//         if (s_verifiers[i].skillDomains.length > 0) {
-//             uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
-//             for (uint256 j = 0; j < skillDomainLength; j++) {
-//                 if (
-//                     keccak256(
-//                         abi.encodePacked(s_verifiers[i].skillDomains[j])
-//                     ) == keccak256(abi.encodePacked(skillDomain))
-//                 ) {
-//                     verifiersWithinSameDomainCount++;
-//                     break; // No need to check other domains for this verifier
-//                 }
-//             }
-//         }
-//     }
-
-//     address[] memory verifiersWithinSameDomain = new address[](
-//         verifiersWithinSameDomainCount
-//     );
-
-//     uint256 verifiersWithinSameDomainIndex = 0;
-
-//     // written @audit DoS
-//     for (uint256 i = 0; i < length; i++) {
-//         if (s_verifiers[i].skillDomains.length > 0) {
-//             uint256 skillDomainLength = s_verifiers[i].skillDomains.length;
-//             for (uint256 j = 0; j < skillDomainLength; j++) {
-//                 if (
-//                     keccak256(
-//                         abi.encodePacked(s_verifiers[i].skillDomains[j])
-//                     ) == keccak256(abi.encodePacked(skillDomain))
-//                 ) {
-//                     verifiersWithinSameDomain[
-//                         verifiersWithinSameDomainIndex
-//                     ] = s_verifiers[i].verifierAddress;
-//                     verifiersWithinSameDomainIndex++;
-//                     break; // No need to check other domains for this verifier
-//                 }
-//             }
-//         }
-//     }
-
-//     return (verifiersWithinSameDomain, verifiersWithinSameDomainCount);
-// }
-
-// function _enoughNumberOfVerifiers(string memory skillDomain) public view {
-//     (, uint256 verifiersWithinSameDomainCount) = _verifiersWithinSameDomain(
-//         skillDomain
-//     );
-//     if (verifiersWithinSameDomainCount < NUM_WORDS) {
-//         revert Verifier__NotEnoughVerifiers(verifiersWithinSameDomainCount);
 //     }
 // }
 
