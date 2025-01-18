@@ -14,7 +14,7 @@ library StructDefinition {
         APPROVED,
         REJECTED,
         DIFFERENTOPINION_A,
-        DIFFERENTOPINION_B
+        DIFFERENTOPINION_R
     }
 
     struct VSkillUserEvidence {
