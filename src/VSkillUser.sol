@@ -56,6 +56,9 @@ contract VSkillUser is Ownable {
     uint256 private s_profit;
     mapping(uint256 requestId => address[] verifiersApprovedEvidence)
         private s_requestIdToVerifiersApprovedEvidence;
+    uint256 private constant BONUS_WEIGHT = 20;
+    uint256 private constant PROFIT_WEIGHT = 80;
+    uint256 private constant TOTAL_WEIGHT = 100;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -168,11 +171,10 @@ contract VSkillUser is Ownable {
             .distributionRandomNumberForVerifiers();
         s_requestIdToEvidence[requestId] = s_evidences[s_evidences.length - 1];
 
-        // @audit this partitioning of the money needs further consideration
-        // half will be the bonus for verifiers
-        s_bonus += msg.value / 2;
+        // 20% will be the bonus for verifiers
+        s_bonus += (msg.value * BONUS_WEIGHT) / TOTAL_WEIGHT;
         // rest will be the profit or the money required for Chainlink services
-        s_profit += msg.value / 2;
+        s_profit += (msg.value * PROFIT_WEIGHT) / TOTAL_WEIGHT;
 
         emit EvidenceSubmitted(msg.sender);
     }
