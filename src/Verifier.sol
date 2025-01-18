@@ -51,6 +51,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         uint256 reward,
         uint256 reputation
     );
+    event VerifierPenalized(address indexed verifier, uint256 reputation);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -206,6 +207,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     }
 
     // only the Relayer contract will be able to call this function
+    // punish is lose the verifier, not the same as penalize
     function punishVerifier(address verifier) public {
         // take all the stake out and remove the verifier
         s_addressToIsVerifier[verifier] = false;
@@ -244,6 +246,21 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         s_verifierToInfo[verifier].reward += rewardAmount;
 
         emit VerifierRewarded(verifier, rewardAmount, currentReputation);
+    }
+
+    function penalizeVerifier(address verifier) public {
+        // 1. minus reputation
+        // 2. check if the reputation is lower than the lowest reputation, if yes, remove the verifier
+
+        if (s_verifierToInfo[verifier].reputation > LOWEST_REPUTATION) {
+            s_verifierToInfo[verifier].reputation--;
+            emit VerifierPenalized(
+                verifier,
+                s_verifierToInfo[verifier].reputation
+            );
+        } else {
+            punishVerifier(verifier);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
