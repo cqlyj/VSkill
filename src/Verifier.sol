@@ -6,6 +6,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Staking} from "src/Staking.sol";
+import {VSkillUser} from "src/VSkillUser.sol";
 
 contract Verifier is AutomationCompatibleInterface, Staking {
     /*//////////////////////////////////////////////////////////////
@@ -37,6 +38,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     mapping(string skillDomain => address[] verifiersWithinSameDomain)
         private s_skillDomainToVerifiersWithinSameDomain;
     string[] private s_skillDomains;
+    VSkillUser private immutable i_vSkillUser;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -100,9 +102,14 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address priceFeed, string[] memory skillDomains) {
+    constructor(
+        address priceFeed,
+        string[] memory skillDomains,
+        address vSkillUser
+    ) {
         i_priceFeed = AggregatorV3Interface(priceFeed);
         s_skillDomains = skillDomains;
+        i_vSkillUser = VSkillUser(payable(vSkillUser));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -159,6 +166,13 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         if (!_isSelectedVerifier(requestId)) {
             revert Verifier__NotSelectedVerifier();
         }
+        // if not approve, no need to call the following function since the default value is false
+        if (!approve) {
+            return;
+        } else {
+            // call the function to update the status of the evidence and set the feedback cid
+            i_vSkillUser.approveEvidenceStatus(requestId, feedbackCid);
+        }
     }
 
     function addSkillDomain(string memory skillDomain) public onlyVerifier {
@@ -199,6 +213,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     //////////////////////////////////////////////////////////////*/
 
     // only the Relayer contract will be able to call this function
+    // @audit update!
     function setVerifierAssignedRequestIds(
         uint256 requestId,
         address verifier
