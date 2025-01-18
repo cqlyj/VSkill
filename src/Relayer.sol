@@ -89,6 +89,7 @@ contract Relayer is ILogAutomation, Ownable {
         // After that we will allow users to submit the evidence
         // Even if there are only 2 or 1 verifiers, we will still allow the user to submit the evidence and one of them will need to provide the same feedback twice
         // If the length is zero: we will emit an event and the owner will need to handle this manually...(but this usually won't happen)
+        // @audit make sure the randomWordsWithinRange every element is unique!
         uint256 verifierWithinSameDomainLength = i_verifier
             .getSkillDomainToVerifiersWithinSameDomainLength(
                 evidence.skillDomain
@@ -177,7 +178,7 @@ contract Relayer is ILogAutomation, Ownable {
             if (secondElement) {
                 _handleApprovedStatus(requestId, evidence);
             } else {
-                _handleRejectedStatus(requestId);
+                _handleRejectedStatus(requestId, evidence);
             }
         }
     }
@@ -215,9 +216,9 @@ contract Relayer is ILogAutomation, Ownable {
         uint256 requestId,
         StructDefinition.VSkillUserEvidence memory evidence
     ) internal {
-        uint256 length = i_vSkillUser
-            .getRequestIdToVerifiersApprovedEvidenceLength(requestId);
-        // update this magic number soon!
+        uint256 length = i_verifier.getVerifiersProvidedFeedbackLength(
+            requestId
+        );
         if (length < NUM_WORDS) {
             // there is one verifier who has not provided the feedback yet
             // we will punish this verifier!
@@ -225,7 +226,8 @@ contract Relayer is ILogAutomation, Ownable {
                 requestId,
                 StructDefinition.VSkillUserSubmissionStatus.APPROVED
             );
-            _punishVerifierWhoHasNotProvidedFeedback(requestId);
+            _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
+            return;
         }
 
         // check the third element
@@ -245,12 +247,13 @@ contract Relayer is ILogAutomation, Ownable {
         }
     }
 
-    function _punishVerifierWhoHasNotProvidedFeedback(
+    function _punishTheOnlyVerifierWhoHasNotProvidedFeedback(
         uint256 requestId
     ) private {
         address[] memory verifiersAssigned = s_requestIdToVerifiersAssigned[
             requestId
         ];
+        // this array is of length 2 since we know that only one verifier has not provided the feedback
         address[] memory verifiersProvidedFeedback = i_verifier
             .getVerifiersProvidedFeedback(requestId);
 
@@ -272,5 +275,110 @@ contract Relayer is ILogAutomation, Ownable {
         i_verifier.punishVerifier(verifierWhoHasNotProvidedFeedback);
     }
 
-    function _handleRejectedStatus(uint256 requestId) internal {}
+    function _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(
+        uint256 requestId
+    ) private {
+        address[] memory verifiersAssigned = s_requestIdToVerifiersAssigned[
+            requestId
+        ];
+        // this array is only of length 1 since we know that only one verifier has provided the feedback
+        address[] memory verifiersProvidedFeedback = i_verifier
+            .getVerifiersProvidedFeedback(requestId);
+
+        for (uint256 i = 0; i < NUM_WORDS; i++) {
+            if (verifiersAssigned[i] != verifiersProvidedFeedback[0]) {
+                i_verifier.punishVerifier(verifiersAssigned[i]);
+            }
+        }
+    }
+
+    function _punishAllVerifiersWhoHaveNotProvidedFeedback(
+        uint256 requestId
+    ) private {
+        for (uint256 i = 0; i < NUM_WORDS; i++) {
+            i_verifier.punishVerifier(
+                s_requestIdToVerifiersAssigned[requestId][i]
+            );
+        }
+    }
+
+    function _handleRejectedStatus(
+        uint256 requestId,
+        StructDefinition.VSkillUserEvidence memory evidence
+    ) internal {
+        uint256 length = i_verifier.getVerifiersProvidedFeedbackLength(
+            requestId
+        );
+
+        if (length == 0) {
+            // all the verifiers have not provided the feedback yet
+            // we will punish all the verifiers
+            _punishAllVerifiersWhoHaveNotProvidedFeedback(requestId);
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.REJECTED
+            );
+        } else if (length == 1) {
+            // only one verifier has provided the feedback
+            // we will punish other two verifiers
+            // check the first element to set the status
+            bool firstElement = evidence.statusApproveOrNot[0];
+            if (firstElement) {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition
+                        .VSkillUserSubmissionStatus
+                        .DIFFERENTOPINION_R
+                );
+
+                _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
+            } else {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
+                );
+
+                _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
+            }
+        } else if (length == 2) {
+            // two verifiers have provided the feedback
+            // we will punish the rest one verifier
+            // check the first element to set the status
+            bool firstElement = evidence.statusApproveOrNot[0];
+            if (firstElement) {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition
+                        .VSkillUserSubmissionStatus
+                        .DIFFERENTOPINION_R
+                );
+
+                _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
+            } else {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
+                );
+
+                _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
+            }
+        } else {
+            // all the verifiers have provided the feedback
+            // check the first element to set the status
+            bool firstElement = evidence.statusApproveOrNot[0];
+            if (firstElement) {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition
+                        .VSkillUserSubmissionStatus
+                        .DIFFERENTOPINION_R
+                );
+            } else {
+                i_vSkillUser.setEvidenceStatus(
+                    requestId,
+                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
+                );
+            }
+        }
+    }
 }
