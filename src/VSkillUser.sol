@@ -359,18 +359,3 @@ contract VSkillUser is Ownable {
         return s_requestIdToVerifiersApprovedEvidence[requestId].length;
     }
 }
-
-// The Nft will be minted by the `Relayer` contract
-// function earnUserNft(
-//     StructDefinition.VSkillUserEvidence memory _evidence
-// ) public virtual {
-//     if (
-//         _evidence.status !=
-//         StructDefinition.VSkillUserSubmissionStatus.APPROVED
-//     ) {
-//         revert VSkillUser__EvidenceNotApprovedYet(_evidence.status);
-//     }
-
-//     // written @audit-high Anyone can provide an approved evidence and get the NFT.
-//     super.mintUserNft(_evidence.skillDomain);
-// }

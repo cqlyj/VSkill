@@ -113,17 +113,3 @@ contract Distribution is VRFConsumerBaseV2Plus {
         return s_requestIdToRandomWords[_requestId];
     }
 }
-
-// import {IVerifier} from "../utils/interface/IVerifier.sol";
-// import {StructDefinition} from "../utils/library/StructDefinition.sol";
-
-// mapping(uint256 => StructDefinition.DistributionVerifierRequestContext) private s_requestIdToContext;
-
-// function _processVerifiers(uint256 _requestId) internal {
-//     StructDefinition.DistributionVerifierRequestContext
-//         memory context = s_requestIdToContext[_requestId];
-//     IVerifier(context.requester)._selectedVerifiersAddressCallback(
-//         context.ev,
-//         s_randomWords
-//     );
-// }

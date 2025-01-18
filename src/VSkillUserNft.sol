@@ -223,11 +223,3 @@ contract VSkillUserNft is ERC721, AccessControl {
         return _baseURI();
     }
 }
-
-// string[] private s_skillDomains = [
-//     "Frontend",
-//     "Backend",
-//     "Fullstack",
-//     "DevOps",
-//     "Blockchain"
-// ];
