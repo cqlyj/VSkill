@@ -180,7 +180,17 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         super.withdrawStake();
     }
 
-    function withdrawReward() public {}
+    function withdrawReward() public {
+        (bool success, ) = msg.sender.call{
+            value: s_verifierToInfo[msg.sender].reward
+        }("");
+        if (!success) {
+            revert Staking__WithdrawFailed();
+        }
+        s_verifierToInfo[msg.sender].reward = 0;
+
+        emit Withdrawn(msg.sender, s_verifierToInfo[msg.sender].reward);
+    }
 
     /*//////////////////////////////////////////////////////////////
                                  SETTER
