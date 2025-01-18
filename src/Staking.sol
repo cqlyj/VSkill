@@ -87,7 +87,8 @@ contract Staking {
         s_addressToIsVerifier[msg.sender] = true;
         s_verifierToInfo[msg.sender] = StructDefinition.VerifierInfo(
             INITIAL_REPUTATION,
-            new string[](0)
+            new string[](0),
+            new uint256[](0)
         );
 
         emit StakeSuccess(msg.sender);
