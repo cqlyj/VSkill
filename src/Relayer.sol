@@ -236,9 +236,28 @@ contract Relayer is ILogAutomation, Ownable {
     // And as long as there are someone who did not provide the feedback for evidence, it will be marked directly as approved or rejected
     // We only need to handle the situation DIFFERENTOPINION_A and DIFFERENTOPINION_R to reward or penalize the verifiers
     // As for the approved or rejected status, we will reward them as long as they are still verifiers
-    function rewardOrPenalizeVerifiers(
-        uint256 batchNumber
-    ) external onlyOwner {}
+    function rewardOrPenalizeVerifiers(uint256 batchNumber) external onlyOwner {
+        // only after the batch has been processed, we will reward or penalize the verifiers
+        _onlyProcessedBatchNumber(batchNumber);
+        uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
+        uint256 length = requestIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = requestIds[i];
+            StructDefinition.VSkillUserSubmissionStatus status = i_vSkillUser
+                .getRequestIdToEvidenceStatus(requestId);
+            if (
+                status ==
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED ||
+                status == StructDefinition.VSkillUserSubmissionStatus.REJECTED
+            ) {
+                // reward the verifiers as long as they are still verifiers
+                _rewardVerifiers(requestId);
+            } else {
+                // based on if the verifier approved or rejected the evidence, we will reward or penalize the verifiers
+                _handleRewardsOrPenalties(requestId, status);
+            }
+        }
+    }
 
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
@@ -414,4 +433,22 @@ contract Relayer is ILogAutomation, Ownable {
             i_vSkillUser.setEvidenceStatus(requestId, status);
         }
     }
+
+    function _rewardVerifiers(uint256 requestId) private {
+        address[] memory verifiersAssigned = s_requestIdToVerifiersAssigned[
+            requestId
+        ];
+        for (uint256 i = 0; i < verifiersAssigned.length; i++) {
+            // if the verifier is still a verifier, we will reward the verifier
+            // else just skip
+            if (i_verifier.getAddressToIsVerifier(verifiersAssigned[i])) {
+                i_verifier.rewardVerifier(verifiersAssigned[i]);
+            }
+        }
+    }
+
+    function _handleRewardsOrPenalties(
+        uint256 requestId,
+        StructDefinition.VSkillUserSubmissionStatus status
+    ) private {}
 }
