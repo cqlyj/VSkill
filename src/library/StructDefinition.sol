@@ -23,11 +23,6 @@ library StructDefinition {
         string evidenceIpfsHash;
     }
 
-    struct DistributionVerifierRequestContext {
-        address requester;
-        VSkillUserEvidence ev;
-    }
-
     enum VSkillUserSubmissionStatus {
         SUBMITTED,
         INREVIEW,
@@ -42,11 +37,14 @@ library StructDefinition {
         string cid;
         string skillDomain;
         VSkillUserSubmissionStatus status;
+        // Only three verifiers are needed to approve the evidence
+        bool[3] statusApproveOrNot;
         string[] feedbackCids;
     }
 
     struct VerifierInfo {
         uint256 reputation;
         string[] skillDomains;
+        uint256[] assignedRequestIds;
     }
 }
