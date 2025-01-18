@@ -27,6 +27,7 @@ contract Relayer is ILogAutomation, Ownable {
     mapping(uint256 batch => uint256[] processedRequestIds)
         private s_batchToProcessedRequestIds;
     mapping(uint256 batch => uint256 deadline) private s_batchToDeadline;
+    mapping(uint256 batch => bool processedOrNot) private s_batchProcessedOrNot;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -170,10 +171,10 @@ contract Relayer is ILogAutomation, Ownable {
             uint256 requestId = requestIds[i];
             StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
                 .getRequestIdToEvidence(requestId);
+
             // since the array is updated one by one, we only need to check the second element
             // if the second element is true, then the status is approved or DIFFERENTOPINION_A
             // if the second element is false, then the status is rejected or DIFFERENTOPINION_R
-
             bool secondElement = evidence.statusApproveOrNot[1];
             if (secondElement) {
                 _handleApprovedStatus(requestId, evidence);
@@ -181,6 +182,8 @@ contract Relayer is ILogAutomation, Ownable {
                 _handleRejectedStatus(requestId, evidence);
             }
         }
+
+        s_batchProcessedOrNot[batchNumber] = true;
     }
 
     // This will be a very gas cost function as it will check all the feedbacks and decide the final status
@@ -208,6 +211,11 @@ contract Relayer is ILogAutomation, Ownable {
         }
         // if the current timestamp is less than the deadline, we will revert since this batch is not yet reach the deadline
         if (block.timestamp < s_batchToDeadline[batchNumber]) {
+            revert Relayer__InvalidBatchNumber();
+        }
+
+        // if this batch has been processed, we will revert since we only allow the batch to be processed once
+        if (s_batchProcessedOrNot[batchNumber]) {
             revert Relayer__InvalidBatchNumber();
         }
     }
