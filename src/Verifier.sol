@@ -28,7 +28,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     uint256 private constant INITIAL_REPUTATION = 2;
     uint256 private constant LOWEST_REPUTATION = 0;
     uint256 private constant HIGHEST_REPUTATION = 10;
-    uint256 private constant BONUS_DISTRIBUTION_NUMBER = 20;
+    uint256 private constant MAXIMUM_REWARD = 0.05 ether; // half of the staking amount
 
     AggregatorV3Interface private i_priceFeed;
 
@@ -45,8 +45,12 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     //////////////////////////////////////////////////////////////*/
 
     event VerifierSkillDomainUpdated();
-
     event FeedbackProvided(uint256 indexed requestId);
+    event VerifierRewarded(
+        address indexed verifier,
+        uint256 reward,
+        uint256 reputation
+    );
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -176,6 +180,8 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         super.withdrawStake();
     }
 
+    function withdrawReward() public {}
+
     /*//////////////////////////////////////////////////////////////
                                  SETTER
     //////////////////////////////////////////////////////////////*/
@@ -194,11 +200,40 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         // take all the stake out and remove the verifier
         s_addressToIsVerifier[verifier] = false;
         s_verifierCount -= 1;
-        delete s_verifierToInfo[verifier];
         // what about the stake money? The money will be collected by the staking contract and will be used to reward the verifiers who provide feedback
+        // also those rewards will be used to reward the verifiers who provide feedback
         s_reward += super.getStakeEthAmount();
+        s_reward += s_verifierToInfo[verifier].reward;
+        delete s_verifierToInfo[verifier];
 
         emit LoseVerifier(verifier);
+    }
+
+    // only the Relayer contract will be able to call this function
+    function rewardVerifier(address verifier) public {
+        // 1. add reputation
+        // 2. add reward
+        // How to calculate the reward? => It depends on the reputation and the current contract reward balance
+        // reward = (reputation / HIGHEST_REPUTATION)^2 * min(s_reward, MAXIMUM_REWARD)
+
+        uint256 currentReputation = s_verifierToInfo[verifier].reputation;
+        if (currentReputation < HIGHEST_REPUTATION) {
+            s_verifierToInfo[verifier].reputation++;
+        }
+        uint256 rewardAmount = 0;
+        if (s_reward > MAXIMUM_REWARD) {
+            rewardAmount =
+                (currentReputation * currentReputation * MAXIMUM_REWARD) /
+                (HIGHEST_REPUTATION * HIGHEST_REPUTATION);
+        } else {
+            rewardAmount =
+                (currentReputation * currentReputation * s_reward) /
+                (HIGHEST_REPUTATION * HIGHEST_REPUTATION);
+        }
+
+        s_verifierToInfo[verifier].reward += rewardAmount;
+
+        emit VerifierRewarded(verifier, rewardAmount, currentReputation);
     }
 
     /*//////////////////////////////////////////////////////////////
