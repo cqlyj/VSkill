@@ -309,76 +309,28 @@ contract Relayer is ILogAutomation, Ownable {
         uint256 length = i_verifier.getVerifiersProvidedFeedbackLength(
             requestId
         );
+        bool firstElement = length > 0 ? evidence.statusApproveOrNot[0] : false;
+        // Set status based on first feedback (if any feedback exists)
+        StructDefinition.VSkillUserSubmissionStatus status = firstElement
+            ? StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_R
+            : StructDefinition.VSkillUserSubmissionStatus.REJECTED;
 
         if (length == 0) {
             // all the verifiers have not provided the feedback yet
             // we will punish all the verifiers
             _punishAllVerifiersWhoHaveNotProvidedFeedback(requestId);
-            i_vSkillUser.setEvidenceStatus(
-                requestId,
-                StructDefinition.VSkillUserSubmissionStatus.REJECTED
-            );
         } else if (length == 1) {
             // only one verifier has provided the feedback
             // we will punish other two verifiers
             // check the first element to set the status
-            bool firstElement = evidence.statusApproveOrNot[0];
-            if (firstElement) {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition
-                        .VSkillUserSubmissionStatus
-                        .DIFFERENTOPINION_R
-                );
-
-                _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
-            } else {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
-                );
-
-                _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
-            }
+            _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
         } else if (length == 2) {
             // two verifiers have provided the feedback
             // we will punish the rest one verifier
             // check the first element to set the status
-            bool firstElement = evidence.statusApproveOrNot[0];
-            if (firstElement) {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition
-                        .VSkillUserSubmissionStatus
-                        .DIFFERENTOPINION_R
-                );
-
-                _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
-            } else {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
-                );
-
-                _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
-            }
-        } else {
-            // all the verifiers have provided the feedback
-            // check the first element to set the status
-            bool firstElement = evidence.statusApproveOrNot[0];
-            if (firstElement) {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition
-                        .VSkillUserSubmissionStatus
-                        .DIFFERENTOPINION_R
-                );
-            } else {
-                i_vSkillUser.setEvidenceStatus(
-                    requestId,
-                    StructDefinition.VSkillUserSubmissionStatus.REJECTED
-                );
-            }
+            _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
         }
+
+        i_vSkillUser.setEvidenceStatus(requestId, status);
     }
 }
