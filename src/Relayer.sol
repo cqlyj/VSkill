@@ -12,6 +12,8 @@ contract Relayer is ILogAutomation, Ownable {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+    uint256 private constant DEADLINE = 7 days;
+
     VSkillUser private immutable i_vSkillUser;
     Distribution private immutable i_distribution;
     Verifier private immutable i_verifier;
@@ -126,6 +128,8 @@ contract Relayer is ILogAutomation, Ownable {
                     requestId,
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
+                // only 7 days allowed for the verifiers to provide feedback
+                i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
                 s_requestIdToVerifiersAssigned[requestId].push(
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
