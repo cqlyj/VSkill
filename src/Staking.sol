@@ -20,8 +20,6 @@ contract Staking {
 
     uint256 private constant STAKE_ETH_AMOUNT = 0.1 ether; // 0.1 ether staking amount
     uint256 private constant INITIAL_REPUTATION = 2;
-    // uint256 private constant LOWEST_REPUTATION = 0;
-    // uint256 private constant HIGHEST_REPUTATION = 10;
 
     uint256 internal s_verifierCount;
     mapping(address verifier => StructDefinition.VerifierInfo verifierInformation)
@@ -62,6 +60,7 @@ contract Staking {
         s_verifierCount = 0;
     }
 
+    // If you want to add bonus money to the contract, you should send eth to the VSkillUser contract
     receive() external payable {
         stake();
     }
@@ -137,62 +136,3 @@ contract Staking {
         return s_addressToIsVerifier[verifier];
     }
 }
-
-// This will be in the Relayer contract
-// function addBonusMoneyForVerifier() public payable {
-//     s_bonusMoneyInEth += msg.value;
-//     emit BonusMoneyUpdated(
-//         s_bonusMoneyInEth - msg.value,
-//         s_bonusMoneyInEth
-//     );
-// }
-
-// This will be in the Relayer contract
-// function _rewardVerifierInFormOfStake(
-//     address verifierAddress,
-//     uint256 amountInEth
-// ) internal {
-//     s_verifiers[s_addressToId[verifierAddress] - 1]
-//         .moneyStakedInEth += amountInEth;
-//     s_bonusMoneyInEth -= amountInEth;
-//     emit BonusMoneyUpdated(
-//         s_bonusMoneyInEth + amountInEth,
-//         s_bonusMoneyInEth
-//     );
-//     emit VerifierStakeUpdated(
-//         verifierAddress,
-//         s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth -
-//             amountInEth,
-//         s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth
-//     );
-// }
-
-// This will be in the Relayer contract
-// function _penalizeVerifierStakeToBonusMoney(
-//     address verifierAddress,
-//     uint256 amountInEth
-// ) internal {
-//     moneyStakedInEth is uint256, so it can't be negative
-//     This function will revert if the amountInEth is greater than the current stake...
-//     Is this revert a issue? If the amountInEth is greater than the current stake, it will revert, and the verifier is not penalized....?
-//     if the amountInEth is greater than the current stake, the function will revert, and the verifier is not penalized
-//     This function only be called by the Verifier contract, so the amountInEth is always valid, not an issue
-//     s_verifiers[s_addressToId[verifierAddress] - 1]
-//         .moneyStakedInEth -= amountInEth;
-//     s_bonusMoneyInEth += amountInEth;
-//     uint256 currentStake = s_verifiers[s_addressToId[verifierAddress] - 1]
-//         .moneyStakedInEth;
-//     emit BonusMoneyUpdated(
-//         s_bonusMoneyInEth - amountInEth,
-//         s_bonusMoneyInEth
-//     );
-//     emit VerifierStakeUpdated(
-//         verifierAddress,
-//         s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth +
-//             amountInEth,
-//         s_verifiers[s_addressToId[verifierAddress] - 1].moneyStakedInEth
-//     );
-//     if (!_currentStakedAmountIsStillAboveMinUsdAmount(currentStake)) {
-//         _removeVerifier(verifierAddress);
-//     }
-// }
