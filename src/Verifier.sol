@@ -19,6 +19,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     error Verifier__EvidenceStillInReview();
     error Verifier__NotValidSkillDomain();
     error Verifier__SkillDomainAlreadyAdded(address verifierAddress);
+    error Verifier__EvidenceDeadlinePassed();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -39,6 +40,8 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         private s_skillDomainToVerifiersWithinSameDomain;
     string[] private s_skillDomains;
     VSkillUser private immutable i_vSkillUser;
+    mapping(uint256 requestId => address[] verifiersProvidedFeedback)
+        private s_requestIdToVerifiersProvidedFeedback;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -166,11 +169,19 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         if (!_isSelectedVerifier(requestId)) {
             revert Verifier__NotSelectedVerifier();
         }
+
+        if (block.timestamp > i_vSkillUser.getRequestIdToDeadline(requestId)) {
+            revert Verifier__EvidenceDeadlinePassed();
+        }
         // if not approve, no need to call the following function since the default value is false
+        // how to differentiate from those provide false and those who do not provide feedback?
+        // those who do not provide feedback will not in the array
         if (!approve) {
+            s_requestIdToVerifiersProvidedFeedback[requestId].push(msg.sender);
             return;
         } else {
             // call the function to update the status of the evidence and set the feedback cid
+            s_requestIdToVerifiersProvidedFeedback[requestId].push(msg.sender);
             i_vSkillUser.approveEvidenceStatus(requestId, feedbackCid);
         }
     }
