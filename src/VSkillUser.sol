@@ -139,6 +139,9 @@ contract VSkillUser is Ownable {
                 cid: cid,
                 skillDomain: skillDomain,
                 status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                // for now all false, will be updated by the verifier if they approve the evidence
+                // for those who doesn't provide the feedback in time, we will take it as false
+                statusApproveOrNot: [false, false, false],
                 feedbackCids: new string[](0)
             })
         );
@@ -149,6 +152,7 @@ contract VSkillUser is Ownable {
                 cid: cid,
                 skillDomain: skillDomain,
                 status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
+                statusApproveOrNot: [false, false, false],
                 feedbackCids: new string[](0)
             })
         );
@@ -166,6 +170,13 @@ contract VSkillUser is Ownable {
 
         emit EvidenceSubmitted(msg.sender);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                 SETTER
+    //////////////////////////////////////////////////////////////*/
+
+    // only selected verifiers can call this function
+    function setEvidenceTtatusApproveOrNot(uint256 requestId) public {}
 
     /*//////////////////////////////////////////////////////////////
                             OWNER FUNCTIONS
