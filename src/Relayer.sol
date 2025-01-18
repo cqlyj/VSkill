@@ -345,6 +345,18 @@ contract Relayer is ILogAutomation, Ownable {
         address[] memory verifiersProvidedFeedback = i_verifier
             .getVerifiersProvidedFeedback(requestId);
 
+        // the one who has not provided the feedback
+        address verifierWhoHasNotProvidedFeedback = _getTheOnlyOneVerifierDifferentFromOtherTwo(
+                verifiersAssigned,
+                verifiersProvidedFeedback
+            );
+        i_verifier.punishVerifier(verifierWhoHasNotProvidedFeedback);
+    }
+
+    function _getTheOnlyOneVerifierDifferentFromOtherTwo(
+        address[] memory verifiersAssigned,
+        address[] memory verifiersWithSameOperation
+    ) private pure returns (address) {
         // A⊕A=0
         // A⊕0=A
         // XOR all assigned verifiers
@@ -353,14 +365,12 @@ contract Relayer is ILogAutomation, Ownable {
             xorResult ^= uint256(uint160(verifiersAssigned[i]));
         }
 
-        // XOR all verifiers who provided feedback
-        for (uint256 i = 0; i < verifiersProvidedFeedback.length; i++) {
-            xorResult ^= uint256(uint160(verifiersProvidedFeedback[i]));
+        // XOR all verifiers who are of the same operation
+        for (uint256 i = 0; i < verifiersWithSameOperation.length; i++) {
+            xorResult ^= uint256(uint160(verifiersWithSameOperation[i]));
         }
 
-        // the one who has not provided the feedback
-        address verifierWhoHasNotProvidedFeedback = address(uint160(xorResult));
-        i_verifier.punishVerifier(verifierWhoHasNotProvidedFeedback);
+        return address(uint160(xorResult));
     }
 
     function _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(
@@ -450,5 +460,41 @@ contract Relayer is ILogAutomation, Ownable {
     function _handleRewardsOrPenalties(
         uint256 requestId,
         StructDefinition.VSkillUserSubmissionStatus status
-    ) private {}
+    ) private {
+        address[] memory verifiersAssigned = s_requestIdToVerifiersAssigned[
+            requestId
+        ];
+        address[] memory verifiersApproved = i_vSkillUser
+            .getRequestIdToVerifiersApprovedEvidence(requestId);
+
+        // We know that every verifier has provided the feedback
+        // if the status is DIFFERENTOPINION_A, we will reward the verifiers who approved the evidence and penalize the rest one
+        // if the status is DIFFERENTOPINION_R, we will penalize all the verifiers who approved the evidence and reward the rest one
+        if (
+            status ==
+            StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_A
+        ) {
+            // reward the verifiers who approved the evidence
+            for (uint256 i = 0; i < verifiersApproved.length; i++) {
+                i_verifier.rewardVerifier(verifiersApproved[i]);
+            }
+            // penalize the rest one verifier
+            address verifierWhoHasNotApproved = _getTheOnlyOneVerifierDifferentFromOtherTwo(
+                    verifiersAssigned,
+                    verifiersApproved
+                );
+            i_verifier.penalizeVerifier(verifierWhoHasNotApproved);
+        } else {
+            // penalize the verifiers who approved the evidence
+            for (uint256 i = 0; i < verifiersApproved.length; i++) {
+                i_verifier.penalizeVerifier(verifiersApproved[i]);
+            }
+            // reward the rest one verifier
+            address verifierWhoHasNotApproved = _getTheOnlyOneVerifierDifferentFromOtherTwo(
+                    verifiersAssigned,
+                    verifiersApproved
+                );
+            i_verifier.rewardVerifier(verifierWhoHasNotApproved);
+        }
+    }
 }
