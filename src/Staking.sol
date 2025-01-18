@@ -130,6 +130,12 @@ contract Staking {
     ) external view returns (StructDefinition.VerifierInfo memory) {
         return s_verifierToInfo[verifier];
     }
+
+    function getAddressToIsVerifier(
+        address verifier
+    ) external view returns (bool) {
+        return s_addressToIsVerifier[verifier];
+    }
 }
 
 // This will be in the Relayer contract
