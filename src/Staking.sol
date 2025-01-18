@@ -9,7 +9,6 @@ contract Staking {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error Staking__NotEnoughBalanceToWithdraw(uint256 currentStakeEthAmount);
     error Staking__NotCorrectStakeAmount();
     error Staking__WithdrawFailed();
     error Staking__NotVerifier();
@@ -24,7 +23,7 @@ contract Staking {
     // uint256 private constant LOWEST_REPUTATION = 0;
     // uint256 private constant HIGHEST_REPUTATION = 10;
 
-    uint256 private s_verifierCount;
+    uint256 internal s_verifierCount;
     mapping(address verifier => StructDefinition.VerifierInfo verifierInformation)
         internal s_verifierToInfo;
     mapping(address verifier => bool isVerifier) internal s_addressToIsVerifier;
@@ -113,7 +112,7 @@ contract Staking {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function getStakeEthAmount() external pure returns (uint256) {
+    function getStakeEthAmount() public pure returns (uint256) {
         return STAKE_ETH_AMOUNT;
     }
 
