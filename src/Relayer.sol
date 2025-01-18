@@ -23,8 +23,11 @@ contract Relayer is ILogAutomation, Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event Relayer__UnhandledRequestIdAdded(uint256 indexed requestId);
+    event Relayer__UnhandledRequestIdAdded(
+        uint256 indexed unhandledRequestIdsLength
+    );
     event Relayer__NoVerifierForThisSkillDomainYet();
+    event Relayer__EvidenceAssignedToVerifiers();
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -57,6 +60,8 @@ contract Relayer is ILogAutomation, Ownable {
     // Here we just store select randomWords in the range of the verifierWithinSameDomainLength
     // And store the requestId in the s_unhandledRequestIds array
     // As for the assignment, we will handle this in batches to reduce gas costs
+    // @audit only the Forwarder will be able to call this function!!!
+    // update this soon!
     function performUpkeep(bytes calldata performData) external override {
         uint256 requestId = abi.decode(performData, (uint256));
         StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
@@ -83,7 +88,7 @@ contract Relayer is ILogAutomation, Ownable {
         }
         s_requestIdToRandomWordsWithinRange[requestId] = randomWords;
         s_unhandledRequestIds.push(requestId);
-        emit Relayer__UnhandledRequestIdAdded(requestId);
+        emit Relayer__UnhandledRequestIdAdded(s_unhandledRequestIds.length);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -98,7 +103,32 @@ contract Relayer is ILogAutomation, Ownable {
 
     // once the verifiers are assigned, the verifier will get the notification on the frontend(listening to the event)
     // and they can start to provide feedback to the specific evidence
-    function assignEvidenceToVerifiers() external onlyOwner {}
+
+    // set the assigned verifiers as the one who can change the evidence status
+    function assignEvidenceToVerifiers() external onlyOwner {
+        uint256 length = s_unhandledRequestIds.length;
+        // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = s_unhandledRequestIds[i];
+            uint256[]
+                memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
+                    requestId
+                ];
+            address[] memory verifiersWithinSameDomain = i_verifier
+                .getSkillDomainToVerifiersWithinSameDomain(
+                    i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
+                );
+            for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
+                i_verifier.setVerifierAssignedRequestIds(
+                    requestId,
+                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
+                );
+            }
+        }
+        delete s_unhandledRequestIds;
+
+        emit Relayer__EvidenceAssignedToVerifiers();
+    }
 
     // This will be a very gas cost function as it will check all the feedbacks and decide the final status
     // Try to reduce the gas cost as much as possible
