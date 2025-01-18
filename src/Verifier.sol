@@ -13,13 +13,11 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error Verifier__NotEnoughVerifiers(uint256 verifiersLength);
     error Verifier__NotSelectedVerifier();
-    error Verifier__NotAllVerifiersProvidedFeedback();
-    error Verifier__EvidenceStillInReview();
     error Verifier__NotValidSkillDomain();
     error Verifier__SkillDomainAlreadyAdded(address verifierAddress);
     error Verifier__EvidenceDeadlinePassed();
+    error Verifier__AlreadyProvidedFeedback();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -32,8 +30,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
     uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant BONUS_DISTRIBUTION_NUMBER = 20;
 
-    mapping(string => StructDefinition.VerifierEvidenceIpfsHashInfo)
-        private s_evidenceIpfsHashToItsInfo;
     AggregatorV3Interface private i_priceFeed;
 
     mapping(string skillDomain => address[] verifiersWithinSameDomain)
@@ -49,43 +45,7 @@ contract Verifier is AutomationCompatibleInterface, Staking {
 
     event VerifierSkillDomainUpdated();
 
-    event FeedbackProvided(
-        StructDefinition.VerifierFeedbackProvidedEventParams indexed feedbackInfo
-    );
-
-    event EvidenceToStatusApproveOrNotUpdated(
-        string indexed evidenceIpfsHash,
-        bool indexed status
-    );
-
-    event EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
-        address indexed verifierAddress,
-        string indexed evidenceIpfsHash,
-        bool indexed status
-    );
-
-    event EvidenceStatusUpdated(
-        address indexed user,
-        string indexed evidenceIpfsHash,
-        StructDefinition.VSkillUserSubmissionStatus status
-    );
-
-    event VerifierAssignedToEvidence(
-        address indexed verifierAddress,
-        address indexed submitter,
-        string indexed evidenceIpfsHash
-    );
-
-    event EvidenceIpfsHashToSelectedVerifiersUpdated(
-        string indexed evidenceIpfsHash,
-        address[] selectedVerifiers
-    );
-
-    event VerifierReputationUpdated(
-        address indexed verifierAddress,
-        uint256 indexed prevousReputation,
-        uint256 indexed currentReputation
-    );
+    event FeedbackProvided(uint256 indexed requestId);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -95,11 +55,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         _isVerifier(msg.sender);
         _;
     }
-
-    // modifier enoughNumberOfVerifiers(string memory skillDomain) {
-    //     _enoughNumberOfVerifiers(skillDomain);
-    //     _;
-    // }
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -173,6 +128,10 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         if (block.timestamp > i_vSkillUser.getRequestIdToDeadline(requestId)) {
             revert Verifier__EvidenceDeadlinePassed();
         }
+
+        if (!_onlyProvideFeedbackOnce(requestId)) {
+            revert Verifier__AlreadyProvidedFeedback();
+        }
         // if not approve, no need to call the following function since the default value is false
         // how to differentiate from those provide false and those who do not provide feedback?
         // those who do not provide feedback will not in the array
@@ -184,6 +143,8 @@ contract Verifier is AutomationCompatibleInterface, Staking {
             s_requestIdToVerifiersProvidedFeedback[requestId].push(msg.sender);
             i_vSkillUser.approveEvidenceStatus(requestId, feedbackCid);
         }
+
+        emit FeedbackProvided(requestId);
     }
 
     function addSkillDomain(string memory skillDomain) public onlyVerifier {
@@ -236,6 +197,24 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    function _onlyProvideFeedbackOnce(
+        uint256 requestId
+    ) internal view returns (bool) {
+        for (
+            uint256 i = 0;
+            i < s_requestIdToVerifiersProvidedFeedback[requestId].length;
+            i++
+        ) {
+            if (
+                s_requestIdToVerifiersProvidedFeedback[requestId][i] ==
+                msg.sender
+            ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function _isSkillDomainValid(
         string memory skillDomain
     ) internal view returns (bool) {
@@ -275,27 +254,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function getEvidenceToStatusApproveOrNot(
-        string memory evidenceIpfsHash
-    ) external view returns (bool[] memory) {
-        return s_evidenceIpfsHashToItsInfo[evidenceIpfsHash].statusApproveOrNot;
-    }
-
-    function getEvidenceIpfsHashToSelectedVerifiers(
-        string memory evidenceIpfsHash
-    ) external view returns (address[] memory) {
-        return s_evidenceIpfsHashToItsInfo[evidenceIpfsHash].selectedVerifiers;
-    }
-
-    function getEvidenceToAllSelectedVerifiersToFeedbackStatus(
-        string memory evidenceIpfsHash,
-        address verifierAddress
-    ) external view returns (bool) {
-        return
-            s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-                .allSelectedVerifiersToFeedbackStatus[verifierAddress];
-    }
-
     function getSkillDomainToVerifiersWithinSameDomain(
         string memory skillDomain
     ) external view returns (address[] memory) {
@@ -308,112 +266,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         return s_skillDomainToVerifiersWithinSameDomain[skillDomain].length;
     }
 }
-
-// function provideFeedback(
-//     string memory feedbackIpfsHash,
-//     string memory evidenceIpfsHash,
-//     address user,
-//     bool approved
-// ) external {
-//     // can the same verifier call multiple time of this function? Yes, the verifier can call multiple times
-//     // Any impact? The verifier will be rewarded or penalized multiple times
-//     // @written audit-high the verifier can call multiple times of this function and pass the check for the if statement, the judgement will be centralized!!!
-//     _onlySelectedVerifier(evidenceIpfsHash, msg.sender);
-//     StructDefinition.VSkillUserEvidence[]
-//         memory userEvidences = s_addressToEvidences[user];
-//     uint256 length = userEvidences.length;
-//     uint256 currentEvidenceIndex;
-//     for (uint256 i = 0; i < length; i++) {
-//         if (
-//             keccak256(
-//                 abi.encodePacked(userEvidences[i].evidenceIpfsHash)
-//             ) == keccak256(abi.encodePacked(evidenceIpfsHash))
-//         ) {
-//             currentEvidenceIndex = i;
-//             break;
-//         }
-//     }
-
-//     s_addressToEvidences[user][currentEvidenceIndex].feedbackIpfsHash.push(
-//         feedbackIpfsHash
-//     );
-
-//     s_verifiers[s_addressToId[msg.sender] - 1].feedbackIpfsHash.push(
-//         feedbackIpfsHash
-//     );
-
-//     emit FeedbackProvided(
-//         StructDefinition.VerifierFeedbackProvidedEventParams({
-//             verifierAddress: msg.sender,
-//             user: user,
-//             approved: approved,
-//             feedbackIpfsHash: feedbackIpfsHash,
-//             evidenceIpfsHash: evidenceIpfsHash
-//         })
-//     );
-
-//     // @written audit-info separate the rest of the function into another function, this one is too long
-//     if (approved) {
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .statusApproveOrNot
-//             .push(true);
-//         emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, true);
-
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .allSelectedVerifiersToFeedbackStatus[msg.sender] = true;
-//         emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
-//             msg.sender,
-//             evidenceIpfsHash,
-//             true
-//         );
-//     } else {
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .statusApproveOrNot
-//             .push(false);
-//         emit EvidenceToStatusApproveOrNotUpdated(evidenceIpfsHash, false);
-
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .allSelectedVerifiersToFeedbackStatus[msg.sender] = false;
-//         emit EvidenceToAllSelectedVerifiersToFeedbackStatusUpdated(
-//             msg.sender,
-//             evidenceIpfsHash,
-//             false
-//         );
-//     }
-
-//     // get all the verifiers who provide feedback and call the function to earn rewards or get penalized
-
-//     // what if the evidenceIpfsHash is reassigned to other verifiers? The statusApproveOrNot length is reseted or not???
-//     // hold on, the check for the if statement will be passed if the same verifier just call multiple times of this function
-//     // And it will trigger the _earnRewardsOrGetPenalized function, any impact??
-//     // Yeah, the verifier can call multiple times of this function, and the verifier will be rewarded or penalized multiple times
-//     if (
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .statusApproveOrNot
-//             .length < NUM_WORDS
-//     ) {
-//         return;
-//     } else {
-//         address[] memory allSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
-//             evidenceIpfsHash
-//         ].selectedVerifiers;
-//         uint256 allSelectedVerifiersLength = allSelectedVerifiers.length;
-//         StructDefinition.VSkillUserSubmissionStatus evidenceStatus = _updateEvidenceStatus(
-//                 evidenceIpfsHash,
-//                 user
-//             );
-
-//         // @written audit-high the statusApproveOrNot array will call the .pop() function while empty with this setup of allSelectedVerifiersLength
-//         // when the evidence is different opinion for more than once.
-//         for (uint256 i = 0; i < allSelectedVerifiersLength; i++) {
-//             _earnRewardsOrGetPenalized(
-//                 evidenceIpfsHash,
-//                 allSelectedVerifiers[i],
-//                 evidenceStatus
-//             );
-//         }
-//     }
-// }
 
 // Will be handled in Relayer contract
 // function _earnRewardsOrGetPenalized(
@@ -542,13 +394,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
 //     }
 // }
 
-// function _requestVerifiersSelection(
-//     StructDefinition.VSkillUserEvidence memory ev
-// ) public {
-//     // Initiate the random number request
-//     super.distributionRandomNumberForVerifiers(address(this), ev);
-// }
-
 // function _selectedVerifiersAddressCallback(
 //     StructDefinition.VSkillUserEvidence memory ev,
 //     uint256[] memory randomWords
@@ -606,185 +451,4 @@ contract Verifier is AutomationCompatibleInterface, Staking {
 //     _assignEvidenceToSelectedVerifier(ev, selectedVerifiers);
 
 //     return selectedVerifiers;
-// }
-
-// function _updateSelectedVerifiersInfo(
-//     string memory evidenceIpfsHash,
-//     address[] memory selectedVerifiers
-// ) internal {
-//     address[] memory prevSelectedVerifiers = s_evidenceIpfsHashToItsInfo[
-//         evidenceIpfsHash
-//     ].selectedVerifiers;
-
-//     uint256 prevSelectedVerifiersLength = prevSelectedVerifiers.length;
-
-//     if (prevSelectedVerifiersLength > 0) {
-//         address[] memory prevAndCurrentSelectedVerifiers = new address[](
-//             prevSelectedVerifiersLength + NUM_WORDS
-//         );
-
-//         for (uint256 i = 0; i < prevSelectedVerifiersLength; i++) {
-//             prevAndCurrentSelectedVerifiers[i] = prevSelectedVerifiers[i];
-//         }
-
-//         for (uint256 i = 0; i < NUM_WORDS; i++) {
-//             prevAndCurrentSelectedVerifiers[
-//                 prevSelectedVerifiersLength + i
-//             ] = selectedVerifiers[i];
-//         }
-
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .selectedVerifiers = prevAndCurrentSelectedVerifiers;
-
-//         emit EvidenceIpfsHashToSelectedVerifiersUpdated(
-//             evidenceIpfsHash,
-//             prevAndCurrentSelectedVerifiers
-//         );
-//     } else {
-//         s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//             .selectedVerifiers = selectedVerifiers;
-
-//         emit EvidenceIpfsHashToSelectedVerifiersUpdated(
-//             evidenceIpfsHash,
-//             selectedVerifiers
-//         );
-//     }
-// }
-
-// function _assignEvidenceToSelectedVerifier(
-//     StructDefinition.VSkillUserEvidence memory ev,
-//     address[] memory selectedVerifiers
-// ) internal {
-//     for (uint256 i = 0; i < NUM_WORDS; i++) {
-//         s_verifiers[s_addressToId[selectedVerifiers[i]] - 1]
-//             .evidenceIpfsHash
-//             .push(ev.evidenceIpfsHash);
-
-//         s_verifiers[s_addressToId[selectedVerifiers[i]] - 1]
-//             .evidenceSubmitters
-//             .push(ev.submitter);
-
-//         emit VerifierAssignedToEvidence(
-//             selectedVerifiers[i],
-//             ev.submitter,
-//             ev.evidenceIpfsHash
-//         );
-//     }
-
-//     // written @audit-medium the status of the evidence will not be updated
-//     // which then will keep triggering the checkUpkeep function, causing the gas cost to increase
-//     ev.status = StructDefinition.VSkillUserSubmissionStatus.INREVIEW;
-//     emit EvidenceStatusUpdated(
-//         ev.submitter,
-//         ev.evidenceIpfsHash,
-//         ev.status
-//     );
-// }
-
-// function _onlySelectedVerifier(
-//     string memory evidenceIpfsHash,
-//     address verifierAddress
-// ) internal view isVeifier {
-//     // what if the verifier's evidenceIpfsHash array is empty?  It will revert
-//     // what if the verifier's evidenceIpfsHash array is too large? It will consume more gas
-//     // DoS? maybe this line is OK since the verifier's assigned evidence is usually not too large
-//     uint256 length = s_verifiers[s_addressToId[verifierAddress] - 1]
-//         .evidenceIpfsHash
-//         .length;
-//     for (uint256 i = 0; i < length; i++) {
-//         // @written audit-gas each time compute the keccak256 of the evidenceIpfsHash, it will consume more gas
-//         // it's better to use a memory variable to store the keccak256 of the evidenceIpfsHash
-//         if (
-//             keccak256(
-//                 abi.encodePacked(
-//                     s_verifiers[s_addressToId[verifierAddress] - 1]
-//                         .evidenceIpfsHash[i]
-//                 )
-//             ) == keccak256(abi.encodePacked(evidenceIpfsHash))
-//         ) {
-//             // e if the verifier is the selected verifier, then can stop the loop
-//             // no need to check the rest of the evidenceIpfsHash
-//             return;
-//         }
-//     }
-//     revert Verifier__NotSelectedVerifier();
-// }
-
-// function _waitForConfirmation(
-//     string memory evidenceIpfsHash
-// ) internal view {
-//     bool[] memory status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//         .statusApproveOrNot;
-//     if (status.length < NUM_WORDS) {
-//         revert Verifier__NotAllVerifiersProvidedFeedback();
-//     }
-// }
-
-// function _updateEvidenceStatus(
-//     string memory evidenceIpfsHash,
-//     address user
-// ) internal returns (StructDefinition.VSkillUserSubmissionStatus) {
-//     _waitForConfirmation(evidenceIpfsHash);
-//     bool[] memory status = s_evidenceIpfsHashToItsInfo[evidenceIpfsHash]
-//         .statusApproveOrNot;
-//     uint256 length = s_addressToEvidences[user].length;
-//     uint256 currentEvidenceIndex;
-//     for (uint256 i = 0; i < length; i++) {
-//         // @written audit-gas store the keccak256 of the evidenceIpfsHash in a memory variable
-//         if (
-//             keccak256(
-//                 abi.encodePacked(
-//                     s_addressToEvidences[user][i].evidenceIpfsHash
-//                 )
-//             ) == keccak256(abi.encodePacked(evidenceIpfsHash))
-//         ) {
-//             currentEvidenceIndex = i;
-//             break;
-//         }
-//     }
-
-//     uint256 statusLength = status.length;
-
-//     for (uint256 i = 1; i < statusLength; i++) {
-//         if (status[i] != status[i - 1]) {
-//             StructDefinition.VSkillUserEvidence
-//                 storage ev = s_addressToEvidences[user][
-//                     currentEvidenceIndex
-//                 ];
-//             ev.status = StructDefinition
-//                 .VSkillUserSubmissionStatus
-//                 .DIFFERENTOPINION;
-//             emit EvidenceStatusUpdated(
-//                 user,
-//                 ev.evidenceIpfsHash,
-//                 StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION
-//             );
-//             return
-//                 StructDefinition
-//                     .VSkillUserSubmissionStatus
-//                     .DIFFERENTOPINION;
-//         }
-//     }
-
-//     if (status[0]) {
-//         StructDefinition.VSkillUserEvidence
-//             storage ev = s_addressToEvidences[user][currentEvidenceIndex];
-//         ev.status = StructDefinition.VSkillUserSubmissionStatus.APPROVED;
-//         emit EvidenceStatusUpdated(
-//             user,
-//             ev.evidenceIpfsHash,
-//             StructDefinition.VSkillUserSubmissionStatus.APPROVED
-//         );
-//         return StructDefinition.VSkillUserSubmissionStatus.APPROVED;
-//     } else {
-//         StructDefinition.VSkillUserEvidence
-//             storage ev = s_addressToEvidences[user][currentEvidenceIndex];
-//         ev.status = StructDefinition.VSkillUserSubmissionStatus.REJECTED;
-//         emit EvidenceStatusUpdated(
-//             user,
-//             ev.evidenceIpfsHash,
-//             StructDefinition.VSkillUserSubmissionStatus.REJECTED
-//         );
-//         return StructDefinition.VSkillUserSubmissionStatus.REJECTED;
-//     }
 // }
