@@ -3,12 +3,11 @@
 pragma solidity 0.8.26;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Staking} from "src/Staking.sol";
 import {VSkillUser} from "src/VSkillUser.sol";
 
-contract Verifier is AutomationCompatibleInterface, Staking {
+contract Verifier is Staking {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -69,48 +68,6 @@ contract Verifier is AutomationCompatibleInterface, Staking {
         i_priceFeed = AggregatorV3Interface(priceFeed);
         s_skillDomains = skillDomains;
         i_vSkillUser = VSkillUser(payable(vSkillUser));
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                     CHAINLINK AUTOMATION FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    // https://docs.chain.link/chainlink-automation/reference/automation-interfaces
-    // https://docs.chain.link/chainlink-automation/guides/flexible-upkeeps
-
-    function checkUpkeep(
-        bytes calldata /* checkData */
-    )
-        external
-        view
-        override
-        returns (bool upkeepNeeded, bytes memory performData)
-    {
-        // // if the evidence status is `submitted` or `differentOpinion`, this function will return true
-        // uint256 length = s_evidences.length;
-        // // @written audit-medium no bound check for the length and DoS attack is possible
-        // for (uint256 i = 0; i < length; i++) {
-        //     if (
-        //         s_evidences[i].status ==
-        //         StructDefinition.VSkillUserSubmissionStatus.SUBMITTED ||
-        //         s_evidences[i].status ==
-        //         StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION
-        //     ) {
-        //         upkeepNeeded = true;
-        //         performData = abi.encode(s_evidences[i]);
-        //         return (upkeepNeeded, performData);
-        //     }
-        // }
-        // upkeepNeeded = false;
-        // return (upkeepNeeded, "");
-    }
-
-    function performUpkeep(bytes calldata performData) external override {
-        // StructDefinition.VSkillUserEvidence memory ev = abi.decode(
-        //     performData,
-        //     (StructDefinition.VSkillUserEvidence)
-        // );
-        // _requestVerifiersSelection(ev);
     }
 
     /*//////////////////////////////////////////////////////////////
