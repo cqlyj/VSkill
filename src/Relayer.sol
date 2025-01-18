@@ -13,6 +13,7 @@ contract Relayer is ILogAutomation, Ownable {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
     uint256 private constant DEADLINE = 7 days;
+    uint256 private constant NUM_WORDS = 3;
 
     VSkillUser private immutable i_vSkillUser;
     Distribution private immutable i_distribution;
@@ -22,6 +23,16 @@ contract Relayer is ILogAutomation, Ownable {
     uint256[] private s_unhandledRequestIds;
     mapping(uint256 requestId => address[] verifiersAssigned)
         private s_requestIdToVerifiersAssigned;
+    uint256 private s_batchProcessed;
+    mapping(uint256 batch => uint256[] processedRequestIds)
+        private s_batchToProcessedRequestIds;
+    mapping(uint256 batch => uint256 deadline) private s_batchToDeadline;
+
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error Relayer__InvalidBatchNumber();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -45,6 +56,7 @@ contract Relayer is ILogAutomation, Ownable {
         i_vSkillUser = VSkillUser(payable(vSkillUser));
         i_distribution = Distribution(distribution);
         i_verifier = Verifier(payable(verifier));
+        s_batchProcessed = 0;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -87,7 +99,7 @@ contract Relayer is ILogAutomation, Ownable {
         }
         // get the randomWords within the range of the verifierWithinSameDomainLength
         // here the length is just 3, no worries about DoS attack
-        for (uint8 i = 0; i < randomWords.length; i++) {
+        for (uint8 i = 0; i < NUM_WORDS; i++) {
             randomWords[i] = randomWords[i] % verifierWithinSameDomainLength;
         }
         s_requestIdToRandomWordsWithinRange[requestId] = randomWords;
@@ -111,6 +123,11 @@ contract Relayer is ILogAutomation, Ownable {
     // set the assigned verifiers as the one who can change the evidence status
     // @audit refactor this function to be more gas efficient!
     function assignEvidenceToVerifiers() external onlyOwner {
+        // update the batch number
+        s_batchToProcessedRequestIds[s_batchProcessed] = s_unhandledRequestIds;
+        s_batchToDeadline[s_batchProcessed] = block.timestamp + DEADLINE;
+        s_batchProcessed++;
+
         uint256 length = s_unhandledRequestIds.length;
         // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
         for (uint256 i = 0; i < length; i++) {
@@ -140,6 +157,31 @@ contract Relayer is ILogAutomation, Ownable {
         emit Relayer__EvidenceAssignedToVerifiers();
     }
 
+    // This function will process those evidences which have passed the ddl and decide the final status
+    // the same batch of unhandledRequestIds will be processed since they are the same deadline
+
+    // we allow the batch number input in case there are emergency situations for process that batch earlier or in case where we have two or more batches left unprocessed
+    function processEvidenceStatus(uint256 batchNumber) external onlyOwner {
+        _onlyValidBatchNumber(batchNumber);
+        uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
+        uint256 length = requestIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = requestIds[i];
+            StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
+                .getRequestIdToEvidence(requestId);
+            // since the array is updated one by one, we only need to check the second element
+            // if the second element is true, then the status is approved or DIFFERENTOPINION_A
+            // if the second element is false, then the status is rejected or DIFFERENTOPINION_R
+
+            bool secondElement = evidence.statusApproveOrNot[1];
+            if (secondElement) {
+                _handleApprovedStatus(requestId, evidence);
+            } else {
+                _handleRejectedStatus(requestId);
+            }
+        }
+    }
+
     // This will be a very gas cost function as it will check all the feedbacks and decide the final status
     // Try to reduce the gas cost as much as possible
 
@@ -152,4 +194,83 @@ contract Relayer is ILogAutomation, Ownable {
     //   - If only 1/3 of the verifiers have approved the evidence, the status will be `DIFFERENTOPINION_R`. The rest two will be penalized.
 
     function mintUserNfts() external onlyOwner {}
+
+    /*//////////////////////////////////////////////////////////////
+                     INTERNAL AND PRIVATE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _onlyValidBatchNumber(uint256 batchNumber) private view {
+        // the batch number cannot be greater than or equal to the s_batchProcessed since we have increased the batch number after the assignment
+        // the most recent batch number will have nothing mapped to it
+        if (batchNumber >= s_batchProcessed) {
+            revert Relayer__InvalidBatchNumber();
+        }
+        // if the current timestamp is less than the deadline, we will revert since this batch is not yet reach the deadline
+        if (block.timestamp < s_batchToDeadline[batchNumber]) {
+            revert Relayer__InvalidBatchNumber();
+        }
+    }
+
+    function _handleApprovedStatus(
+        uint256 requestId,
+        StructDefinition.VSkillUserEvidence memory evidence
+    ) internal {
+        uint256 length = i_vSkillUser
+            .getRequestIdToVerifiersApprovedEvidenceLength(requestId);
+        // update this magic number soon!
+        if (length < NUM_WORDS) {
+            // there is one verifier who has not provided the feedback yet
+            // we will punish this verifier!
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED
+            );
+            _punishVerifierWhoHasNotProvidedFeedback(requestId);
+        }
+
+        // check the third element
+        // if it's true, then the status is approved
+        // if it's false, then the status is DIFFERENTOPINION_A
+        bool thirdElement = evidence.statusApproveOrNot[2];
+        if (thirdElement) {
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED
+            );
+        } else {
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_A
+            );
+        }
+    }
+
+    function _punishVerifierWhoHasNotProvidedFeedback(
+        uint256 requestId
+    ) private {
+        address[] memory verifiersAssigned = s_requestIdToVerifiersAssigned[
+            requestId
+        ];
+        address[] memory verifiersProvidedFeedback = i_verifier
+            .getVerifiersProvidedFeedback(requestId);
+
+        // A⊕A=0
+        // A⊕0=A
+        // XOR all assigned verifiers
+        uint256 xorResult = 0;
+        for (uint256 i = 0; i < verifiersAssigned.length; i++) {
+            xorResult ^= uint256(uint160(verifiersAssigned[i]));
+        }
+
+        // XOR all verifiers who provided feedback
+        for (uint256 i = 0; i < verifiersProvidedFeedback.length; i++) {
+            xorResult ^= uint256(uint160(verifiersProvidedFeedback[i]));
+        }
+
+        // the one who has not provided the feedback
+        address verifierWhoHasNotProvidedFeedback = address(uint160(xorResult));
+        i_verifier.punishVerifier(verifierWhoHasNotProvidedFeedback);
+    }
+
+    function _handleRejectedStatus(uint256 requestId) internal {}
 }
