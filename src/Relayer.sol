@@ -196,6 +196,14 @@ contract Relayer is ILogAutomation, Ownable {
         emit Relayer__EvidenceProcessed(batchNumber);
     }
 
+    // If this batch has exceeded the gas limit, we can call the two functions one by one, otherwise this is the function we will call to handle the evidence after the deadline
+    function handleEvidenceAfterDeadline(
+        uint256 batchNumber
+    ) external onlyOwner {
+        mintUserNfts(batchNumber);
+        rewardOrPenalizeVerifiers(batchNumber);
+    }
+
     // This will be a very gas cost function as it will check all the feedbacks and decide the final status
     // Try to reduce the gas cost as much as possible
 
@@ -207,7 +215,7 @@ contract Relayer is ILogAutomation, Ownable {
     //   - If more than 2/3 of the verifiers have approved the evidence, then it's `DIFFERENTOPINION_A`. The rest one will be penalized.
     //   - If only 1/3 of the verifiers have approved the evidence, the status will be `DIFFERENTOPINION_R`. The rest two will be penalized.
 
-    function mintUserNfts(uint256 batchNumber) external onlyOwner {
+    function mintUserNfts(uint256 batchNumber) public onlyOwner {
         // only after the batch has been processed, we will mint the NFT
         _onlyProcessedBatchNumber(batchNumber);
         uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
@@ -236,7 +244,7 @@ contract Relayer is ILogAutomation, Ownable {
     // And as long as there are someone who did not provide the feedback for evidence, it will be marked directly as approved or rejected
     // We only need to handle the situation DIFFERENTOPINION_A and DIFFERENTOPINION_R to reward or penalize the verifiers
     // As for the approved or rejected status, we will reward them as long as they are still verifiers
-    function rewardOrPenalizeVerifiers(uint256 batchNumber) external onlyOwner {
+    function rewardOrPenalizeVerifiers(uint256 batchNumber) public onlyOwner {
         // only after the batch has been processed, we will reward or penalize the verifiers
         _onlyProcessedBatchNumber(batchNumber);
         uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
