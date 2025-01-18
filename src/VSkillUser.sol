@@ -144,7 +144,9 @@ contract VSkillUser is Ownable {
                 // for now all false, will be updated by the verifier if they approve the evidence
                 // for those who doesn't provide the feedback in time, we will take it as false
                 statusApproveOrNot: [false, false, false],
-                feedbackCids: new string[](0)
+                feedbackCids: new string[](0),
+                // This will be updated once the evidence is distributed to the verifiers
+                deadline: block.timestamp
             })
         );
 
@@ -155,7 +157,8 @@ contract VSkillUser is Ownable {
                 skillDomain: skillDomain,
                 status: StructDefinition.VSkillUserSubmissionStatus.SUBMITTED,
                 statusApproveOrNot: [false, false, false],
-                feedbackCids: new string[](0)
+                feedbackCids: new string[](0),
+                deadline: block.timestamp
             })
         );
 
@@ -201,6 +204,12 @@ contract VSkillUser is Ownable {
                 break;
             }
         }
+    }
+
+    // only Relayer can call this function
+    // @audit only the Relayer can call this function!
+    function setDeadline(uint256 requestId, uint256 deadline) public {
+        s_requestIdToEvidence[requestId].deadline = deadline;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -316,6 +325,12 @@ contract VSkillUser is Ownable {
         uint256 requestId
     ) public view returns (StructDefinition.VSkillUserEvidence memory) {
         return s_requestIdToEvidence[requestId];
+    }
+
+    function getRequestIdToDeadline(
+        uint256 requestId
+    ) public view returns (uint256) {
+        return s_requestIdToEvidence[requestId].deadline;
     }
 }
 
