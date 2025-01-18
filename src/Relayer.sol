@@ -18,6 +18,8 @@ contract Relayer is ILogAutomation, Ownable {
     mapping(uint256 requestId => uint256[] randomWordsWithinRange)
         private s_requestIdToRandomWordsWithinRange;
     uint256[] private s_unhandledRequestIds;
+    mapping(uint256 requestId => address[] verifiersAssigned)
+        private s_requestIdToVerifiersAssigned;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -105,6 +107,7 @@ contract Relayer is ILogAutomation, Ownable {
     // and they can start to provide feedback to the specific evidence
 
     // set the assigned verifiers as the one who can change the evidence status
+    // @audit refactor this function to be more gas efficient!
     function assignEvidenceToVerifiers() external onlyOwner {
         uint256 length = s_unhandledRequestIds.length;
         // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
@@ -121,6 +124,9 @@ contract Relayer is ILogAutomation, Ownable {
             for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
                 i_verifier.setVerifierAssignedRequestIds(
                     requestId,
+                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
+                );
+                s_requestIdToVerifiersAssigned[requestId].push(
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
             }
