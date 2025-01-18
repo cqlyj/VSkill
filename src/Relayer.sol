@@ -7,6 +7,7 @@ import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Distribution} from "src/Distribution.sol";
 import {Verifier} from "src/Verifier.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {VSkillUserNft} from "src/VSkillUserNft.sol";
 
 contract Relayer is ILogAutomation, Ownable {
     /*//////////////////////////////////////////////////////////////
@@ -18,6 +19,7 @@ contract Relayer is ILogAutomation, Ownable {
     VSkillUser private immutable i_vSkillUser;
     Distribution private immutable i_distribution;
     Verifier private immutable i_verifier;
+    VSkillUserNft private immutable i_vSkillUserNft;
     mapping(uint256 requestId => uint256[] randomWordsWithinRange)
         private s_requestIdToRandomWordsWithinRange;
     uint256[] private s_unhandledRequestIds;
@@ -27,7 +29,8 @@ contract Relayer is ILogAutomation, Ownable {
     mapping(uint256 batch => uint256[] processedRequestIds)
         private s_batchToProcessedRequestIds;
     mapping(uint256 batch => uint256 deadline) private s_batchToDeadline;
-    mapping(uint256 batch => bool processedOrNot) private s_batchProcessedOrNot;
+    mapping(uint256 batch => StructDefinition.RelayerBatchStatus batchStatus)
+        private s_batchProcessedOrNot;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -44,6 +47,8 @@ contract Relayer is ILogAutomation, Ownable {
     );
     event Relayer__NoVerifierForThisSkillDomainYet();
     event Relayer__EvidenceAssignedToVerifiers();
+    event Relayer__EvidenceProcessed(uint256 indexed batchNumber);
+    event Relayer__UserNftsMinted(uint256 indexed batchNumber);
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -52,11 +57,13 @@ contract Relayer is ILogAutomation, Ownable {
     constructor(
         address vSkillUser,
         address distribution,
-        address verifier
+        address verifier,
+        address vSkillUserNft
     ) Ownable(msg.sender) {
         i_vSkillUser = VSkillUser(payable(vSkillUser));
         i_distribution = Distribution(distribution);
         i_verifier = Verifier(payable(verifier));
+        i_vSkillUserNft = VSkillUserNft(vSkillUserNft);
         s_batchProcessed = 0;
     }
 
@@ -164,7 +171,7 @@ contract Relayer is ILogAutomation, Ownable {
 
     // we allow the batch number input in case there are emergency situations for process that batch earlier or in case where we have two or more batches left unprocessed
     function processEvidenceStatus(uint256 batchNumber) external onlyOwner {
-        _onlyValidBatchNumber(batchNumber);
+        _onlyValidNotProcessedBatchNumber(batchNumber);
         uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
         uint256 length = requestIds.length;
         for (uint256 i = 0; i < length; i++) {
@@ -183,7 +190,10 @@ contract Relayer is ILogAutomation, Ownable {
             }
         }
 
-        s_batchProcessedOrNot[batchNumber] = true;
+        s_batchProcessedOrNot[batchNumber] = StructDefinition
+            .RelayerBatchStatus
+            .PROCESSED;
+        emit Relayer__EvidenceProcessed(batchNumber);
     }
 
     // This will be a very gas cost function as it will check all the feedbacks and decide the final status
@@ -197,13 +207,46 @@ contract Relayer is ILogAutomation, Ownable {
     //   - If more than 2/3 of the verifiers have approved the evidence, then it's `DIFFERENTOPINION_A`. The rest one will be penalized.
     //   - If only 1/3 of the verifiers have approved the evidence, the status will be `DIFFERENTOPINION_R`. The rest two will be penalized.
 
-    function mintUserNfts() external onlyOwner {}
+    function mintUserNfts(uint256 batchNumber) external onlyOwner {
+        // only after the batch has been processed, we will mint the NFT
+        _onlyProcessedBatchNumber(batchNumber);
+        uint256[] memory requestIds = s_batchToProcessedRequestIds[batchNumber];
+        uint256 length = requestIds.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = requestIds[i];
+            StructDefinition.VSkillUserSubmissionStatus status = i_vSkillUser
+                .getRequestIdToEvidenceStatus(requestId);
+            // mint those who have the status approved or DIFFERENTOPINION_A
+            if (
+                status ==
+                StructDefinition.VSkillUserSubmissionStatus.APPROVED ||
+                status ==
+                StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_A
+            ) {
+                i_vSkillUserNft.mintUserNft(
+                    i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
+                );
+            }
+        }
+
+        emit Relayer__UserNftsMinted(batchNumber);
+    }
+
+    // Since all the verifiers who have not provided the feedback have been punished(they lose verifier status)
+    // And as long as there are someone who did not provide the feedback for evidence, it will be marked directly as approved or rejected
+    // We only need to handle the situation DIFFERENTOPINION_A and DIFFERENTOPINION_R to reward or penalize the verifiers
+    // As for the approved or rejected status, we will reward them as long as they are still verifiers
+    function rewardOrPenalizeVerifiers(
+        uint256 batchNumber
+    ) external onlyOwner {}
 
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _onlyValidBatchNumber(uint256 batchNumber) private view {
+    function _onlyValidNotProcessedBatchNumber(
+        uint256 batchNumber
+    ) private view {
         // the batch number cannot be greater than or equal to the s_batchProcessed since we have increased the batch number after the assignment
         // the most recent batch number will have nothing mapped to it
         if (batchNumber >= s_batchProcessed) {
@@ -215,7 +258,25 @@ contract Relayer is ILogAutomation, Ownable {
         }
 
         // if this batch has been processed, we will revert since we only allow the batch to be processed once
-        if (s_batchProcessedOrNot[batchNumber]) {
+        if (
+            s_batchProcessedOrNot[batchNumber] !=
+            StructDefinition.RelayerBatchStatus.PENDING
+        ) {
+            revert Relayer__InvalidBatchNumber();
+        }
+    }
+
+    function _onlyProcessedBatchNumber(uint256 batchNumber) private view {
+        // the batch number cannot be greater than or equal to the s_batchProcessed since we have increased the batch number after the assignment
+        // the most recent batch number will have nothing mapped to it
+        if (batchNumber >= s_batchProcessed) {
+            revert Relayer__InvalidBatchNumber();
+        }
+        // if this batch has not been processed, we will revert since we only allow the batch to be processed once
+        if (
+            s_batchProcessedOrNot[batchNumber] !=
+            StructDefinition.RelayerBatchStatus.PROCESSED
+        ) {
             revert Relayer__InvalidBatchNumber();
         }
     }
@@ -317,28 +378,40 @@ contract Relayer is ILogAutomation, Ownable {
         uint256 length = i_verifier.getVerifiersProvidedFeedbackLength(
             requestId
         );
-        bool firstElement = length > 0 ? evidence.statusApproveOrNot[0] : false;
-        // Set status based on first feedback (if any feedback exists)
-        StructDefinition.VSkillUserSubmissionStatus status = firstElement
-            ? StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_R
-            : StructDefinition.VSkillUserSubmissionStatus.REJECTED;
 
+        // As long as there is someone who has not provided the feedback, the status will be marked directly as rejected
         if (length == 0) {
             // all the verifiers have not provided the feedback yet
             // we will punish all the verifiers
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.REJECTED
+            );
             _punishAllVerifiersWhoHaveNotProvidedFeedback(requestId);
         } else if (length == 1) {
             // only one verifier has provided the feedback
             // we will punish other two verifiers
             // check the first element to set the status
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.REJECTED
+            );
             _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(requestId);
         } else if (length == 2) {
             // two verifiers have provided the feedback
             // we will punish the rest one verifier
             // check the first element to set the status
+            i_vSkillUser.setEvidenceStatus(
+                requestId,
+                StructDefinition.VSkillUserSubmissionStatus.REJECTED
+            );
             _punishTheOnlyVerifierWhoHasNotProvidedFeedback(requestId);
+        } else {
+            bool firstElement = evidence.statusApproveOrNot[0];
+            StructDefinition.VSkillUserSubmissionStatus status = firstElement
+                ? StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_R
+                : StructDefinition.VSkillUserSubmissionStatus.REJECTED;
+            i_vSkillUser.setEvidenceStatus(requestId, status);
         }
-
-        i_vSkillUser.setEvidenceStatus(requestId, status);
     }
 }
