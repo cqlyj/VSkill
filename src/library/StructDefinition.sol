@@ -25,7 +25,6 @@ library StructDefinition {
 
     enum VSkillUserSubmissionStatus {
         SUBMITTED,
-        INREVIEW,
         APPROVED,
         REJECTED,
         DIFFERENTOPINION_A,
@@ -40,6 +39,7 @@ library StructDefinition {
         // Only three verifiers are needed to approve the evidence
         bool[3] statusApproveOrNot;
         string[] feedbackCids;
+        uint256 deadline;
     }
 
     struct VerifierInfo {
