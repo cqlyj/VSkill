@@ -18,8 +18,6 @@ contract VSkillUserNft is ERC721, AccessControl {
     mapping(uint256 => string) private s_tokenIdToSkillDomain;
 
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 private constant SKILL_DOMAIN_ADDER_ROLE =
-        keccak256("SKILL_DOMAIN_ADDER_ROLE");
     address private i_relayer;
     bool private s_initialized;
 
@@ -67,10 +65,8 @@ contract VSkillUserNft is ERC721, AccessControl {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    // Later we will set the Relayer contract as the owner of this contract
-    // That is the minter will be the Relayer contract address
+    // Later we will set the Relayer contract as the one who can mint the NFT or add more skills
     constructor(
-        address minter,
         string[] memory _skillDomains,
         string[] memory _userNftImageUris
     ) ERC721("VSkillUserNft", "VSU") {
@@ -86,7 +82,6 @@ contract VSkillUserNft is ERC721, AccessControl {
         }
         s_initialized = false;
 
-        _grantRole(MINTER_ROLE, minter);
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -96,7 +91,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyNotInitialized {
         //slither-disable-next-line missing-zero-check
         i_relayer = _relayer;
-        _grantRole(SKILL_DOMAIN_ADDER_ROLE, _relayer);
+        _grantRole(MINTER_ROLE, _relayer);
         s_initialized = true;
     }
 
@@ -161,7 +156,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     function addMoreSkillsForNft(
         string memory skillDomain,
         string memory newNftImageUri
-    ) public onlyRole(SKILL_DOMAIN_ADDER_ROLE) onlyInitialized {
+    ) public onlyRole(MINTER_ROLE) onlyInitialized {
         s_skillDomains.push(skillDomain);
         s_userNftImageUris.push(newNftImageUri);
         s_skillDomainToUserNftImageUri[skillDomain] = newNftImageUri;
