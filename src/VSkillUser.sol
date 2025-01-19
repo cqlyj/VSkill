@@ -7,6 +7,7 @@ import {PriceConverter} from "src/library/PriceCoverter.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Distribution} from "src/Distribution.sol";
+import {Relayer} from "src/Relayer.sol";
 
 contract VSkillUser is Ownable {
     using PriceConverter for uint256;
@@ -183,13 +184,11 @@ contract VSkillUser is Ownable {
                                  SETTER
     //////////////////////////////////////////////////////////////*/
 
-    // only selected verifiers can call this function
-    // @audit only the selected verifiers can call this function!
-    // how do we know if it's the selected verifiers?
     function approveEvidenceStatus(
         uint256 requestId,
         string memory feedbackCid
     ) public {
+        _calledByVerifierContract();
         StructDefinition.VSkillUserEvidence
             storage evidence = s_requestIdToEvidence[requestId];
 
@@ -287,6 +286,12 @@ contract VSkillUser is Ownable {
             }
         }
         return false;
+    }
+
+    function _calledByVerifierContract() internal view {
+        if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
+            revert VSkillUser__NotSkillHandler();
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
