@@ -96,14 +96,14 @@ contract Staking {
 
     // This function will withdraw all the stake and remove the verifier
     function withdrawStake() public onlyVerifier {
+        s_verifierCount -= 1;
+        s_addressToIsVerifier[msg.sender] = false;
+        delete s_verifierToInfo[msg.sender];
+
         (bool success, ) = msg.sender.call{value: STAKE_ETH_AMOUNT}("");
         if (!success) {
             revert Staking__WithdrawFailed();
         }
-
-        s_verifierCount -= 1;
-        s_addressToIsVerifier[msg.sender] = false;
-        delete s_verifierToInfo[msg.sender];
 
         emit LoseVerifier(msg.sender);
         emit Withdrawn(msg.sender, STAKE_ETH_AMOUNT);
