@@ -31,12 +31,14 @@ contract Relayer is ILogAutomation, Ownable {
     mapping(uint256 batch => uint256 deadline) private s_batchToDeadline;
     mapping(uint256 batch => StructDefinition.RelayerBatchStatus batchStatus)
         private s_batchProcessedOrNot;
+    address private s_forwarder;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
     error Relayer__InvalidBatchNumber();
+    error Relayer__OnlyForwarder();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -49,6 +51,17 @@ contract Relayer is ILogAutomation, Ownable {
     event Relayer__EvidenceAssignedToVerifiers();
     event Relayer__EvidenceProcessed(uint256 indexed batchNumber);
     event Relayer__UserNftsMinted(uint256 indexed batchNumber);
+
+    /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyForwarder() {
+        if (msg.sender != s_forwarder) {
+            revert Relayer__OnlyForwarder();
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -84,9 +97,9 @@ contract Relayer is ILogAutomation, Ownable {
     // Here we just store select randomWords in the range of the verifierWithinSameDomainLength
     // And store the requestId in the s_unhandledRequestIds array
     // As for the assignment, we will handle this in batches to reduce gas costs
-    // @audit only the Forwarder will be able to call this function!!!
-    // update this soon!
-    function performUpkeep(bytes calldata performData) external override {
+    function performUpkeep(
+        bytes calldata performData
+    ) external override onlyForwarder {
         uint256 requestId = abi.decode(performData, (uint256));
         StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
             .getRequestIdToEvidence(requestId);
@@ -273,6 +286,10 @@ contract Relayer is ILogAutomation, Ownable {
     ) external onlyOwner {
         i_vSkillUserNft.addMoreSkillsForNft(skillDomain, nftImageUri);
         i_vSkillUser.addMoreSkills(skillDomain);
+    }
+
+    function setForwarder(address forwarder) external onlyOwner {
+        s_forwarder = forwarder;
     }
 
     /*//////////////////////////////////////////////////////////////
