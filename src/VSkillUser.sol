@@ -247,11 +247,11 @@ contract VSkillUser is Ownable {
     }
 
     function withdrawProfit() external onlyOwner onlyInitialized {
+        s_profit = 0;
         (bool success, ) = msg.sender.call{value: s_profit}("");
         if (!success) {
             revert VSkillUser__WithdrawFailed();
         }
-        s_profit = 0;
     }
 
     /*//////////////////////////////////////////////////////////////
