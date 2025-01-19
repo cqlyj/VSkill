@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: packToCar unpackToOrigin lighthouse-import-wallet lighthouse-upload
+.PHONY: packToCar unpackToOrigin lighthouse-import-wallet lighthouse-upload deploy check-contract check-network-config
 
 help:
 	@echo "Usage: make <target>"
@@ -41,7 +41,7 @@ docker-status:
 docker-ps:
 	@docker ps
 
-# zkSync local node
+##############################   zkSync local node   ##############################
 
 zksync-start:
 	@npx zksync-cli dev start
@@ -54,39 +54,48 @@ zksync-start:
 # deploy-staking-zksync-sepolia:
 # 	@forge create src/staking/Staking.sol:Staking --rpc-url $(ZKSYNC_SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --legacy --zksync --constructor-args 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
 
-# deploy contracts
+##############################   deploy contracts   ##############################
 
-deploy-staking-sepolia:
-	@forge script script/staking/DeployStaking.s.sol:DeployStaking --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+CONTRACT = $(word 2, $(MAKECMDGOALS))
+NETWORK = $(if $(word 3,$(MAKECMDGOALS)),$(word 3,$(MAKECMDGOALS)),anvil)
 
-deploy-staking-anvil:
-	@forge script script/staking/DeployStaking.s.sol:DeployStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
+# Main deploy target
+deploy: check-contract check-network-config
+ifeq ($(NETWORK),anvil)
+	@forge script script/deploy/Deploy$(CONTRACT).s.sol:Deploy$(CONTRACT) \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+else
+	@forge script script/deploy/Deploy$(CONTRACT).s.sol:Deploy$(CONTRACT) \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--verify \
+		--etherscan-api-key $($(shell echo $(NETWORK) | tr a-z A-Z)_ETHERSCAN_API_KEY) \
+		--broadcast -vvvv
+endif
 
-deploy-user-sepolia:
-	@forge script script/user/DeployVSkillUser.s.sol:DeployVSkillUser --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+# Check if contract name is provided
+check-contract:
+ifndef CONTRACT
+	$(error Contract name is required. Usage: make deploy ContractName [NetworkName])
+endif
 
-deploy-user-anvil:
-	@forge script script/user/DeployVSkillUser.s.sol:DeployVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
+# Check if network configuration exists
+check-network-config:
+ifneq ($(NETWORK),anvil)
+	@if [ -z "$($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL)" ]; then \
+		echo "Error: Network '$(NETWORK)' is not supported. Please check your .env file for $(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL configuration."; \
+		exit 1; \
+	fi
+endif
 
-deploy-oracle-sepolia:
-	@forge script script/oracle/DeployDistribution.s.sol:DeployDistribution --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
+# Handle unknown arguments
+%:
+	@:
 
-deploy-oracle-anvil:
-	@forge script script/oracle/DeployDistribution.s.sol:DeployDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
-
-deploy-nft-user-sepolia:
-	@forge script script/nft/DeployVSkillUserNft.s.sol:DeployVSkillUserNft --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
-
-deploy-nft-user-anvil:
-	@forge script script/nft/DeployVSkillUserNft.s.sol:DeployVSkillUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
-
-deploy-verifier-sepolia:
-	@forge script script/verifier/DeployVerifier.s.sol:DeployVerifier --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --legacy -vvvv
-
-deploy-verifier-anvil:
-	@forge script script/verifier/DeployVerifier.s.sol:DeployVerifier --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vvvv
-	
-# Staking module interactions
+##############################   Interactions  ##############################
 
 withdrawStakeStaking-anvil:
 	@forge script script/staking/Interactions.s.sol:WithdrawStakeStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
@@ -124,7 +133,7 @@ mintUserNftVSkillUserNft-anvil:
 distributionRandomNumberForVerifiersDistribution-anvil:
 	@forge script script/oracle/Interactions.s.sol:DistributionRandomNumberForVerifiersDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
 
-# Audit
+##############################   Audit   ##############################
 
 slither:
 	@slither . --config-file ./slither.config.json
@@ -138,7 +147,7 @@ scope:
 scopeFile:
 	@tree ./src/ | sed 's/└/#/g' | awk -F '── ' '!/\.sol$$/ { path[int((length($$0) - length($$2))/2)] = $$2; next } { p = "src"; for(i=2; i<=int((length($$0) - length($$2))/2); i++) if (path[i] != "") p = p "/" path[i]; print p "/" $$2; }' > scope.txt
 
-# File conversion
+##############################   File conversion   ##############################
 packToCar:
 	@if [ -z "$(evidence)" ]; then \
 		echo "Error: Please specify an evidence file using the 'evidence' variable (e.g., make packToCar evidence=xxx.txt)"; \
@@ -167,7 +176,7 @@ unpackToOrigin:
 	mkdir -p evidence/origin
 	ipfs-car unpack --no-wrap evidence/car/$(carfile) > evidence/origin/$(output)
 
-# Upload file to Lighthouse
+##############################   Upload file to Lighthouse   ##############################
 
 # import your wallet first
 lighthouse-import-wallet:

@@ -230,6 +230,7 @@ contract VSkillUser is Ownable {
         address verifierContractAddress
     ) public onlyInitialized onlyRelayer {
         s_bonus = 0;
+        //slither-disable-next-line missing-zero-check
         (bool success, ) = verifierContractAddress.call{value: s_bonus}("");
         if (!success) {
             revert VSkillUser__TransferBonusFailed();
