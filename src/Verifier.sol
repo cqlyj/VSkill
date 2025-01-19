@@ -21,6 +21,7 @@ contract Verifier is Staking, Ownable {
     error Verifier__NotInitialized();
     error Verifier__AlreadyInitialized();
     error Verifier__NotRelayer();
+    error Verifier__ExistUnhandledEvidence();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -173,10 +174,10 @@ contract Verifier is Staking, Ownable {
         super.stake();
     }
 
-    // the verifier can withdraw the stake and lose the verifier status to get rest and make sure they will not be assigned to evidence
-    // but what if they still have unhandled evidence?
-    // @audit update this, if there are still unhandled evidence, the verifier cannot withdraw the stake
     function withdrawStakeAndLoseVerifier() public onlyInitialized {
+        if (s_verifierToInfo[msg.sender].unhandledRequestCount > 0) {
+            revert Verifier__ExistUnhandledEvidence();
+        }
         super.withdrawStake();
     }
 
