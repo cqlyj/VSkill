@@ -129,6 +129,7 @@ contract Verifier is Staking, Ownable {
         // if not approve, no need to call the following function since the default value is false
         // how to differentiate from those provide false and those who do not provide feedback?
         // those who do not provide feedback will not in the array
+        s_verifierToInfo[msg.sender].unhandledRequestCount--;
         if (!approve) {
             s_requestIdToVerifiersProvidedFeedback[requestId].push(msg.sender);
             return;
@@ -172,6 +173,9 @@ contract Verifier is Staking, Ownable {
         super.stake();
     }
 
+    // the verifier can withdraw the stake and lose the verifier status to get rest and make sure they will not be assigned to evidence
+    // but what if they still have unhandled evidence?
+    // @audit update this, if there are still unhandled evidence, the verifier cannot withdraw the stake
     function withdrawStakeAndLoseVerifier() public onlyInitialized {
         super.withdrawStake();
     }
@@ -258,6 +262,12 @@ contract Verifier is Staking, Ownable {
         } else {
             punishVerifier(verifier);
         }
+    }
+
+    function addVerifierUnhandleRequestCount(
+        address verifier
+    ) public onlyInitialized onlyRelayer {
+        s_verifierToInfo[verifier].unhandledRequestCount++;
     }
 
     /*//////////////////////////////////////////////////////////////
