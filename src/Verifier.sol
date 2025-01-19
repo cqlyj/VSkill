@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.26;
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import {Staking} from "src/Staking.sol";
 import {VSkillUser} from "src/VSkillUser.sol";
 import {Ownable} from "@openzeppelin-contracts/contracts/access/Ownable.sol";
