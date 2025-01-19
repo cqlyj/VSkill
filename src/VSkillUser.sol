@@ -54,11 +54,9 @@ contract VSkillUser is Ownable {
     Distribution private immutable i_distribution;
     // This bonus will be sent to the Verifier contract in a certain interval
     uint256 private s_bonus;
-    uint256 private s_profit;
     mapping(uint256 requestId => address[] verifiersApprovedEvidence)
         private s_requestIdToVerifiersApprovedEvidence;
     uint256 private constant BONUS_WEIGHT = 20;
-    uint256 private constant PROFIT_WEIGHT = 80;
     uint256 private constant TOTAL_WEIGHT = 100;
 
     /*//////////////////////////////////////////////////////////////
@@ -179,7 +177,6 @@ contract VSkillUser is Ownable {
         // 20% will be the bonus for verifiers
         s_bonus += (msg.value * BONUS_WEIGHT) / TOTAL_WEIGHT;
         // rest will be the profit or the money required for Chainlink services
-        s_profit += (msg.value * PROFIT_WEIGHT) / TOTAL_WEIGHT;
 
         emit VSkillUser__EvidenceSubmitted(msg.sender);
     }
@@ -251,8 +248,9 @@ contract VSkillUser is Ownable {
     }
 
     function withdrawProfit() external onlyOwner onlyInitialized {
-        s_profit = 0;
-        (bool success, ) = msg.sender.call{value: s_profit}("");
+        (bool success, ) = msg.sender.call{
+            value: address(this).balance - s_bonus
+        }("");
         if (!success) {
             revert VSkillUser__WithdrawFailed();
         }
