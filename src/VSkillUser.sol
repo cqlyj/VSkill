@@ -27,6 +27,7 @@ contract VSkillUser is Ownable {
     error VSkillUser__AlreadyInitialized();
     error VSkillUser__NotRelayer();
     error VSkillUser__WithdrawFailed();
+    error VSkillUser__TransferBonusFailed();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -67,6 +68,7 @@ contract VSkillUser is Ownable {
     event VSkillUser__SubmissionFeeChanged(uint256 newFeeInUsd);
     event VSkillUser__SkillDomainAdded(string skillDomain);
     event VSkillUser__Initialized(address relayer);
+    event VSkillUser__TransferBonus(uint256 bonus);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -222,6 +224,18 @@ contract VSkillUser is Ownable {
         StructDefinition.VSkillUserSubmissionStatus status
     ) public onlyInitialized onlyRelayer {
         s_requestIdToEvidence[requestId].status = status;
+    }
+
+    function transferBonusToVerifierContract(
+        address verifierContractAddress
+    ) public onlyInitialized onlyRelayer {
+        s_bonus = 0;
+        (bool success, ) = verifierContractAddress.call{value: s_bonus}("");
+        if (!success) {
+            revert VSkillUser__TransferBonusFailed();
+        }
+
+        emit VSkillUser__TransferBonus(s_bonus);
     }
 
     /*//////////////////////////////////////////////////////////////

@@ -305,6 +305,14 @@ contract Relayer is ILogAutomation, Ownable {
         emit Relayer__ForwarderSet(forwarder);
     }
 
+    // this transfer will be manually handled by the owner
+    function transferBonusFromVSkillUserToVerifierContract()
+        external
+        onlyOwner
+    {
+        i_vSkillUser.transferBonusToVerifierContract(address(i_verifier));
+    }
+
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
