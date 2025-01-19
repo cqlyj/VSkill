@@ -107,10 +107,8 @@ contract Relayer is ILogAutomation, Ownable {
 
         // As for the number of verifiers enough or not, since we only require 3 verifiers
         // At the very beginning of the project, we will make sure that the number of verifiers is enough for each skill domain(above 3)
+        // we always has three verifiers in the community to make sure it's always enough
         // After that we will allow users to submit the evidence
-        // Even if there are only 2 or 1 verifiers, we will still allow the user to submit the evidence and one of them will need to provide the same feedback twice
-        // If the length is zero: we will emit an event and the owner will need to handle this manually...(but this usually won't happen)
-        // @audit make sure the randomWordsWithinRange every element is unique!
         uint256 verifierWithinSameDomainLength = i_verifier
             .getSkillDomainToVerifiersWithinSameDomainLength(
                 evidence.skillDomain
@@ -124,6 +122,13 @@ contract Relayer is ILogAutomation, Ownable {
         for (uint8 i = 0; i < NUM_WORDS; i++) {
             randomWords[i] = randomWords[i] % verifierWithinSameDomainLength;
         }
+        // check the current randomWords is unique or not
+        // if not, we will need to modify the randomWords a bit
+        // since the length is only 3, we can afford to do this
+        randomWords = _makeRandomWordsUnique(
+            randomWords,
+            verifierWithinSameDomainLength
+        );
         s_requestIdToRandomWordsWithinRange[requestId] = randomWords;
         s_unhandledRequestIds.push(requestId);
         emit Relayer__UnhandledRequestIdAdded(s_unhandledRequestIds.length);
@@ -295,6 +300,40 @@ contract Relayer is ILogAutomation, Ownable {
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _makeRandomWordsUnique(
+        uint256[] memory randomWords,
+        uint256 verifierWithinSameDomainLength
+    ) internal pure returns (uint256[] memory) {
+        // Check and fix (0,1) pair
+        if (randomWords[0] == randomWords[1]) {
+            randomWords[1] =
+                (randomWords[1] + 1) %
+                verifierWithinSameDomainLength;
+        }
+
+        // Check and fix (0,2) pair
+        if (randomWords[0] == randomWords[2]) {
+            randomWords[2] =
+                (randomWords[2] + 1) %
+                verifierWithinSameDomainLength;
+        }
+
+        // Check and fix (1,2) pair
+        if (randomWords[1] == randomWords[2]) {
+            randomWords[2] =
+                (randomWords[2] + 1) %
+                verifierWithinSameDomainLength;
+            // After modification, need to check against first element again
+            if (randomWords[0] == randomWords[2]) {
+                randomWords[2] =
+                    (randomWords[2] + 1) %
+                    verifierWithinSameDomainLength;
+            }
+        }
+
+        return randomWords;
+    }
 
     function _onlyValidNotProcessedBatchNumber(
         uint256 batchNumber
