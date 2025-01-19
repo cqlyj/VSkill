@@ -48,7 +48,7 @@ contract VSkillUser is Ownable {
         public s_requestIdToEvidence;
     StructDefinition.VSkillUserEvidence[] public s_evidences;
     AggregatorV3Interface private i_priceFeed;
-    address private skillHandler;
+    address private i_relayer;
     bool private s_initialized;
     Distribution private immutable i_distribution;
     // This bonus will be sent to the Verifier contract in a certain interval
@@ -86,10 +86,10 @@ contract VSkillUser is Ownable {
         _;
     }
 
-    modifier onlySkillHandler() {
-        // The skillHandler is the one who can add more skills
+    modifier onlyRelayer() {
+        // The Relayer is the one who can add more skills
         // The tx.origin is the user who is calling the function to add more skills
-        if (msg.sender != skillHandler || tx.origin != owner()) {
+        if (msg.sender != i_relayer || tx.origin != owner()) {
             revert VSkillUser__NotSkillHandler();
         }
         _;
@@ -110,10 +110,10 @@ contract VSkillUser is Ownable {
         i_distribution = Distribution(_distribution);
     }
 
-    function initializeSkillHandler(
-        address _skillHandler
+    function initializeRelayer(
+        address _relayer
     ) external onlyOwner onlyNotInitialized {
-        skillHandler = _skillHandler;
+        i_relayer = _relayer;
         s_initialized = true;
     }
 
@@ -236,7 +236,7 @@ contract VSkillUser is Ownable {
 
     function addMoreSkills(
         string memory skillDomain
-    ) external virtual onlyOwner onlyInitialized onlySkillHandler {
+    ) external virtual onlyOwner onlyInitialized onlyRelayer {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }

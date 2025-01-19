@@ -20,7 +20,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     bytes32 private constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 private constant SKILL_DOMAIN_ADDER_ROLE =
         keccak256("SKILL_DOMAIN_ADDER_ROLE");
-    address private skillHandler;
+    address private i_relayer;
     bool private s_initialized;
 
     /*//////////////////////////////////////////////////////////////
@@ -90,12 +90,12 @@ contract VSkillUserNft is ERC721, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    // the skillHandler is the one who can add more skills
-    function initializeSkillHandler(
-        address _skillHandler
+    // the Relayer is the one who can add more skills
+    function initializeRelayer(
+        address _relayer
     ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyNotInitialized {
-        skillHandler = _skillHandler;
-        _grantRole(SKILL_DOMAIN_ADDER_ROLE, _skillHandler);
+        i_relayer = _relayer;
+        _grantRole(SKILL_DOMAIN_ADDER_ROLE, _relayer);
         s_initialized = true;
     }
 
