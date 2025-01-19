@@ -48,7 +48,7 @@ contract VSkillUser is Ownable {
     mapping(uint256 requestId => StructDefinition.VSkillUserEvidence)
         public s_requestIdToEvidence;
     StructDefinition.VSkillUserEvidence[] public s_evidences;
-    AggregatorV3Interface private i_priceFeed;
+    AggregatorV3Interface private immutable i_priceFeed;
     address private i_relayer;
     bool private s_initialized;
     Distribution private immutable i_distribution;
@@ -65,9 +65,10 @@ contract VSkillUser is Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event EvidenceSubmitted(address indexed submitter);
-    event SubmissionFeeChanged(uint256 newFeeInUsd);
-    event SkillDomainAdded(string skillDomain);
+    event VSkillUser__EvidenceSubmitted(address indexed submitter);
+    event VSkillUser__SubmissionFeeChanged(uint256 newFeeInUsd);
+    event VSkillUser__SkillDomainAdded(string skillDomain);
+    event VSkillUser__Initialized(address relayer);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -114,8 +115,11 @@ contract VSkillUser is Ownable {
     function initializeRelayer(
         address _relayer
     ) external onlyOwner onlyNotInitialized {
+        //slither-disable-next-line missing-zero-check
         i_relayer = _relayer;
         s_initialized = true;
+
+        emit VSkillUser__Initialized(i_relayer);
     }
 
     // For those unexpected ETH received, we will take them as the bonus for verifiers
@@ -177,7 +181,7 @@ contract VSkillUser is Ownable {
         // rest will be the profit or the money required for Chainlink services
         s_profit += (msg.value * PROFIT_WEIGHT) / TOTAL_WEIGHT;
 
-        emit EvidenceSubmitted(msg.sender);
+        emit VSkillUser__EvidenceSubmitted(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -196,7 +200,7 @@ contract VSkillUser is Ownable {
         // if it's false, we will update it to true
         // else jump to the next one
         for (uint8 i = 0; i < evidence.statusApproveOrNot.length; i++) {
-            if (evidence.statusApproveOrNot[i] == false) {
+            if (!evidence.statusApproveOrNot[i]) {
                 evidence.statusApproveOrNot[i] = true;
                 s_requestIdToVerifiersApprovedEvidence[requestId].push(
                     // the tx.origin is the one who initiated the transaction
@@ -232,7 +236,7 @@ contract VSkillUser is Ownable {
         uint256 newFeeInUsd
     ) public onlyOwner onlyInitialized {
         s_submissionFeeInUsd = newFeeInUsd;
-        emit SubmissionFeeChanged(newFeeInUsd);
+        emit VSkillUser__SubmissionFeeChanged(newFeeInUsd);
     }
 
     function addMoreSkills(
@@ -243,7 +247,7 @@ contract VSkillUser is Ownable {
         }
 
         s_skillDomains.push(skillDomain);
-        emit SkillDomainAdded(skillDomain);
+        emit VSkillUser__SkillDomainAdded(skillDomain);
     }
 
     function withdrawProfit() external onlyOwner onlyInitialized {

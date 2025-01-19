@@ -94,6 +94,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     function initializeRelayer(
         address _relayer
     ) external onlyRole(DEFAULT_ADMIN_ROLE) onlyNotInitialized {
+        //slither-disable-next-line missing-zero-check
         i_relayer = _relayer;
         _grantRole(SKILL_DOMAIN_ADDER_ROLE, _relayer);
         s_initialized = true;

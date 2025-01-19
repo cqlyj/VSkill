@@ -51,6 +51,7 @@ contract Relayer is ILogAutomation, Ownable {
     event Relayer__EvidenceAssignedToVerifiers();
     event Relayer__EvidenceProcessed(uint256 indexed batchNumber);
     event Relayer__UserNftsMinted(uint256 indexed batchNumber);
+    event Relayer__ForwarderSet(address forwarder);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -168,6 +169,9 @@ contract Relayer is ILogAutomation, Ownable {
                     i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
                 );
             for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
+                s_requestIdToVerifiersAssigned[requestId].push(
+                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
+                );
                 i_verifier.setVerifierAssignedRequestIds(
                     requestId,
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
@@ -177,9 +181,6 @@ contract Relayer is ILogAutomation, Ownable {
                 );
                 // only 7 days allowed for the verifiers to provide feedback
                 i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
-                s_requestIdToVerifiersAssigned[requestId].push(
-                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
-                );
             }
         }
         delete s_unhandledRequestIds;
@@ -214,6 +215,7 @@ contract Relayer is ILogAutomation, Ownable {
         s_batchProcessedOrNot[batchNumber] = StructDefinition
             .RelayerBatchStatus
             .PROCESSED;
+
         emit Relayer__EvidenceProcessed(batchNumber);
     }
 
@@ -296,8 +298,11 @@ contract Relayer is ILogAutomation, Ownable {
         i_vSkillUser.addMoreSkills(skillDomain);
     }
 
+    //slither-disable-next-line missing-zero-check
     function setForwarder(address forwarder) external onlyOwner {
         s_forwarder = forwarder;
+
+        emit Relayer__ForwarderSet(forwarder);
     }
 
     /*//////////////////////////////////////////////////////////////

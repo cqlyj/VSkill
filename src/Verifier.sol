@@ -3,7 +3,6 @@
 pragma solidity 0.8.26;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Staking} from "src/Staking.sol";
 import {VSkillUser} from "src/VSkillUser.sol";
 import {Ownable} from "@openzeppelin-contracts/contracts/access/Ownable.sol";
@@ -33,7 +32,7 @@ contract Verifier is Staking, Ownable {
     uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant MAXIMUM_REWARD = 0.05 ether; // half of the staking amount
 
-    AggregatorV3Interface private i_priceFeed;
+    AggregatorV3Interface private immutable i_priceFeed;
 
     mapping(string skillDomain => address[] verifiersWithinSameDomain)
         private s_skillDomainToVerifiersWithinSameDomain;
@@ -49,14 +48,19 @@ contract Verifier is Staking, Ownable {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-    event VerifierSkillDomainUpdated();
-    event FeedbackProvided(uint256 indexed requestId);
-    event VerifierRewarded(
+    event Verifier__VerifierSkillDomainUpdated();
+    event Verifier__FeedbackProvided(uint256 indexed requestId);
+    event Verifier__VerifierRewarded(
         address indexed verifier,
         uint256 reward,
         uint256 reputation
     );
-    event VerifierPenalized(address indexed verifier, uint256 reputation);
+    event Verifier__VerifierPenalized(
+        address indexed verifier,
+        uint256 reputation
+    );
+    event Verifier__LoseVerifier(address indexed verifier);
+    event Verifier__Initialized(address indexed relayer);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -102,8 +106,11 @@ contract Verifier is Staking, Ownable {
     function initializeRelayer(
         address _relayer
     ) external onlyOwner onlyNotInitialized {
+        //slither-disable-next-line missing-zero-check
         i_relayer = _relayer;
         s_initialized = true;
+
+        emit Verifier__Initialized(i_relayer);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -139,7 +146,7 @@ contract Verifier is Staking, Ownable {
             i_vSkillUser.approveEvidenceStatus(requestId, feedbackCid);
         }
 
-        emit FeedbackProvided(requestId);
+        emit Verifier__FeedbackProvided(requestId);
     }
 
     function addSkillDomain(
@@ -165,7 +172,7 @@ contract Verifier is Staking, Ownable {
         s_verifierToInfo[msg.sender].skillDomains.push(skillDomain);
         s_skillDomainToVerifiersWithinSameDomain[skillDomain].push(msg.sender);
 
-        emit VerifierSkillDomainUpdated();
+        emit Verifier__VerifierSkillDomainUpdated();
     }
 
     // This function will handle the skill domains and the stake
@@ -244,7 +251,11 @@ contract Verifier is Staking, Ownable {
 
         s_verifierToInfo[verifier].reward += rewardAmount;
 
-        emit VerifierRewarded(verifier, rewardAmount, currentReputation);
+        emit Verifier__VerifierRewarded(
+            verifier,
+            rewardAmount,
+            currentReputation
+        );
     }
 
     function penalizeVerifier(
@@ -255,7 +266,7 @@ contract Verifier is Staking, Ownable {
 
         if (s_verifierToInfo[verifier].reputation > LOWEST_REPUTATION) {
             s_verifierToInfo[verifier].reputation--;
-            emit VerifierPenalized(
+            emit Verifier__VerifierPenalized(
                 verifier,
                 s_verifierToInfo[verifier].reputation
             );
