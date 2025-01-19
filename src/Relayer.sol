@@ -267,6 +267,14 @@ contract Relayer is ILogAutomation, Ownable {
         }
     }
 
+    function addMoreSkill(
+        string memory skillDomain,
+        string memory nftImageUri
+    ) external onlyOwner {
+        i_vSkillUserNft.addMoreSkillsForNft(skillDomain, nftImageUri);
+        i_vSkillUser.addMoreSkills(skillDomain);
+    }
+
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
