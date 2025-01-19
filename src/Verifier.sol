@@ -6,8 +6,9 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {StructDefinition} from "src/library/StructDefinition.sol";
 import {Staking} from "src/Staking.sol";
 import {VSkillUser} from "src/VSkillUser.sol";
+import {Ownable} from "@openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract Verifier is Staking {
+contract Verifier is Staking, Ownable {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -17,6 +18,9 @@ contract Verifier is Staking {
     error Verifier__SkillDomainAlreadyAdded(address verifierAddress);
     error Verifier__EvidenceDeadlinePassed();
     error Verifier__AlreadyProvidedFeedback();
+    error Verifier__NotInitialized();
+    error Verifier__AlreadyInitialized();
+    error Verifier__NotRelayer();
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -38,6 +42,8 @@ contract Verifier is Staking {
     mapping(uint256 requestId => address[] verifiersProvidedFeedback)
         private s_requestIdToVerifiersProvidedFeedback;
     uint256 private s_reward;
+    address private i_relayer;
+    bool private s_initialized;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -56,6 +62,28 @@ contract Verifier is Staking {
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
+    modifier onlyInitialized() {
+        if (!s_initialized) {
+            revert Verifier__NotInitialized();
+        }
+        _;
+    }
+
+    modifier onlyNotInitialized() {
+        if (s_initialized) {
+            revert Verifier__AlreadyInitialized();
+        }
+        _;
+    }
+
+    modifier onlyRelayer() {
+        // The Relayer is the one who can add more skills
+        if (msg.sender != i_relayer) {
+            revert Verifier__NotRelayer();
+        }
+        _;
+    }
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -64,10 +92,18 @@ contract Verifier is Staking {
         address priceFeed,
         string[] memory skillDomains,
         address vSkillUser
-    ) {
+    ) Ownable(msg.sender) {
         i_priceFeed = AggregatorV3Interface(priceFeed);
         s_skillDomains = skillDomains;
         i_vSkillUser = VSkillUser(payable(vSkillUser));
+        s_initialized = false;
+    }
+
+    function initializeRelayer(
+        address _relayer
+    ) external onlyOwner onlyNotInitialized {
+        i_relayer = _relayer;
+        s_initialized = true;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -78,7 +114,7 @@ contract Verifier is Staking {
         uint256 requestId,
         string memory feedbackCid,
         bool approve
-    ) public onlyVerifier {
+    ) public onlyVerifier onlyInitialized {
         if (!_isSelectedVerifier(requestId)) {
             revert Verifier__NotSelectedVerifier();
         }
@@ -105,7 +141,9 @@ contract Verifier is Staking {
         emit FeedbackProvided(requestId);
     }
 
-    function addSkillDomain(string memory skillDomain) public onlyVerifier {
+    function addSkillDomain(
+        string memory skillDomain
+    ) public onlyVerifier onlyInitialized {
         if (!_isSkillDomainValid(skillDomain)) {
             revert Verifier__NotValidSkillDomain();
         }
@@ -130,15 +168,15 @@ contract Verifier is Staking {
     }
 
     // This function will handle the skill domains and the stake
-    function stakeToBecomeVerifier() public payable {
+    function stakeToBecomeVerifier() public payable onlyInitialized {
         super.stake();
     }
 
-    function withdrawStakeAndLoseVerifier() public {
+    function withdrawStakeAndLoseVerifier() public onlyInitialized {
         super.withdrawStake();
     }
 
-    function withdrawReward() public {
+    function withdrawReward() public onlyInitialized {
         (bool success, ) = msg.sender.call{
             value: s_verifierToInfo[msg.sender].reward
         }("");
@@ -154,18 +192,17 @@ contract Verifier is Staking {
                                  SETTER
     //////////////////////////////////////////////////////////////*/
 
-    // only the Relayer contract will be able to call this function
-    // @audit update!
     function setVerifierAssignedRequestIds(
         uint256 requestId,
         address verifier
-    ) public {
+    ) public onlyInitialized onlyRelayer {
         s_verifierToInfo[verifier].assignedRequestIds.push(requestId);
     }
 
-    // only the Relayer contract will be able to call this function
     // punish is lose the verifier, not the same as penalize
-    function punishVerifier(address verifier) public {
+    function punishVerifier(
+        address verifier
+    ) public onlyInitialized onlyRelayer {
         // take all the stake out and remove the verifier
         s_addressToIsVerifier[verifier] = false;
         s_verifierCount -= 1;
@@ -178,8 +215,9 @@ contract Verifier is Staking {
         emit LoseVerifier(verifier);
     }
 
-    // only the Relayer contract will be able to call this function
-    function rewardVerifier(address verifier) public {
+    function rewardVerifier(
+        address verifier
+    ) public onlyInitialized onlyRelayer {
         // 1. add reputation
         // 2. add reward
         // How to calculate the reward? => It depends on the reputation and the current contract reward balance
@@ -205,7 +243,9 @@ contract Verifier is Staking {
         emit VerifierRewarded(verifier, rewardAmount, currentReputation);
     }
 
-    function penalizeVerifier(address verifier) public {
+    function penalizeVerifier(
+        address verifier
+    ) public onlyInitialized onlyRelayer {
         // 1. minus reputation
         // 2. check if the reputation is lower than the lowest reputation, if yes, remove the verifier
 
