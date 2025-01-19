@@ -87,6 +87,7 @@ contract Staking {
             INITIAL_REPUTATION,
             new string[](0),
             new uint256[](0),
+            0,
             0
         );
 

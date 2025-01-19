@@ -38,5 +38,6 @@ library StructDefinition {
         string[] skillDomains;
         uint256[] assignedRequestIds;
         uint256 reward;
+        uint256 unhandledRequestCount;
     }
 }
