@@ -513,4 +513,12 @@ contract Relayer is ILogAutomation, Ownable {
             i_verifier.rewardVerifier(verifierWhoHasNotApproved);
         }
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                GETTERS
+    //////////////////////////////////////////////////////////////*/
+
+    function getVerifierContractAddress() external view returns (address) {
+        return address(i_verifier);
+    }
 }
