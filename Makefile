@@ -6,7 +6,7 @@ help:
 	@echo "Usage: make <target>"
 
 install:
-	@forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit && forge install foundry-rs/forge-std@v1.9.1 --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@1.3.0 --no-commit
+	@forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit && forge install foundry-rs/forge-std@v1.9.5 --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@1.3.0 --no-commit
 
 build:; @forge build
 
