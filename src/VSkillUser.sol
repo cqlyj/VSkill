@@ -25,7 +25,7 @@ contract VSkillUser is Ownable {
     error VSkillUser__EvidenceIndexOutOfRange();
     error VSkillUser__NotInitialized();
     error VSkillUser__AlreadyInitialized();
-    error VSkillUser__NotSkillHandler();
+    error VSkillUser__NotRelayer();
     error VSkillUser__WithdrawFailed();
 
     /*//////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ contract VSkillUser is Ownable {
         // The Relayer is the one who can add more skills
         // The tx.origin is the user who is calling the function to add more skills
         if (msg.sender != i_relayer || tx.origin != owner()) {
-            revert VSkillUser__NotSkillHandler();
+            revert VSkillUser__NotRelayer();
         }
         _;
     }
@@ -187,7 +187,7 @@ contract VSkillUser is Ownable {
     function approveEvidenceStatus(
         uint256 requestId,
         string memory feedbackCid
-    ) public {
+    ) public onlyInitialized {
         _calledByVerifierContract();
         StructDefinition.VSkillUserEvidence
             storage evidence = s_requestIdToEvidence[requestId];
@@ -212,14 +212,14 @@ contract VSkillUser is Ownable {
     function setDeadline(
         uint256 requestId,
         uint256 deadline
-    ) public onlyRelayer {
+    ) public onlyInitialized onlyRelayer {
         s_requestIdToEvidence[requestId].deadline = deadline;
     }
 
     function setEvidenceStatus(
         uint256 requestId,
         StructDefinition.VSkillUserSubmissionStatus status
-    ) public onlyRelayer {
+    ) public onlyInitialized onlyRelayer {
         s_requestIdToEvidence[requestId].status = status;
     }
 
@@ -246,7 +246,7 @@ contract VSkillUser is Ownable {
         emit SkillDomainAdded(skillDomain);
     }
 
-    function withdrawProfit() external onlyOwner {
+    function withdrawProfit() external onlyOwner onlyInitialized {
         (bool success, ) = msg.sender.call{value: s_profit}("");
         if (!success) {
             revert VSkillUser__WithdrawFailed();
@@ -290,7 +290,7 @@ contract VSkillUser is Ownable {
 
     function _calledByVerifierContract() internal view {
         if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
-            revert VSkillUser__NotSkillHandler();
+            revert VSkillUser__NotRelayer();
         }
     }
 
