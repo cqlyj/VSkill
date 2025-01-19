@@ -185,6 +185,7 @@ contract VSkillUser is Ownable {
 
     // only selected verifiers can call this function
     // @audit only the selected verifiers can call this function!
+    // how do we know if it's the selected verifiers?
     function approveEvidenceStatus(
         uint256 requestId,
         string memory feedbackCid
@@ -209,16 +210,17 @@ contract VSkillUser is Ownable {
         }
     }
 
-    // only Relayer can call this function
-    // @audit only the Relayer can call this function!
-    function setDeadline(uint256 requestId, uint256 deadline) public {
+    function setDeadline(
+        uint256 requestId,
+        uint256 deadline
+    ) public onlyRelayer {
         s_requestIdToEvidence[requestId].deadline = deadline;
     }
 
     function setEvidenceStatus(
         uint256 requestId,
         StructDefinition.VSkillUserSubmissionStatus status
-    ) public {
+    ) public onlyRelayer {
         s_requestIdToEvidence[requestId].status = status;
     }
 
