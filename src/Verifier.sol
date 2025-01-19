@@ -29,7 +29,6 @@ contract Verifier is Staking, Ownable {
 
     // why declare the constant again here, in the Staking contract, we have already declared the constant
     // because constant is not inherited, so we need to declare it again
-    uint256 private constant INITIAL_REPUTATION = 2;
     uint256 private constant LOWEST_REPUTATION = 0;
     uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant MAXIMUM_REWARD = 0.05 ether; // half of the staking amount
@@ -182,13 +181,13 @@ contract Verifier is Staking, Ownable {
     }
 
     function withdrawReward() public onlyInitialized {
+        s_verifierToInfo[msg.sender].reward = 0;
         (bool success, ) = msg.sender.call{
             value: s_verifierToInfo[msg.sender].reward
         }("");
         if (!success) {
             revert Staking__WithdrawFailed();
         }
-        s_verifierToInfo[msg.sender].reward = 0;
 
         emit Withdrawn(msg.sender, s_verifierToInfo[msg.sender].reward);
     }
