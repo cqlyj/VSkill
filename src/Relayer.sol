@@ -172,6 +172,9 @@ contract Relayer is ILogAutomation, Ownable {
                     requestId,
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
+                i_verifier.addVerifierUnhandleRequestCount(
+                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
+                );
                 // only 7 days allowed for the verifiers to provide feedback
                 i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
                 s_requestIdToVerifiersAssigned[requestId].push(
