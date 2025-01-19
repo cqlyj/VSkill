@@ -8,7 +8,6 @@ pragma solidity ^0.8.24;
 // import {MockLinkToken} from "@chainlink/contracts/src/v0.8/mocks/MockLinkToken.sol";
 // import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 // import {Distribution} from "src/oracle/Distribution.sol";
-// import {StructDefinition} from "src/utils/library/StructDefinition.sol";
 
 // contract CreateSubscriptionDistribution is Script {
 //     function createSubscriptionWithConfig() internal returns (uint64) {
@@ -149,49 +148,5 @@ pragma solidity ^0.8.24;
 //         );
 
 //         addConsumerUsingConfig(mostRecentlyDeployed);
-//     }
-// }
-
-// contract DistributionRandomNumberForVerifiersDistribution is Script {
-//     using StructDefinition for StructDefinition.VSkillUserEvidence;
-//     using StructDefinition for StructDefinition.VSkillUserSubmissionStatus;
-
-//     address public requester = makeAddr("requester");
-//     address public submitter = makeAddr("submitter");
-//     string constant EVIDENCE_IPFS_HASH = "evidenceIpfsHash";
-//     string constant SKILLDOMAIN = "frontEnd";
-//     StructDefinition.VSkillUserSubmissionStatus status =
-//         StructDefinition.VSkillUserSubmissionStatus.SUBMITTED;
-//     string[] feedbackIpfsHash;
-//     StructDefinition.VSkillUserEvidence public ev =
-//         StructDefinition.VSkillUserEvidence(
-//             submitter,
-//             EVIDENCE_IPFS_HASH,
-//             SKILLDOMAIN,
-//             status,
-//             feedbackIpfsHash
-//         );
-
-//     function distributionRandomNumberForVerifiers(
-//         address mostRecentlyDeployed
-//     ) public {
-//         vm.startBroadcast();
-//         Distribution distribution = Distribution(mostRecentlyDeployed);
-//         distribution.distributionRandomNumberForVerifiers(requester, ev);
-//         vm.stopBroadcast();
-//     }
-
-//     function run() external {
-//         address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment(
-//             "Distribution",
-//             block.chainid
-//         );
-
-//         console.log(
-//             "Using most recently deployed Distribution: ",
-//             mostRecentlyDeployed
-//         );
-
-//         distributionRandomNumberForVerifiers(mostRecentlyDeployed);
 //     }
 // }
