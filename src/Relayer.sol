@@ -47,7 +47,7 @@ contract Relayer is ILogAutomation, Ownable {
     event Relayer__UnhandledRequestIdAdded(
         uint256 indexed unhandledRequestIdsLength
     );
-    event Relayer__NoVerifierForThisSkillDomainYet();
+    event Relayer__NotEnoughVerifierForThisSkillDomainYet();
     event Relayer__EvidenceAssignedToVerifiers();
     event Relayer__EvidenceProcessed(uint256 indexed batchNumber);
     event Relayer__UserNftsMinted(uint256 indexed batchNumber);
@@ -109,8 +109,8 @@ contract Relayer is ILogAutomation, Ownable {
         bytes calldata performData
     ) external override onlyForwarder {
         uint256 requestId = abi.decode(performData, (uint256));
-        StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
-            .getRequestIdToEvidence(requestId);
+        string memory skillDomain = i_vSkillUser
+            .getRequestIdToEvidenceSkillDomain(requestId);
         uint256[] memory randomWords = i_distribution.getRandomWords(requestId);
 
         // As for the number of verifiers enough or not, since we only require 3 verifiers
@@ -118,11 +118,9 @@ contract Relayer is ILogAutomation, Ownable {
         // we always has three verifiers in the community to make sure it's always enough
         // After that we will allow users to submit the evidence
         uint256 verifierWithinSameDomainLength = i_verifier
-            .getSkillDomainToVerifiersWithinSameDomainLength(
-                evidence.skillDomain
-            );
-        if (verifierWithinSameDomainLength == 0) {
-            emit Relayer__NoVerifierForThisSkillDomainYet();
+            .getSkillDomainToVerifiersWithinSameDomainLength(skillDomain);
+        if (verifierWithinSameDomainLength < NUM_WORDS) {
+            emit Relayer__NotEnoughVerifierForThisSkillDomainYet();
             return;
         }
         // get the randomWords within the range of the verifierWithinSameDomainLength
