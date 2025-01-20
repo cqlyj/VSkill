@@ -11,18 +11,18 @@ contract DeployRelayer is Script {
     address public verifier;
     address public vSkillUserNft;
 
-    function _deployRelayer(
+    function deployRelayer(
         address _vSkillUser,
+        address _distribution,
         address _verifier,
-        address _vSkillUserNft,
-        address _distribution
-    ) internal returns (address) {
+        address _vSkillUserNft
+    ) public returns (address) {
         vm.startBroadcast();
         Relayer relayer = new Relayer(
             _vSkillUser,
+            _distribution,
             _verifier,
-            _vSkillUserNft,
-            _distribution
+            _vSkillUserNft
         );
         vm.stopBroadcast();
 
@@ -49,11 +49,11 @@ contract DeployRelayer is Script {
             uint64(block.chainid)
         );
 
-        address relayerAddress = _deployRelayer(
+        address relayerAddress = deployRelayer(
             vSkillUser,
+            distribution,
             verifier,
-            vSkillUserNft,
-            distribution
+            vSkillUserNft
         );
 
         return Relayer(relayerAddress);
