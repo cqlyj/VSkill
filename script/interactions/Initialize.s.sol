@@ -6,12 +6,14 @@ import {VSkillUser} from "src/VSkillUser.sol";
 import {VSkillUserNft} from "src/VSkillUserNft.sol";
 import {Verifier} from "src/Verifier.sol";
 import {Relayer} from "src/Relayer.sol";
+import {Distribution} from "src/Distribution.sol";
 import {RelayerHelperConfig} from "../helperConfig/RelayerHelperConfig.s.sol";
 import {MockRegistry} from "test/mock/MockRegistry.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 // This script will initialize the contracts to be ready for interacting
 contract Initialize is Script {
+    address public distributionAddress;
     address public vSkillUserAddress;
     address public vSkillUserNftAddress;
     address public verifierAddress;
@@ -19,7 +21,7 @@ contract Initialize is Script {
 
     function _getContractAddress()
         internal
-        returns (address, address, address, address)
+        returns (address, address, address, address, address)
     {
         vSkillUserAddress = Vm(address(vm)).getDeployment(
             "VSkillUser",
@@ -37,12 +39,17 @@ contract Initialize is Script {
             "Relayer",
             uint64(block.chainid)
         );
+        distributionAddress = Vm(address(vm)).getDeployment(
+            "Distribution",
+            uint64(block.chainid)
+        );
 
         return (
             vSkillUserAddress,
             vSkillUserNftAddress,
             verifierAddress,
-            relayerAddress
+            relayerAddress,
+            distributionAddress
         );
     }
 
@@ -99,12 +106,24 @@ contract Initialize is Script {
         }
     }
 
+    function _initializeToVSkillUser(
+        address distribution,
+        address vskillUser
+    ) public {
+        vm.startBroadcast();
+        Distribution(distribution).setVSkillUser(vskillUser);
+        vm.stopBroadcast();
+
+        console.log("Initialized Distribution contract to VSkillUser");
+    }
+
     function run() external {
         (
             vSkillUserAddress,
             vSkillUserNftAddress,
             verifierAddress,
-            relayerAddress
+            relayerAddress,
+            distributionAddress
         ) = _getContractAddress();
 
         RelayerHelperConfig relayerHelperConfig = new RelayerHelperConfig();
@@ -115,6 +134,8 @@ contract Initialize is Script {
         uint256 upkeepId = relayerHelperConfig
             .getActiveNetworkConfig()
             .upkeepId;
+
+        _initializeToVSkillUser(distributionAddress, vSkillUserAddress);
 
         _initializeToRelayer(
             VSkillUser(payable(vSkillUserAddress)),
