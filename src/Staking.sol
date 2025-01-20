@@ -95,7 +95,7 @@ contract Staking {
     }
 
     // This function will withdraw all the stake and remove the verifier
-    function withdrawStake() public onlyVerifier {
+    function withdrawStake() internal onlyVerifier {
         s_verifierCount -= 1;
         s_addressToIsVerifier[msg.sender] = false;
         delete s_verifierToInfo[msg.sender];
