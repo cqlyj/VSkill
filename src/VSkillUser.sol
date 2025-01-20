@@ -384,4 +384,8 @@ contract VSkillUser is Ownable {
     ) public view returns (uint256) {
         return s_requestIdToVerifiersApprovedEvidence[requestId].length;
     }
+
+    function getDistributionContractAddress() public view returns (address) {
+        return address(i_distribution);
+    }
 }
