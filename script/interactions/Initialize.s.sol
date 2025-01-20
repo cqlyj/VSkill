@@ -51,7 +51,7 @@ contract Initialize is Script {
         VSkillUserNft vSkillUserNft,
         Verifier verifier,
         address relayer
-    ) internal {
+    ) public {
         vm.startBroadcast();
 
         vSkillUser.initializeRelayer(relayer);
@@ -67,7 +67,7 @@ contract Initialize is Script {
         address registry,
         uint256 upkeepId,
         Relayer relayer
-    ) internal {
+    ) public {
         console.log(
             "Initializing contracts to Forwarder with upkeepId: ",
             upkeepId
