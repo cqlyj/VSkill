@@ -10,7 +10,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    uint64 immutable i_subscriptionId;
+    uint256 immutable i_subscriptionId;
     bytes32 immutable i_keyHash;
     uint32 immutable i_callbackGasLimit;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
@@ -49,7 +49,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
     //////////////////////////////////////////////////////////////*/
 
     constructor(
-        uint64 _subscriptionId,
+        uint256 _subscriptionId,
         bytes32 _keyHash,
         uint32 _callbackGasLimit,
         address vrfCoordinator
@@ -109,7 +109,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
                                 GETTERS
     //////////////////////////////////////////////////////////////*/
 
-    function getSubscriptionId() public view returns (uint64) {
+    function getSubscriptionId() public view returns (uint256) {
         return i_subscriptionId;
     }
 
