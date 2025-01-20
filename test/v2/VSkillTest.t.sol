@@ -94,7 +94,7 @@ contract VSkillTest is Test {
     }
 
     function testUserCanSubmitEvidence() external {
-        // vm.prank(USER);
-        // vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, skillDomain);
+        vm.prank(USER);
+        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, skillDomain);
     }
 }
