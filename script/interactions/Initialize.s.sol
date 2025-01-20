@@ -74,7 +74,7 @@ contract Initialize is Script {
         address registry,
         uint256 upkeepId,
         Relayer relayer
-    ) public {
+    ) public returns (address) {
         console.log(
             "Initializing contracts to Forwarder with upkeepId: ",
             upkeepId
@@ -91,6 +91,8 @@ contract Initialize is Script {
                 "Initialized contracts to Forwarder address: ",
                 forwarder
             );
+
+            return forwarder;
         } else {
             // here we have the real registry address
             vm.startBroadcast();
@@ -103,6 +105,8 @@ contract Initialize is Script {
                 "Initialized contracts to Forwarder address: ",
                 forwarder
             );
+
+            return forwarder;
         }
     }
 
