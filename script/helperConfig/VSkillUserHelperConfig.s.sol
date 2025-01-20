@@ -4,13 +4,11 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {MockV3Aggregator} from "../../test/mock/MockV3Aggregator.sol";
-import {Vm} from "forge-std/Vm.sol";
 
 contract VSkillUserHelperConfig is Script {
     struct NetworkConfig {
         uint256 submissionFeeInUsd;
         address priceFeed;
-        address distributionAddress;
     }
 
     NetworkConfig public activeNetworkConfig;
@@ -36,28 +34,18 @@ contract VSkillUserHelperConfig is Script {
         return activeNetworkConfig;
     }
 
-    function getSepoliaConfig() public view returns (NetworkConfig memory) {
-        address distributionAddress = Vm(address(vm)).getDeployment(
-            "Distribution",
-            uint64(block.chainid)
-        );
+    function getSepoliaConfig() public pure returns (NetworkConfig memory) {
         NetworkConfig memory sepoliaConfig = NetworkConfig({
             submissionFeeInUsd: SUBMISSION_FEE,
-            priceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306,
-            distributionAddress: distributionAddress
+            priceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306
         });
         return sepoliaConfig;
     }
 
-    function getMainnetConfig() public view returns (NetworkConfig memory) {
-        address distributionAddress = Vm(address(vm)).getDeployment(
-            "Distribution",
-            uint64(block.chainid)
-        );
+    function getMainnetConfig() public pure returns (NetworkConfig memory) {
         NetworkConfig memory mainnetConfig = NetworkConfig({
             submissionFeeInUsd: SUBMISSION_FEE,
-            priceFeed: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419,
-            distributionAddress: distributionAddress
+            priceFeed: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
         });
         return mainnetConfig;
     }
@@ -77,19 +65,9 @@ contract VSkillUserHelperConfig is Script {
         );
         vm.stopBroadcast();
 
-        address distributionAddress = Vm(address(vm)).getDeployment(
-            "Distribution",
-            uint64(block.chainid)
-        );
-
-        if (distributionAddress == address(0)) {
-            revert("Distribution contract not deployed");
-        }
-
         NetworkConfig memory anvilChainConfig = NetworkConfig({
             submissionFeeInUsd: SUBMISSION_FEE,
-            priceFeed: address(mockPriceFeed),
-            distributionAddress: distributionAddress
+            priceFeed: address(mockPriceFeed)
         });
 
         return anvilChainConfig;
