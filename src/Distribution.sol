@@ -15,9 +15,16 @@ contract Distribution is VRFConsumerBaseV2Plus {
     uint32 immutable i_callbackGasLimit;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 3;
+    address private i_vSkillUser;
 
     mapping(uint256 requestId => uint256[] randomWords)
         private s_requestIdToRandomWords;
+
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error Distribution__OnlyVSkillUser();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -25,6 +32,17 @@ contract Distribution is VRFConsumerBaseV2Plus {
 
     event VerifierDistributionRequested(uint256 indexed requestId);
     event RequestIdToRandomWordsUpdated(uint256 indexed requestId);
+
+    /*//////////////////////////////////////////////////////////////
+                               MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier onlyVSkillUser() {
+        if (msg.sender != i_vSkillUser) {
+            revert Distribution__OnlyVSkillUser();
+        }
+        _;
+    }
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
@@ -41,14 +59,18 @@ contract Distribution is VRFConsumerBaseV2Plus {
         i_callbackGasLimit = _callbackGasLimit;
     }
 
+    function setVSkillUser(address _vSkillUser) public onlyOwner {
+        i_vSkillUser = _vSkillUser;
+    }
+
     /*//////////////////////////////////////////////////////////////
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // the VSkillUser contract will call this function to request random numbers for verifierss
+    // the VSkillUser contract will call this function to request random numbers for verifiers
     function distributionRandomNumberForVerifiers()
         public
-        onlyOwner
+        onlyVSkillUser
         returns (uint256)
     {
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
@@ -111,5 +133,9 @@ contract Distribution is VRFConsumerBaseV2Plus {
         uint256 _requestId
     ) public view returns (uint256[] memory) {
         return s_requestIdToRandomWords[_requestId];
+    }
+
+    function getVSkillUser() public view returns (address) {
+        return i_vSkillUser;
     }
 }
