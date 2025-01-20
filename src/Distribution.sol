@@ -13,6 +13,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
     uint256 immutable i_subscriptionId;
     bytes32 immutable i_keyHash;
     uint32 immutable i_callbackGasLimit;
+    address immutable i_vrfCoordinator;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 3;
     address private i_vSkillUser;
@@ -57,6 +58,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
         i_subscriptionId = _subscriptionId;
         i_keyHash = _keyHash;
         i_callbackGasLimit = _callbackGasLimit;
+        i_vrfCoordinator = vrfCoordinator;
     }
 
     function setVSkillUser(address _vSkillUser) public onlyOwner {
@@ -81,8 +83,9 @@ contract Distribution is VRFConsumerBaseV2Plus {
                 callbackGasLimit: i_callbackGasLimit,
                 numWords: NUM_WORDS,
                 // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+                // For now just set it to false
                 extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: true})
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
                 )
             })
         );
@@ -137,5 +140,9 @@ contract Distribution is VRFConsumerBaseV2Plus {
 
     function getVSkillUser() public view returns (address) {
         return i_vSkillUser;
+    }
+
+    function getVrfCoordinator() public view returns (address) {
+        return i_vrfCoordinator;
     }
 }
