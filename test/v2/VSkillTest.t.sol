@@ -74,6 +74,10 @@ contract VSkillTest is Test {
         vm.deal(USER, 1000 ether);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                               VSKILLUSER
+    //////////////////////////////////////////////////////////////*/
+
     function testContractsHaveBeenInitializedProperly() external {
         vm.startPrank(vSkillUser.owner());
         vm.expectRevert(VSkillUser.VSkillUser__AlreadyInitialized.selector);
@@ -96,5 +100,24 @@ contract VSkillTest is Test {
     function testUserCanSubmitEvidence() external {
         vm.prank(USER);
         vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, skillDomain);
+
+        assertEq(
+            vSkillUser.getBonus(),
+            ((SUBMISSION_FEE * vSkillUser.getBonusWeight()) /
+                vSkillUser.getTotalWeight())
+        );
     }
+
+    function testUserCanOnlySubmitEvidenceWithValidSkillDomain() external {
+        vm.prank(USER);
+        vm.expectRevert(VSkillUser.VSkillUser__InvalidSkillDomain.selector);
+        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(
+            CID,
+            "Invalid Skill Domain"
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                VERIFIER
+    //////////////////////////////////////////////////////////////*/
 }
