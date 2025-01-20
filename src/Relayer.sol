@@ -81,6 +81,13 @@ contract Relayer is ILogAutomation, Ownable {
         s_batchProcessed = 0;
     }
 
+    //slither-disable-next-line missing-zero-check
+    function setForwarder(address forwarder) external onlyOwner {
+        s_forwarder = forwarder;
+
+        emit Relayer__ForwarderSet(forwarder);
+    }
+
     /*//////////////////////////////////////////////////////////////
                           CHAINLINK AUTOMATION
     //////////////////////////////////////////////////////////////*/
@@ -296,13 +303,6 @@ contract Relayer is ILogAutomation, Ownable {
     ) external onlyOwner {
         i_vSkillUserNft.addMoreSkillsForNft(skillDomain, nftImageUri);
         i_vSkillUser.addMoreSkills(skillDomain);
-    }
-
-    //slither-disable-next-line missing-zero-check
-    function setForwarder(address forwarder) external onlyOwner {
-        s_forwarder = forwarder;
-
-        emit Relayer__ForwarderSet(forwarder);
     }
 
     // this transfer will be manually handled by the owner
@@ -592,5 +592,9 @@ contract Relayer is ILogAutomation, Ownable {
 
     function getVerifierContractAddress() external view returns (address) {
         return address(i_verifier);
+    }
+
+    function getForwarder() external view returns (address) {
+        return s_forwarder;
     }
 }
