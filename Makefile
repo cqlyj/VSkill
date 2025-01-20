@@ -97,41 +97,11 @@ endif
 
 ##############################   Interactions  ##############################
 
-withdrawStakeStaking-anvil:
-	@forge script script/staking/Interactions.s.sol:WithdrawStakeStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-stakeSaking-anvil:
-	@forge script script/staking/Interactions.s.sol:StakeStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-addBonusMoneyForVerifierStaking-anvil:
-	@forge script script/staking/Interactions.s.sol:AddBonusMoneyForVerifierStaking --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-# User module interactions
-
-submitEvidenceVSkillUser-anvil:
-	@forge script script/user/Interactions.s.sol:SubmitEvidenceVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-changeSubmissionFeeVSkillUser-anvil:
-	@forge script script/user/Interactions.s.sol:ChangeSubmissionFeeVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-addMoreSkillsVSkillUser-anvil:
-	@forge script script/user/Interactions.s.sol:AddMoreSkillsVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-checkFeedbackOfEvidenceVSkillUser-anvil:
-	@forge script script/user/Interactions.s.sol:CheckFeedbackOfEvidenceVSkillUser --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-earnUserNft-anvil:
-	@forge script script/user/Interactions.s.sol:EarnUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-# User NFT module interactions
-
-mintUserNftVSkillUserNft-anvil:
-	@forge script script/nft/Interactions.s.sol:MintUserNftVSkillUserNft --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
-
-# Oracle module interactions
-
-distributionRandomNumberForVerifiersDistribution-anvil:
-	@forge script script/oracle/Interactions.s.sol:DistributionRandomNumberForVerifiersDistribution --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast -vv
+initialize-anvil:
+	@forge script script/interactions/Initialize.s.sol:Initialize \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
 
 ##############################   Audit   ##############################
 
