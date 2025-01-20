@@ -239,6 +239,17 @@ contract VSkillUser is Ownable {
         emit VSkillUser__TransferBonus(s_bonus);
     }
 
+    function addMoreSkills(
+        string memory skillDomain
+    ) external virtual onlyInitialized onlyRelayer {
+        if (_skillDomainAlreadyExists(skillDomain)) {
+            revert VSkillUser__SkillDomainAlreadyExists();
+        }
+
+        s_skillDomains.push(skillDomain);
+        emit VSkillUser__SkillDomainAdded(skillDomain);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -249,17 +260,6 @@ contract VSkillUser is Ownable {
     ) public onlyOwner onlyInitialized {
         s_submissionFeeInUsd = newFeeInUsd;
         emit VSkillUser__SubmissionFeeChanged(newFeeInUsd);
-    }
-
-    function addMoreSkills(
-        string memory skillDomain
-    ) external virtual onlyInitialized onlyRelayer {
-        if (_skillDomainAlreadyExists(skillDomain)) {
-            revert VSkillUser__SkillDomainAlreadyExists();
-        }
-
-        s_skillDomains.push(skillDomain);
-        emit VSkillUser__SkillDomainAdded(skillDomain);
     }
 
     function withdrawProfit() external onlyOwner onlyInitialized {
@@ -387,5 +387,17 @@ contract VSkillUser is Ownable {
 
     function getDistributionContractAddress() public view returns (address) {
         return address(i_distribution);
+    }
+
+    function getBonus() public view returns (uint256) {
+        return s_bonus;
+    }
+
+    function getBonusWeight() public pure returns (uint256) {
+        return BONUS_WEIGHT;
+    }
+
+    function getTotalWeight() public pure returns (uint256) {
+        return TOTAL_WEIGHT;
     }
 }
