@@ -11,6 +11,7 @@ import {Relayer} from "src/Relayer.sol";
 import {Verifier} from "src/Verifier.sol";
 import {VSkillUser} from "src/VSkillUser.sol";
 import {VSkillUserNft} from "src/VSkillUserNft.sol";
+import {Distribution} from "src/Distribution.sol";
 import {Initialize} from "script/interactions/Initialize.s.sol";
 import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol";
 
@@ -25,10 +26,14 @@ contract VSkillTest is Test {
     Verifier verifier;
     VSkillUser vSkillUser;
     VSkillUserNft vSkillUserNft;
+    Distribution distribution;
 
     RelayerHelperConfig relayerHelperConfig;
 
     address public USER = makeAddr("user");
+    string public constant skillDomain = "Blockchain";
+    string public constant CID = "cid";
+    uint256 public constant SUBMISSION_FEE = 0.0025e18;
 
     function setUp() external {
         deployRelayer = new DeployRelayer();
@@ -48,9 +53,16 @@ contract VSkillTest is Test {
         uint256 upkeepId = relayerHelperConfig
             .getActiveNetworkConfig()
             .upkeepId;
+        distribution = Distribution(
+            vSkillUser.getDistributionContractAddress()
+        );
 
         // Initialize those contracts
         Initialize initialize = new Initialize();
+        initialize._initializeToVSkillUser(
+            address(distribution),
+            address(vSkillUser)
+        );
         initialize._initializeToRelayer(
             vSkillUser,
             vSkillUserNft,
@@ -58,6 +70,8 @@ contract VSkillTest is Test {
             address(relayer)
         );
         initialize._initializeToForwarder(registry, upkeepId, relayer);
+
+        vm.deal(USER, 1000 ether);
     }
 
     function testContractsHaveBeenInitializedProperly() external {
@@ -76,5 +90,11 @@ contract VSkillTest is Test {
         vm.stopPrank();
 
         assert(relayer.getForwarder() != address(0));
+        assert(distribution.getVSkillUser() == address(vSkillUser));
+    }
+
+    function testUserCanSubmitEvidence() external {
+        // vm.prank(USER);
+        // vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, skillDomain);
     }
 }
