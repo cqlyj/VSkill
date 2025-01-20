@@ -7,7 +7,7 @@ import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VR
 import {MockLinkToken} from "@chainlink/contracts/src/v0.8/mocks/MockLinkToken.sol";
 
 contract FundSubscription is Script {
-    uint256 public constant FUND_AMOUNT = 3e18; // 3 LINK should be enough
+    uint256 public constant FUND_AMOUNT = 100e18; // 100 LINK
     uint256 public constant LOCAL_CHAIN_ID = 31337;
 
     function fundSubscription(
