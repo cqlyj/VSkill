@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {DeployRelayer} from "script/deploy/DeployRelayer.s.sol";
 import {DeployVerifier} from "script/deploy/DeployVerifier.s.sol";
 import {DeployVSkillUser} from "script/deploy/DeployVSkillUser.s.sol";
@@ -14,9 +14,15 @@ import {VSkillUserNft} from "src/VSkillUserNft.sol";
 import {Distribution} from "src/Distribution.sol";
 import {Initialize} from "script/interactions/Initialize.s.sol";
 import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 // We have already tested most of the functions in v1, here we will focus on testing the possible situations that can occur in the v2 version of the contract.
 contract VSkillTest is Test {
+    /*//////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
     DeployRelayer deployRelayer;
     DeployVerifier deployVerifier;
     DeployVSkillUser deployVSkillUser;
@@ -31,9 +37,20 @@ contract VSkillTest is Test {
     RelayerHelperConfig relayerHelperConfig;
 
     address public USER = makeAddr("user");
-    string public constant skillDomain = "Blockchain";
+    string public constant SKILL_DOMAIN = "Blockchain";
     string public constant CID = "cid";
     uint256 public constant SUBMISSION_FEE = 0.0025e18;
+    address public forwarder;
+
+    /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event RequestIdToRandomWordsUpdated(uint256 indexed requestId);
+
+    /*//////////////////////////////////////////////////////////////
+                                 SET UP
+    //////////////////////////////////////////////////////////////*/
 
     function setUp() external {
         deployRelayer = new DeployRelayer();
@@ -41,7 +58,6 @@ contract VSkillTest is Test {
         deployVSkillUser = new DeployVSkillUser();
         deployVSkillUserNft = new DeployVSkillUserNft();
 
-        relayer = deployRelayer.run();
         (verifier, ) = deployVerifier.run();
         (vSkillUser, ) = deployVSkillUser.run();
         (vSkillUserNft, ) = deployVSkillUserNft.run();
@@ -56,6 +72,13 @@ contract VSkillTest is Test {
         distribution = Distribution(
             vSkillUser.getDistributionContractAddress()
         );
+        address relayerAddress = deployRelayer.deployRelayer(
+            address(vSkillUser),
+            address(distribution),
+            address(verifier),
+            address(vSkillUserNft)
+        );
+        relayer = Relayer(relayerAddress);
 
         // Initialize those contracts
         Initialize initialize = new Initialize();
@@ -69,7 +92,11 @@ contract VSkillTest is Test {
             verifier,
             address(relayer)
         );
-        initialize._initializeToForwarder(registry, upkeepId, relayer);
+        forwarder = initialize._initializeToForwarder(
+            registry,
+            upkeepId,
+            relayer
+        );
 
         vm.deal(USER, 1000 ether);
     }
@@ -99,7 +126,7 @@ contract VSkillTest is Test {
 
     function testUserCanSubmitEvidence() external {
         vm.prank(USER);
-        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, skillDomain);
+        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, SKILL_DOMAIN);
 
         assertEq(
             vSkillUser.getBonus(),
@@ -132,11 +159,11 @@ contract VSkillTest is Test {
         verifier.addSkillDomain("Invalid Skill Domain");
 
         // 3. add valid skill domain
-        verifier.addSkillDomain(skillDomain);
+        verifier.addSkillDomain(SKILL_DOMAIN);
         vm.stopPrank();
 
         assert(verifier.getVerifierInfo(USER).skillDomains.length == 1);
-        assertEq(verifier.getVerifierInfo(USER).skillDomains[0], skillDomain);
+        assertEq(verifier.getVerifierInfo(USER).skillDomains[0], SKILL_DOMAIN);
     }
 
     function testVerifierCanWithdrawStakeWhenAllEvidenceHandled() external {
@@ -152,4 +179,60 @@ contract VSkillTest is Test {
         assertEq(verifier.getVerifierCount(), 0);
         assertEq(verifier.getVerifierInfo(USER).reputation, 0);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                RELAYER
+    //////////////////////////////////////////////////////////////*/
+
+    function testPerformUpkeepOnlyCalledByForwarder() external {
+        uint256 dummyRequestId = 1;
+        bytes memory performData = abi.encode(dummyRequestId);
+
+        vm.prank(USER);
+        vm.expectRevert(Relayer.Relayer__OnlyForwarder.selector);
+        relayer.performUpkeep(performData);
+    }
+
+    function testPerformUpkeepStopIfNotEnoughVerifier() external {
+        // 1. submit evidence
+        vm.startPrank(USER);
+        vm.recordLogs();
+        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, SKILL_DOMAIN);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        vm.stopPrank();
+
+        string memory skillDomain = vSkillUser
+            .getRequestIdToEvidenceSkillDomain(uint256(requestId));
+        assertEq(skillDomain, SKILL_DOMAIN);
+        // 2. Distribution contract will give the random words
+        VRFCoordinatorV2_5Mock vrfCoordinator = VRFCoordinatorV2_5Mock(
+            distribution.getVrfCoordinator()
+        );
+
+        vm.expectEmit(true, false, false, false, address(distribution));
+        emit RequestIdToRandomWordsUpdated(uint256(requestId));
+        vrfCoordinator.fulfillRandomWords(
+            uint256(requestId),
+            address(distribution)
+        );
+
+        uint256[] memory randomWords = distribution.getRandomWords(
+            uint256(requestId)
+        );
+
+        assertEq(randomWords.length, distribution.getNumWords());
+
+        // 3. Relayer catch the event and perform the upkeep
+        vm.startPrank(forwarder);
+
+        bytes memory performData = abi.encode(uint256(requestId));
+        relayer.performUpkeep(performData);
+
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 }
