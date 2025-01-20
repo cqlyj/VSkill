@@ -253,7 +253,7 @@ contract VSkillUser is Ownable {
 
     function addMoreSkills(
         string memory skillDomain
-    ) external virtual onlyOwner onlyInitialized onlyRelayer {
+    ) external virtual onlyInitialized onlyRelayer {
         if (_skillDomainAlreadyExists(skillDomain)) {
             revert VSkillUser__SkillDomainAlreadyExists();
         }
