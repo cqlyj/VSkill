@@ -120,4 +120,36 @@ contract VSkillTest is Test {
     /*//////////////////////////////////////////////////////////////
                                 VERIFIER
     //////////////////////////////////////////////////////////////*/
+
+    function testOnlyValidSkillDomainCanBeAddedToVerifier() external {
+        // 1. stake to be verifier
+        uint256 stakeAmount = verifier.getStakeEthAmount();
+        vm.startPrank(USER);
+        verifier.stakeToBecomeVerifier{value: stakeAmount}();
+
+        // 2. add invalid skill domain
+        vm.expectRevert(Verifier.Verifier__NotValidSkillDomain.selector);
+        verifier.addSkillDomain("Invalid Skill Domain");
+
+        // 3. add valid skill domain
+        verifier.addSkillDomain(skillDomain);
+        vm.stopPrank();
+
+        assert(verifier.getVerifierInfo(USER).skillDomains.length == 1);
+        assertEq(verifier.getVerifierInfo(USER).skillDomains[0], skillDomain);
+    }
+
+    function testVerifierCanWithdrawStakeWhenAllEvidenceHandled() external {
+        uint256 stakeAmount = verifier.getStakeEthAmount();
+        vm.startPrank(USER);
+        verifier.stakeToBecomeVerifier{value: stakeAmount}();
+
+        assertEq(verifier.getVerifierCount(), 1);
+
+        verifier.withdrawStakeAndLoseVerifier();
+        vm.stopPrank();
+
+        assertEq(verifier.getVerifierCount(), 0);
+        assertEq(verifier.getVerifierInfo(USER).reputation, 0);
+    }
 }
