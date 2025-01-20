@@ -373,6 +373,12 @@ contract VSkillUser is Ownable {
         return s_requestIdToEvidence[requestId].deadline;
     }
 
+    function getRequestIdToEvidenceSkillDomain(
+        uint256 requestId
+    ) public view returns (string memory) {
+        return s_requestIdToEvidence[requestId].skillDomain;
+    }
+
     function getRequestIdToVerifiersApprovedEvidence(
         uint256 requestId
     ) public view returns (address[] memory) {
