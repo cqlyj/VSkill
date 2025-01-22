@@ -236,6 +236,44 @@ contract VSkillTest is Test {
     }
 
     function testPerformUpkeepWorkingGood() external {
+        _setUpForRelayer();
+
+        assertEq(relayer.getUnhandledRequestIdsLength(), 1);
+    }
+
+    function testAssignEvidenceToVerifiersWorkingGood() external {
+        _setUpForRelayer();
+
+        vm.prank(relayer.owner());
+        relayer.assignEvidenceToVerifiers();
+
+        assertEq(relayer.getUnhandledRequestIdsLength(), 0);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _addVerifiers(
+        string memory skillDomain,
+        uint256 amount
+    ) internal returns (address[] memory) {
+        address[] memory verifiers = new address[](amount);
+        for (uint160 i = 0; i < amount; i++) {
+            address verifierAddress = address(i + 1); // i + 1 to avoid address(0)
+            vm.deal(verifierAddress, verifier.getStakeEthAmount());
+            vm.startPrank(verifierAddress);
+            verifier.stakeToBecomeVerifier{
+                value: verifier.getStakeEthAmount()
+            }();
+            verifier.addSkillDomain(skillDomain);
+            vm.stopPrank();
+            verifiers[i] = verifierAddress;
+        }
+        return verifiers;
+    }
+
+    function _setUpForRelayer() internal {
         // 0. before starting the test, we need to add verifiers
         _addVerifiers(SKILL_DOMAIN, 3);
 
@@ -275,30 +313,5 @@ contract VSkillTest is Test {
         relayer.performUpkeep(performData);
 
         vm.stopPrank();
-
-        assertEq(relayer.getUnhandledRequestIdsLength(), 1);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            HELPER FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _addVerifiers(
-        string memory skillDomain,
-        uint256 amount
-    ) internal returns (address[] memory) {
-        address[] memory verifiers = new address[](amount);
-        for (uint160 i = 0; i < amount; i++) {
-            address verifierAddress = address(i);
-            vm.deal(verifierAddress, verifier.getStakeEthAmount());
-            vm.startPrank(verifierAddress);
-            verifier.stakeToBecomeVerifier{
-                value: verifier.getStakeEthAmount()
-            }();
-            verifier.addSkillDomain(skillDomain);
-            vm.stopPrank();
-            verifiers[i] = verifierAddress;
-        }
-        return verifiers;
     }
 }
