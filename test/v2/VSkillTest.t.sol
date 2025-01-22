@@ -250,6 +250,23 @@ contract VSkillTest is Test {
         assertEq(relayer.getUnhandledRequestIdsLength(), 0);
     }
 
+    function testProcessEvidenceStatusWorkingGood() external {
+        _setUpForRelayer();
+
+        vm.startPrank(relayer.owner());
+        relayer.assignEvidenceToVerifiers();
+        uint256 batchNumber = relayer.getBatchProcessed();
+        uint256 deadline = relayer.getDeadline();
+        vm.warp(deadline + 1);
+        relayer.processEvidenceStatus(batchNumber - 1);
+        vm.stopPrank();
+
+        // all verifiers should be punished(Lose verifier)
+        assert(verifier.getVerifierCount() == 0);
+        // 3 because in the _setUpForRelayer function we added 3 verifiers
+        assertEq(verifier.getReward(), verifier.getStakeEthAmount() * 3);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
