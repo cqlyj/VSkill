@@ -16,6 +16,7 @@ import {Initialize} from "script/interactions/Initialize.s.sol";
 import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {VerifierHelperConfig} from "script/helperConfig/VerifierHelperConfig.s.sol";
 
 // We have already tested most of the functions in v1, here we will focus on testing the possible situations that can occur in the v2 version of the contract.
 contract VSkillTest is Test {
@@ -35,6 +36,7 @@ contract VSkillTest is Test {
     Distribution distribution;
 
     RelayerHelperConfig relayerHelperConfig;
+    VerifierHelperConfig verifierHelperConfig;
 
     address public USER = makeAddr("user");
     string public constant SKILL_DOMAIN = "Blockchain";
@@ -59,9 +61,21 @@ contract VSkillTest is Test {
         deployVSkillUser = new DeployVSkillUser();
         deployVSkillUserNft = new DeployVSkillUserNft();
 
-        (verifier, ) = deployVerifier.run();
         (vSkillUser, ) = deployVSkillUser.run();
         (vSkillUserNft, ) = deployVSkillUserNft.run();
+
+        verifierHelperConfig = new VerifierHelperConfig();
+        address priceFeed = verifierHelperConfig
+            .getActiveNetworkConfig()
+            .priceFeed;
+        string[] memory skillDomains = verifierHelperConfig
+            .getActiveNetworkConfig()
+            .skillDomains;
+        verifier = deployVerifier.deployVerifier(
+            priceFeed,
+            skillDomains,
+            address(vSkillUser)
+        );
 
         relayerHelperConfig = new RelayerHelperConfig();
         address registry = relayerHelperConfig
@@ -267,6 +281,33 @@ contract VSkillTest is Test {
         assertEq(verifier.getReward(), verifier.getStakeEthAmount() * 3);
     }
 
+    function testHandleEvidenceAfterDeadline(
+        string memory feedbackCid
+    ) external {
+        (
+            address[] memory selectedVerifiers,
+            uint256 requestId
+        ) = _setUpForRelayer();
+
+        vm.startPrank(relayer.owner());
+        relayer.assignEvidenceToVerifiers();
+        vm.stopPrank();
+        uint256 batchNumber = relayer.getBatchProcessed();
+        uint256 deadline = relayer.getDeadline();
+        // For now all of them approved the evidence so we can mint the NFT
+        for (uint8 i = 0; i < selectedVerifiers.length; i++) {
+            vm.prank(selectedVerifiers[i]);
+            verifier.provideFeedback(requestId, feedbackCid, true);
+        }
+        vm.warp(deadline + 1);
+        vm.startPrank(relayer.owner());
+        relayer.processEvidenceStatus(batchNumber - 1);
+        relayer.handleEvidenceAfterDeadline(batchNumber - 1);
+        vm.stopPrank();
+
+        assert(vSkillUserNft.balanceOf(USER) == 1);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
@@ -290,9 +331,9 @@ contract VSkillTest is Test {
         return verifiers;
     }
 
-    function _setUpForRelayer() internal {
+    function _setUpForRelayer() internal returns (address[] memory, uint256) {
         // 0. before starting the test, we need to add verifiers
-        _addVerifiers(SKILL_DOMAIN, 3);
+        address[] memory selectedVerifiers = _addVerifiers(SKILL_DOMAIN, 3);
 
         // 1. submit evidence
         vm.startPrank(USER);
@@ -330,5 +371,7 @@ contract VSkillTest is Test {
         relayer.performUpkeep(performData);
 
         vm.stopPrank();
+
+        return (selectedVerifiers, uint256(requestId));
     }
 }
