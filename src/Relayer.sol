@@ -304,6 +304,8 @@ contract Relayer is ILogAutomation, Ownable {
     }
 
     // this transfer will be manually handled by the owner
+    // What about use delegatecall...? (do the operation in the context of the caller)
+    // @update come back to this design later
     function transferBonusFromVSkillUserToVerifierContract()
         external
         onlyOwner
@@ -602,5 +604,31 @@ contract Relayer is ILogAutomation, Ownable {
 
     function getUnhandledRequestIdsLength() external view returns (uint256) {
         return s_unhandledRequestIds.length;
+    }
+
+    function getBatchProcessed() external view returns (uint256) {
+        return s_batchProcessed;
+    }
+
+    function getBatchToProcessedRequestIds(
+        uint256 batchNumber
+    ) external view returns (uint256[] memory) {
+        return s_batchToProcessedRequestIds[batchNumber];
+    }
+
+    function getBatchToDeadline(
+        uint256 batchNumber
+    ) external view returns (uint256) {
+        return s_batchToDeadline[batchNumber];
+    }
+
+    function getBatchProcessedOrNot(
+        uint256 batchNumber
+    ) external view returns (StructDefinition.RelayerBatchStatus) {
+        return s_batchProcessedOrNot[batchNumber];
+    }
+
+    function getDeadline() external pure returns (uint256) {
+        return DEADLINE;
     }
 }
