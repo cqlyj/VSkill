@@ -47,6 +47,7 @@ contract VSkillTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     event RequestIdToRandomWordsUpdated(uint256 indexed requestId);
+    event Relayer__NotEnoughVerifierForThisSkillDomainYet();
 
     /*//////////////////////////////////////////////////////////////
                                  SET UP
@@ -227,12 +228,77 @@ contract VSkillTest is Test {
         vm.startPrank(forwarder);
 
         bytes memory performData = abi.encode(uint256(requestId));
+        vm.expectEmit(false, false, false, false, address(relayer));
+        emit Relayer__NotEnoughVerifierForThisSkillDomainYet();
         relayer.performUpkeep(performData);
 
         vm.stopPrank();
     }
 
+    function testPerformUpkeepWorkingGood() external {
+        // 0. before starting the test, we need to add verifiers
+        _addVerifiers(SKILL_DOMAIN, 3);
+
+        // 1. submit evidence
+        vm.startPrank(USER);
+        vm.recordLogs();
+        vSkillUser.submitEvidence{value: SUBMISSION_FEE}(CID, SKILL_DOMAIN);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        vm.stopPrank();
+
+        string memory skillDomain = vSkillUser
+            .getRequestIdToEvidenceSkillDomain(uint256(requestId));
+        assertEq(skillDomain, SKILL_DOMAIN);
+        // 2. Distribution contract will give the random words
+        VRFCoordinatorV2_5Mock vrfCoordinator = VRFCoordinatorV2_5Mock(
+            distribution.getVrfCoordinator()
+        );
+
+        vm.expectEmit(true, false, false, false, address(distribution));
+        emit RequestIdToRandomWordsUpdated(uint256(requestId));
+        vrfCoordinator.fulfillRandomWords(
+            uint256(requestId),
+            address(distribution)
+        );
+
+        uint256[] memory randomWords = distribution.getRandomWords(
+            uint256(requestId)
+        );
+
+        assertEq(randomWords.length, distribution.getNumWords());
+
+        // 3. Relayer catch the event and perform the upkeep
+        vm.startPrank(forwarder);
+
+        bytes memory performData = abi.encode(uint256(requestId));
+        relayer.performUpkeep(performData);
+
+        vm.stopPrank();
+
+        assertEq(relayer.getUnhandledRequestIdsLength(), 1);
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _addVerifiers(
+        string memory skillDomain,
+        uint256 amount
+    ) internal returns (address[] memory) {
+        address[] memory verifiers = new address[](amount);
+        for (uint160 i = 0; i < amount; i++) {
+            address verifierAddress = address(i);
+            vm.deal(verifierAddress, verifier.getStakeEthAmount());
+            vm.startPrank(verifierAddress);
+            verifier.stakeToBecomeVerifier{
+                value: verifier.getStakeEthAmount()
+            }();
+            verifier.addSkillDomain(skillDomain);
+            vm.stopPrank();
+            verifiers[i] = verifierAddress;
+        }
+        return verifiers;
+    }
 }
