@@ -110,7 +110,8 @@ contract VSkillUserNft is ERC721, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     function mintUserNft(
-        string memory skillDomain
+        string memory skillDomain,
+        address to
     ) public onlyRole(MINTER_ROLE) onlyInitialized {
         if (!_validSkillDomain(skillDomain)) {
             revert VSkillUserNft__InvalidSkillDomain();
@@ -118,7 +119,7 @@ contract VSkillUserNft is ERC721, AccessControl {
 
         s_tokenIdToSkillDomain[s_tokenCounter] = skillDomain;
         s_tokenCounter++;
-        _safeMint(msg.sender, s_tokenCounter - 1);
+        _safeMint(to, s_tokenCounter - 1);
 
         emit VSkillUserNftMinted(s_tokenCounter - 1, skillDomain);
     }

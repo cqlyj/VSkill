@@ -250,17 +250,18 @@ contract Relayer is ILogAutomation, Ownable {
         uint256 length = requestIds.length;
         for (uint256 i = 0; i < length; i++) {
             uint256 requestId = requestIds[i];
-            StructDefinition.VSkillUserSubmissionStatus status = i_vSkillUser
-                .getRequestIdToEvidenceStatus(requestId);
+            StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
+                .getRequestIdToEvidence(requestId);
             // mint those who have the status approved or DIFFERENTOPINION_A
             if (
-                status ==
+                evidence.status ==
                 StructDefinition.VSkillUserSubmissionStatus.APPROVED ||
-                status ==
+                evidence.status ==
                 StructDefinition.VSkillUserSubmissionStatus.DIFFERENTOPINION_A
             ) {
                 i_vSkillUserNft.mintUserNft(
-                    i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
+                    i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain,
+                    evidence.submitter
                 );
             }
         }
