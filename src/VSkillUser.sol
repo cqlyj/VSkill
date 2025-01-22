@@ -229,14 +229,15 @@ contract VSkillUser is Ownable {
     function transferBonusToVerifierContract(
         address verifierContractAddress
     ) public onlyInitialized onlyRelayer {
+        uint256 bonusAmount = s_bonus;
         s_bonus = 0;
         //slither-disable-next-line missing-zero-check
-        (bool success, ) = verifierContractAddress.call{value: s_bonus}("");
+        (bool success, ) = verifierContractAddress.call{value: bonusAmount}("");
         if (!success) {
             revert VSkillUser__TransferBonusFailed();
         }
 
-        emit VSkillUser__TransferBonus(s_bonus);
+        emit VSkillUser__TransferBonus(bonusAmount);
     }
 
     function addMoreSkills(
