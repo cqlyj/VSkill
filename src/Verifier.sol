@@ -363,4 +363,8 @@ contract Verifier is Staking, Ownable {
     ) external view returns (uint256) {
         return s_requestIdToVerifiersProvidedFeedback[requestId].length;
     }
+
+    function getReward() external view returns (uint256) {
+        return s_reward;
+    }
 }
