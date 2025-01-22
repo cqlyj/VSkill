@@ -4,13 +4,11 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {MockV3Aggregator} from "test/mock/MockV3Aggregator.sol";
-import {Vm} from "forge-std/Vm.sol";
 
 contract VerifierHelperConfig is Script {
     struct NetworkConfig {
         address priceFeed;
         string[] skillDomains;
-        address vSkillUser;
     }
 
     string[] private skillDomains = [
@@ -45,29 +43,17 @@ contract VerifierHelperConfig is Script {
     }
 
     function getSepoliaConfig() public view returns (NetworkConfig memory) {
-        address vSkillUserAddress = Vm(address(vm)).getDeployment(
-            "VSkillUser",
-            uint64(block.chainid)
-        );
-
         NetworkConfig memory sepoliaConfig = NetworkConfig({
             priceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306,
-            skillDomains: skillDomains,
-            vSkillUser: vSkillUserAddress
+            skillDomains: skillDomains
         });
         return sepoliaConfig;
     }
 
     function getMainnetConfig() public view returns (NetworkConfig memory) {
-        address vSkillUserAddress = Vm(address(vm)).getDeployment(
-            "VSkillUser",
-            uint64(block.chainid)
-        );
-
         NetworkConfig memory mainnetConfig = NetworkConfig({
             priceFeed: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419,
-            skillDomains: skillDomains,
-            vSkillUser: vSkillUserAddress
+            skillDomains: skillDomains
         });
         return mainnetConfig;
     }
@@ -88,15 +74,9 @@ contract VerifierHelperConfig is Script {
 
         vm.stopBroadcast();
 
-        address vSkillUserAddress = Vm(address(vm)).getDeployment(
-            "VSkillUser",
-            uint64(block.chainid)
-        );
-
         NetworkConfig memory anvilChainConfig = NetworkConfig({
             priceFeed: address(mockPriceFeed),
-            skillDomains: skillDomains,
-            vSkillUser: vSkillUserAddress
+            skillDomains: skillDomains
         });
 
         return anvilChainConfig;
