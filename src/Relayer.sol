@@ -595,4 +595,12 @@ contract Relayer is ILogAutomation, Ownable {
     function getForwarder() external view returns (address) {
         return s_forwarder;
     }
+
+    function getUnhandledRequestIds() external view returns (uint256[] memory) {
+        return s_unhandledRequestIds;
+    }
+
+    function getUnhandledRequestIdsLength() external view returns (uint256) {
+        return s_unhandledRequestIds.length;
+    }
 }
