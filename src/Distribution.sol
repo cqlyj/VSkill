@@ -26,6 +26,8 @@ contract Distribution is VRFConsumerBaseV2Plus {
     //////////////////////////////////////////////////////////////*/
 
     error Distribution__OnlyVSkillUser();
+    error Distribution__VrfCoordinatorZeroAddress();
+    error Distribution__VSkillUserZeroAddress();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -33,6 +35,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
 
     event VerifierDistributionRequested(uint256 indexed requestId);
     event RequestIdToRandomWordsUpdated(uint256 indexed requestId);
+    event Distribution__VSkillUserSet(address indexed vSkillUser);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -55,6 +58,9 @@ contract Distribution is VRFConsumerBaseV2Plus {
         uint32 _callbackGasLimit,
         address vrfCoordinator
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
+        if (vrfCoordinator == address(0)) {
+            revert Distribution__VrfCoordinatorZeroAddress();
+        }
         i_subscriptionId = _subscriptionId;
         i_keyHash = _keyHash;
         i_callbackGasLimit = _callbackGasLimit;
@@ -62,7 +68,12 @@ contract Distribution is VRFConsumerBaseV2Plus {
     }
 
     function setVSkillUser(address _vSkillUser) public onlyOwner {
+        if (_vSkillUser == address(0)) {
+            revert Distribution__VSkillUserZeroAddress();
+        }
         i_vSkillUser = _vSkillUser;
+
+        emit Distribution__VSkillUserSet(_vSkillUser);
     }
 
     /*//////////////////////////////////////////////////////////////

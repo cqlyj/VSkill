@@ -61,6 +61,7 @@ contract Verifier is Staking, Ownable {
     );
     event Verifier__LoseVerifier(address indexed verifier);
     event Verifier__Initialized(address indexed relayer);
+    event Verifier__RewardAdded(uint256 reward);
 
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
@@ -285,6 +286,8 @@ contract Verifier is Staking, Ownable {
 
     function addReward(uint256 reward) public onlyInitialized onlyRelayer {
         s_reward += reward;
+
+        emit Verifier__RewardAdded(reward);
     }
 
     /*//////////////////////////////////////////////////////////////
