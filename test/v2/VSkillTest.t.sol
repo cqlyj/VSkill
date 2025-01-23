@@ -167,7 +167,7 @@ contract VSkillTest is Test {
         // 1. stake to be verifier
         uint256 stakeAmount = verifier.getStakeEthAmount();
         vm.startPrank(USER);
-        verifier.stakeToBecomeVerifier{value: stakeAmount}();
+        verifier.stake{value: stakeAmount}();
 
         // 2. add invalid skill domain
         vm.expectRevert(Verifier.Verifier__NotValidSkillDomain.selector);
@@ -184,7 +184,7 @@ contract VSkillTest is Test {
     function testVerifierCanWithdrawStakeWhenAllEvidenceHandled() external {
         uint256 stakeAmount = verifier.getStakeEthAmount();
         vm.startPrank(USER);
-        verifier.stakeToBecomeVerifier{value: stakeAmount}();
+        verifier.stake{value: stakeAmount}();
 
         assertEq(verifier.getVerifierCount(), 1);
 
@@ -362,9 +362,7 @@ contract VSkillTest is Test {
             address verifierAddress = address(i + 1); // i + 1 to avoid address(0)
             vm.deal(verifierAddress, verifier.getStakeEthAmount());
             vm.startPrank(verifierAddress);
-            verifier.stakeToBecomeVerifier{
-                value: verifier.getStakeEthAmount()
-            }();
+            verifier.stake{value: verifier.getStakeEthAmount()}();
             verifier.addSkillDomain(skillDomain);
             vm.stopPrank();
             verifiers[i] = verifierAddress;
