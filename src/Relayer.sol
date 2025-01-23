@@ -156,12 +156,16 @@ contract Relayer is ILogAutomation, Ownable {
     // set the assigned verifiers as the one who can change the evidence status
     // @audit refactor this function to be more gas efficient!
     function assignEvidenceToVerifiers() external onlyOwner {
+        uint256 length = s_unhandledRequestIds.length;
+        // if there is no unhandled request, we will return so that we don't waste gas
+        if (length == 0) {
+            return;
+        }
         // update the batch number
         s_batchToProcessedRequestIds[s_batchProcessed] = s_unhandledRequestIds;
         s_batchToDeadline[s_batchProcessed] = block.timestamp + DEADLINE;
         s_batchProcessed++;
 
-        uint256 length = s_unhandledRequestIds.length;
         // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
         for (uint256 i = 0; i < length; i++) {
             uint256 requestId = s_unhandledRequestIds[i];
