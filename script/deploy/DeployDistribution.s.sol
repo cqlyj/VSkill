@@ -26,6 +26,11 @@ contract DeployDistribution is Script {
         // @update these below are commented out because they are not needed in the script for deployment
 
         if (subscriptionId == 0) {
+            if (block.chainid != 31337) {
+                revert(
+                    "Subscription ID is not set, please manually run the scripts to create and fund the subscription"
+                );
+            }
             // Create subscription
             CreateSubscription subscription = new CreateSubscription();
             (subscriptionId, ) = subscription.createSubscription(
