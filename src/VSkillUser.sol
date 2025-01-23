@@ -228,7 +228,7 @@ contract VSkillUser is Ownable {
 
     function transferBonusToVerifierContract(
         address verifierContractAddress
-    ) public onlyInitialized onlyRelayer {
+    ) public onlyInitialized onlyRelayer returns (uint256) {
         uint256 bonusAmount = s_bonus;
         s_bonus = 0;
         //slither-disable-next-line missing-zero-check
@@ -238,6 +238,8 @@ contract VSkillUser is Ownable {
         }
 
         emit VSkillUser__TransferBonus(bonusAmount);
+
+        return bonusAmount;
     }
 
     function addMoreSkills(
@@ -406,5 +408,9 @@ contract VSkillUser is Ownable {
 
     function getTotalWeight() public pure returns (uint256) {
         return TOTAL_WEIGHT;
+    }
+
+    function getSubmissionFeeInEth() public view returns (uint256) {
+        return s_submissionFeeInUsd.convertUsdToEth(i_priceFeed);
     }
 }
