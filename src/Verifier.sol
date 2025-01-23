@@ -177,7 +177,7 @@ contract Verifier is Staking, Ownable {
     }
 
     // This function will handle the skill domains and the stake
-    function stakeToBecomeVerifier() public payable onlyInitialized {
+    function stake() public payable override onlyInitialized {
         super.stake();
     }
 

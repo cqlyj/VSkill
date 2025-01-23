@@ -74,7 +74,7 @@ contract Staking {
     // @update we will transfer the stake to Relayer contract and let the Relayer contract handle the stake
     // The actual become verifier function will be in the Verifier contract
     // This only handles the stake
-    function stake() public payable onlyNonVerifier {
+    function stake() public payable virtual onlyNonVerifier {
         if (msg.value != STAKE_ETH_AMOUNT) {
             revert Staking__NotCorrectStakeAmount();
         }
