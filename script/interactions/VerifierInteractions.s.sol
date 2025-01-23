@@ -1,155 +1,84 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.24;
+pragma solidity 0.8.26;
 
-// import {Script, console} from "forge-std/Script.sol";
-// import {HelperConfig} from "./HelperConfig.s.sol";
-// import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2Mock.sol";
-// import {MockLinkToken} from "@chainlink/contracts/src/v0.8/mocks/MockLinkToken.sol";
-// import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {Verifier} from "src/Verifier.sol";
+import {Vm} from "forge-std/Vm.sol";
 
-// contract CreateSubscriptionDistribution is Script {
-//     function createSubscriptionWithConfig() internal returns (uint64) {
-//         HelperConfig helperConfig = new HelperConfig();
-//         (, , address vrfCoordinator, , , , , uint256 deployerKey) = helperConfig
-//             .activeNetworkConfig();
-//         return createSubscription(vrfCoordinator, deployerKey);
-//     }
+contract Stake is Script {
+    function stake(address verifier) public {
+        vm.startBroadcast();
 
-//     function createSubscription(
-//         address vrfCoordinator,
-//         uint256 deployerKey
-//     ) public returns (uint64) {
-//         console.log("Creating subscription on chainid: ", block.chainid);
+        Verifier verifierInstance = Verifier(payable(verifier));
+        verifierInstance.stake{value: verifierInstance.getStakeEthAmount()}();
 
-//         vm.startBroadcast(deployerKey);
+        vm.stopBroadcast();
 
-//         uint64 subId = VRFCoordinatorV2Mock(vrfCoordinator)
-//             .createSubscription();
+        console.log("Stake successful on chain id: ", block.chainid);
+    }
 
-//         vm.stopBroadcast();
+    function run() external {
+        address verifier = Vm(address(vm)).getDeployment(
+            "Verifier",
+            uint64(block.chainid)
+        );
 
-//         console.log("Subscription ID: ", subId);
-//         console.log(
-//             "Please update the subscription ID in the HelperConfig contract!"
-//         );
-//         return subId;
-//     }
+        stake(verifier);
+    }
+}
 
-//     function run() external returns (uint64) {
-//         return createSubscriptionWithConfig();
-//     }
-// }
+contract AddSkillDomain is Script {
+    // @notice: Update this skillDomain to the skillDomain you want to add!
+    string skillDomain = "Blockchain";
 
-// contract FundSubscriptionDistribution is Script {
-//     uint96 public constant FUND_AMOUNT = 3 ether;
+    function addSkillDomain(address verifier) public {
+        vm.startBroadcast();
 
-//     function fundSubscriptionWithConfig() internal {
-//         HelperConfig helperConfig = new HelperConfig();
-//         (
-//             ,
-//             uint64 subscriptionId,
-//             address vrfCoordinator,
-//             ,
-//             ,
-//             ,
-//             address linkTokenAddress,
-//             uint256 deployerKey
-//         ) = helperConfig.activeNetworkConfig();
+        Verifier verifierInstance = Verifier(payable(verifier));
+        verifierInstance.addSkillDomain(skillDomain);
 
-//         fundSubscription(
-//             vrfCoordinator,
-//             subscriptionId,
-//             linkTokenAddress,
-//             deployerKey
-//         );
-//     }
+        vm.stopBroadcast();
 
-//     function fundSubscription(
-//         address vrfCoordinator,
-//         uint64 subscriptionId,
-//         address linkTokenAddress,
-//         uint256 deployerKey
-//     ) public {
-//         console.log("Funding subscription: ", subscriptionId);
-//         console.log("Using vrfCoordinator: ", vrfCoordinator);
-//         console.log("ChainId:", block.chainid);
+        console.log(
+            "Skill domain added successfully on chain id: ",
+            block.chainid,
+            " with skill domain: ",
+            skillDomain
+        );
+    }
 
-//         if (block.chainid == 31337) {
-//             vm.startBroadcast(deployerKey);
+    function run() external {
+        address verifier = Vm(address(vm)).getDeployment(
+            "Verifier",
+            uint64(block.chainid)
+        );
 
-//             VRFCoordinatorV2Mock(vrfCoordinator).fundSubscription(
-//                 subscriptionId,
-//                 FUND_AMOUNT
-//             );
+        addSkillDomain(verifier);
+    }
+}
 
-//             vm.stopBroadcast();
-//         } else {
-//             vm.startBroadcast(deployerKey);
+contract WithdrawStakeAndLoseVerifier is Script {
+    function withdrawStakeAndLoseVerifier(address verifier) public {
+        vm.startBroadcast();
 
-//             MockLinkToken(linkTokenAddress).transferAndCall(
-//                 vrfCoordinator,
-//                 FUND_AMOUNT,
-//                 abi.encode(subscriptionId)
-//             );
+        Verifier verifierInstance = Verifier(payable(verifier));
+        verifierInstance.withdrawStakeAndLoseVerifier();
 
-//             vm.stopBroadcast();
-//         }
-//     }
+        vm.stopBroadcast();
 
-//     function run() external {
-//         fundSubscriptionWithConfig();
-//     }
-// }
+        console.log(
+            "Stake withdrawn and verifier lost on chain id: ",
+            block.chainid
+        );
+    }
 
-// contract AddConsumerDistribution is Script {
-//     function addConsumerUsingConfig(address mostRecentlyDeployed) internal {
-//         HelperConfig helperConfig = new HelperConfig();
-//         (
-//             ,
-//             uint64 subscriptionId,
-//             address vrfCoordinator,
-//             ,
-//             ,
-//             ,
-//             ,
-//             uint256 deployerKey
-//         ) = helperConfig.activeNetworkConfig();
-//         addConsumer(
-//             mostRecentlyDeployed,
-//             vrfCoordinator,
-//             subscriptionId,
-//             deployerKey
-//         );
-//     }
+    function run() external {
+        address verifier = Vm(address(vm)).getDeployment(
+            "Verifier",
+            uint64(block.chainid)
+        );
 
-//     function addConsumer(
-//         address mostRecentlyDeployed,
-//         address vrfCoordinator,
-//         uint64 subscriptionId,
-//         uint256 deployerKey
-//     ) public {
-//         console.log("Adding consumer to Distribution: ", mostRecentlyDeployed);
-//         console.log("Using vrfCoordinator: ", vrfCoordinator);
-//         console.log("On chainId: ", block.chainid);
-//         console.log("Subscription ID: ", subscriptionId);
-
-//         vm.startBroadcast(deployerKey);
-
-//         VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(
-//             subscriptionId,
-//             mostRecentlyDeployed
-//         );
-
-//         vm.stopBroadcast();
-//     }
-
-//     function run() external {
-//         address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment(
-//             "Verifier",
-//             block.chainid
-//         );
-
-//         addConsumerUsingConfig(mostRecentlyDeployed);
-//     }
-// }
+        withdrawStakeAndLoseVerifier(verifier);
+    }
+}
