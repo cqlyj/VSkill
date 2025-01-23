@@ -97,8 +97,32 @@ endif
 
 ##############################   Interactions  ##############################
 
+# Initialize
+
 initialize-anvil:
 	@forge script script/interactions/Initialize.s.sol:Initialize \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+# These three interactions will not working if you try to manually run them in the command line
+# But they will be good to go in the test because each time in the script we have a brand new HelperConfig
+# So, only run them in the test or in other network rather than the anvil local network
+
+create-subscription:
+	@forge script script/interactions/VRFInteractions/CreateSubscription.s.sol:CreateSubscription \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+fund-subscription:
+	@forge script script/interactions/VRFInteractions/FundSubscription.s.sol:FundSubscription \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+add-consumer:
+	@forge script script/interactions/VRFInteractions/AddConsumer.s.sol:AddConsumer \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
