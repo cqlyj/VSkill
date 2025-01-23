@@ -61,9 +61,7 @@ contract Staking {
     }
 
     // If you want to add bonus money to the contract, you should send eth to the VSkillUser contract
-    receive() external payable {
-        stake();
-    }
+    receive() external payable {}
 
     fallback() external payable {
         stake();
