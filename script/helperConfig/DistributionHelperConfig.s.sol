@@ -25,6 +25,8 @@ contract DistributionHelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getAmoyConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilChainConfig();
         }
@@ -51,6 +53,17 @@ contract DistributionHelperConfig is Script {
             linkTokenAddress: 0x779877A7B0D9E8603169DdbD7836e478b4624789
         });
         return sepoliaConfig;
+    }
+
+    function getAmoyConfig() public pure returns (NetworkConfig memory) {
+        NetworkConfig memory amoyConfig = NetworkConfig({
+            subscriptionId: 56003561226016405806153830093780721658933566768163361981188016113168550918782, // Update this before deployment
+            vrfCoordinator: 0x343300b5d84D444B2ADc9116FEF1bED02BE49Cf2,
+            keyHash: 0x816bedba8a50b294e5cbd47842baf240c2385f2eaf719edbd4f250a137a8c899,
+            callbackGasLimit: 500000,
+            linkTokenAddress: 0x0Fd9e8d3aF1aaee056EB9e802c3A762a667b1904
+        });
+        return amoyConfig;
     }
 
     function getMainnetConfig() public pure returns (NetworkConfig memory) {

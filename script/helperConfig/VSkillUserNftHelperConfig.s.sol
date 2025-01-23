@@ -38,6 +38,8 @@ contract VSkillUserNftHelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getAmoyConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilChainConfig();
         }
@@ -68,6 +70,14 @@ contract VSkillUserNftHelperConfig is Script {
             userNftImageUris
         );
         return sepoliaConfig;
+    }
+
+    function getAmoyConfig() public view returns (NetworkConfig memory) {
+        NetworkConfig memory amoyConfig = NetworkConfig(
+            skillDomains,
+            userNftImageUris
+        );
+        return amoyConfig;
     }
 
     function getMainnetConfig() public view returns (NetworkConfig memory) {

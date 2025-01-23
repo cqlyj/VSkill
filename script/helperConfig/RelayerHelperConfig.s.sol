@@ -17,6 +17,8 @@ contract RelayerHelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getAmoyConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilChainConfig();
         }
@@ -36,6 +38,14 @@ contract RelayerHelperConfig is Script {
             upkeepId: 0 // update this
         });
         return sepoliaConfig;
+    }
+
+    function getAmoyConfig() public pure returns (NetworkConfig memory) {
+        NetworkConfig memory amoyConfig = NetworkConfig({
+            registryAddress: 0x93C0e201f7B158F503a1265B6942088975f92ce7,
+            upkeepId: 79288876582256052440415858569370984742770044479767952304159651507442924493461 // update this
+        });
+        return amoyConfig;
     }
 
     function getMainnetConfig() public pure returns (NetworkConfig memory) {

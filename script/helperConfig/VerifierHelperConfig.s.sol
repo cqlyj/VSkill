@@ -29,6 +29,8 @@ contract VerifierHelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getAmoyConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilChainConfig();
         }
@@ -48,6 +50,14 @@ contract VerifierHelperConfig is Script {
             skillDomains: skillDomains
         });
         return sepoliaConfig;
+    }
+
+    function getAmoyConfig() public view returns (NetworkConfig memory) {
+        NetworkConfig memory amoyConfig = NetworkConfig({
+            priceFeed: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7,
+            skillDomains: skillDomains
+        });
+        return amoyConfig;
     }
 
     function getMainnetConfig() public view returns (NetworkConfig memory) {

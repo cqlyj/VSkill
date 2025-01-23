@@ -21,6 +21,8 @@ contract VSkillUserHelperConfig is Script {
             activeNetworkConfig = getMainnetConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 80002) {
+            activeNetworkConfig = getAmoyConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilChainConfig();
         }
@@ -40,6 +42,14 @@ contract VSkillUserHelperConfig is Script {
             priceFeed: 0x694AA1769357215DE4FAC081bf1f309aDC325306
         });
         return sepoliaConfig;
+    }
+
+    function getAmoyConfig() public pure returns (NetworkConfig memory) {
+        NetworkConfig memory amoyConfig = NetworkConfig({
+            submissionFeeInUsd: SUBMISSION_FEE,
+            priceFeed: 0xF0d50568e3A7e8259E16663972b11910F89BD8e7
+        });
+        return amoyConfig;
     }
 
     function getMainnetConfig() public pure returns (NetworkConfig memory) {
