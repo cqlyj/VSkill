@@ -43,11 +43,11 @@ library PriceConverter {
 
     // For now, we don't need this function
 
-    // function convertUsdToEth(
-    //     uint256 usdAmount,
-    //     AggregatorV3Interface priceFeed
-    // ) internal view returns (uint256) {
-    //     int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
-    //     return (usdAmount * DECIMALS) / uint256(ethPrice);
-    // }
+    function convertUsdToEth(
+        uint256 usdAmount,
+        AggregatorV3Interface priceFeed
+    ) internal view returns (uint256) {
+        int ethPrice = getChainlinkDataFeedLatestAnswer(priceFeed);
+        return (usdAmount * DECIMALS) / uint256(ethPrice);
+    }
 }
