@@ -123,6 +123,26 @@ withdraw-profit-anvil:
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv	
 
+# Verifier
+
+stake-anvil:
+	@forge script script/interactions/VerifierInteractions.s.sol:Stake \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+add-skill-domain-anvil:
+	@forge script script/interactions/VerifierInteractions.s.sol:AddSkillDomain \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+withdraw-stake-and-lose-verifier-anvil:
+	@forge script script/interactions/VerifierInteractions.s.sol:WithdrawStakeAndLoseVerifier \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
 ##############################   Audit   ##############################
 
 slither:
