@@ -181,7 +181,7 @@ contract Relayer is ILogAutomation, Ownable {
                     requestId,
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
-                i_verifier.addVerifierUnhandleRequestCount(
+                i_verifier.addVerifierUnhandledRequestCount(
                     verifiersWithinSameDomain[randomWordsWithinRange[j]]
                 );
                 // only 7 days allowed for the verifiers to provide feedback
@@ -311,7 +311,9 @@ contract Relayer is ILogAutomation, Ownable {
         external
         onlyOwner
     {
-        i_vSkillUser.transferBonusToVerifierContract(address(i_verifier));
+        uint256 transferredRewardAmount = i_vSkillUser
+            .transferBonusToVerifierContract(address(i_verifier));
+        i_verifier.addReward(transferredRewardAmount);
     }
 
     /*//////////////////////////////////////////////////////////////
