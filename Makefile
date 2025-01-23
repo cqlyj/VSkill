@@ -103,6 +103,26 @@ initialize-anvil:
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
 
+# VSkillUser
+	
+submit-evidence-anvil:
+	@forge script script/interactions/VSkillUserInteractions.s.sol:SubmitEvidence \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+change-submission-fee-anvil:
+	@forge script script/interactions/VSkillUserInteractions.s.sol:ChangeSubmissionFee \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+withdraw-profit-anvil:
+	@forge script script/interactions/VSkillUserInteractions.s.sol:WithdrawProfit \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv	
+
 ##############################   Audit   ##############################
 
 slither:
