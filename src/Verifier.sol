@@ -254,7 +254,9 @@ contract Verifier is Staking, Ownable {
         emit Verifier__VerifierRewarded(
             verifier,
             rewardAmount,
-            currentReputation
+            currentReputation + 1 <= HIGHEST_REPUTATION
+                ? currentReputation + 1
+                : HIGHEST_REPUTATION
         );
     }
 
@@ -275,10 +277,14 @@ contract Verifier is Staking, Ownable {
         }
     }
 
-    function addVerifierUnhandleRequestCount(
+    function addVerifierUnhandledRequestCount(
         address verifier
     ) public onlyInitialized onlyRelayer {
         s_verifierToInfo[verifier].unhandledRequestCount++;
+    }
+
+    function addReward(uint256 reward) public onlyInitialized onlyRelayer {
+        s_reward += reward;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -366,5 +372,15 @@ contract Verifier is Staking, Ownable {
 
     function getReward() external view returns (uint256) {
         return s_reward;
+    }
+
+    function getVerifierReward(
+        address verifier
+    ) external view returns (uint256) {
+        return s_verifierToInfo[verifier].reward;
+    }
+
+    function getHighestReputation() external pure returns (uint256) {
+        return HIGHEST_REPUTATION;
     }
 }
