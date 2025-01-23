@@ -143,6 +143,38 @@ withdraw-stake-and-lose-verifier-anvil:
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
 
+# Relayer
+
+assign-evidence-to-verifiers-anvil:
+	@forge script script/interactions/RelayerInteractions.s.sol:AssignEvidenceToVerifiers \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+process-evidence-status-anvil:
+	@forge script script/interactions/RelayerInteractions.s.sol:ProcessEvidenceStatus \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+handle-evidence-after-deadline-anvil:
+	@forge script script/interactions/RelayerInteractions.s.sol:HandleEvidenceAfterDeadline \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+add-more-skill-anvil:
+	@forge script script/interactions/RelayerInteractions.s.sol:AddMoreSkill \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
+transfer-bonus-from-VSkillUser-to-Verifier-contract-anvil:
+	@forge script script/interactions/RelayerInteractions.s.sol:TransferBonusFromVSkillUserToVerifierContract \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv
+
 ##############################   Audit   ##############################
 
 slither:
