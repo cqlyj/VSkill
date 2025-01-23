@@ -308,6 +308,47 @@ contract VSkillTest is Test {
         assert(vSkillUserNft.balanceOf(USER) == 1);
     }
 
+    // TBH, this function is not really meet the expectation because it will cost some gas to just add the bonus
+    // But this mechanism may prevent some kind of single point of failure?
+    // We will figure out this
+    function testTransferBonusFromVSkillUserToVerifierContractWorkingGood(
+        string memory feedbackCid
+    ) external {
+        (
+            address[] memory selectedVerifiers,
+            uint256 requestId
+        ) = _setUpForRelayer();
+
+        vm.startPrank(relayer.owner());
+        relayer.assignEvidenceToVerifiers();
+        vm.stopPrank();
+        uint256 batchNumber = relayer.getBatchProcessed();
+        uint256 deadline = relayer.getDeadline();
+        // For now all of them approved the evidence so we can mint the NFT
+        for (uint8 i = 0; i < selectedVerifiers.length; i++) {
+            vm.prank(selectedVerifiers[i]);
+            verifier.provideFeedback(requestId, feedbackCid, true);
+        }
+        vm.warp(deadline + 1);
+        vm.startPrank(relayer.owner());
+        // This time before handle the evidence, we will transfer the bonus
+        relayer.transferBonusFromVSkillUserToVerifierContract();
+        relayer.processEvidenceStatus(batchNumber - 1);
+        relayer.handleEvidenceAfterDeadline(batchNumber - 1);
+        vm.stopPrank();
+
+        uint256 bonusAmount = (vSkillUser.getSubmissionFeeInEth() *
+            vSkillUser.getBonusWeight()) / vSkillUser.getTotalWeight();
+        uint256 rewardAmount = (bonusAmount *
+            verifier.getInitialReputation() *
+            verifier.getInitialReputation()) /
+            (verifier.getHighestReputation() * verifier.getHighestReputation());
+        vm.assertEq(
+            rewardAmount,
+            verifier.getVerifierReward(selectedVerifiers[0])
+        );
+    }
+
     /*//////////////////////////////////////////////////////////////
                             HELPER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
