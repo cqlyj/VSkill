@@ -99,113 +99,241 @@ endif
 
 ##############################   Interactions  ##############################
 
-# Initialize
+# Network configuration
+NETWORK = $(if $(word 2,$(MAKECMDGOALS)),$(word 2,$(MAKECMDGOALS)),anvil)
 
-initialize-anvil:
+# Initialize
+initialize: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/Initialize.s.sol:Initialize \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/Initialize.s.sol:Initialize \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-# These three interactions will not working if you try to manually run them in the command line
-# But they will be good to go in the test because each time in the script we have a brand new HelperConfig
-# So, only run them in the test or in other network rather than the anvil local network
-
-create-subscription:
+# VRF Interactions
+create-subscription: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VRFInteractions/CreateSubscription.s.sol:CreateSubscription \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VRFInteractions/CreateSubscription.s.sol:CreateSubscription \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-fund-subscription:
+fund-subscription: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VRFInteractions/FundSubscription.s.sol:FundSubscription \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VRFInteractions/FundSubscription.s.sol:FundSubscription \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-add-consumer:
+add-consumer: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VRFInteractions/AddConsumer.s.sol:AddConsumer \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VRFInteractions/AddConsumer.s.sol:AddConsumer \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-register-upkeep:
+register-upkeep: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/AutomationInteractions/RegisterUpkeep.s.sol:RegisterUpkeep \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
-		--broadcast -vvvv	
+		--broadcast -vvvv
+else
+	@forge script script/interactions/AutomationInteractions/RegisterUpkeep.s.sol:RegisterUpkeep \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-# VSkillUser
-	
-submit-evidence-anvil:
+# VSkillUser Interactions
+submit-evidence: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VSkillUserInteractions.s.sol:SubmitEvidence \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VSkillUserInteractions.s.sol:SubmitEvidence \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-change-submission-fee-anvil:
+change-submission-fee: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VSkillUserInteractions.s.sol:ChangeSubmissionFee \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VSkillUserInteractions.s.sol:ChangeSubmissionFee \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-withdraw-profit-anvil:
+withdraw-profit: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VSkillUserInteractions.s.sol:WithdrawProfit \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
-		--broadcast -vvvv	
+		--broadcast -vvvv
+else
+	@forge script script/interactions/VSkillUserInteractions.s.sol:WithdrawProfit \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-# Verifier
-
-stake-anvil:
+# Verifier Interactions
+stake: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VerifierInteractions.s.sol:Stake \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VerifierInteractions.s.sol:Stake \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-add-skill-domain-anvil:
+add-skill-domain: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VerifierInteractions.s.sol:AddSkillDomain \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VerifierInteractions.s.sol:AddSkillDomain \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-withdraw-stake-and-lose-verifier-anvil:
+withdraw-stake-and-lose-verifier: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/VerifierInteractions.s.sol:WithdrawStakeAndLoseVerifier \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/VerifierInteractions.s.sol:WithdrawStakeAndLoseVerifier \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-# Relayer
-
-assign-evidence-to-verifiers-anvil:
+# Relayer Interactions
+assign-evidence-to-verifiers: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/RelayerInteractions.s.sol:AssignEvidenceToVerifiers \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/RelayerInteractions.s.sol:AssignEvidenceToVerifiers \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-process-evidence-status-anvil:
+process-evidence-status: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/RelayerInteractions.s.sol:ProcessEvidenceStatus \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/RelayerInteractions.s.sol:ProcessEvidenceStatus \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-handle-evidence-after-deadline-anvil:
+handle-evidence-after-deadline: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/RelayerInteractions.s.sol:HandleEvidenceAfterDeadline \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/RelayerInteractions.s.sol:HandleEvidenceAfterDeadline \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-add-more-skill-anvil:
+add-more-skill: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/RelayerInteractions.s.sol:AddMoreSkill \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/RelayerInteractions.s.sol:AddMoreSkill \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
 
-transfer-bonus-from-VSkillUser-to-Verifier-contract-anvil:
+transfer-bonus-from-VSkillUser-to-Verifier-contract: check-network-config
+ifeq ($(NETWORK),anvil)
 	@forge script script/interactions/RelayerInteractions.s.sol:TransferBonusFromVSkillUserToVerifierContract \
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+else
+	@forge script script/interactions/RelayerInteractions.s.sol:TransferBonusFromVSkillUserToVerifierContract \
+		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
+		--account burner \
+		--sender $(BURNER_ADDRESS) \
+		--broadcast -vvvv
+endif
+
+# Handle unknown arguments
+%:
+	@:
 
 ##############################   Audit   ##############################
 
