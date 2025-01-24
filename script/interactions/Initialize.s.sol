@@ -75,7 +75,8 @@ contract Initialize is Script {
         uint256 upkeepId,
         Relayer relayer
     ) public returns (address) {
-        if (upkeepId == 0) {
+        // Here we need to think about the Forwarder address setup...
+        if (upkeepId == 0 && block.chainid != 31337) {
             console.log(
                 "Please update the upkeepId in RelayerHelperConfig first!"
             );
