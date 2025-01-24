@@ -259,3 +259,16 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 - Keep the test cases for the contracts
 - Update the `VSkillUserInteractions` script
 - Update the `VerifierInteractions` script
+
+---
+
+### 2025/1/24
+
+**What did I do today**
+
+- Finish all the scripts for the contracts
+- Update the `Makefile` to include all the scripts
+
+---
+
+### 2025/1/25
