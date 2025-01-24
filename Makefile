@@ -56,6 +56,8 @@ zksync-start:
 
 ##############################   deploy contracts   ##############################
 
+# make deploy ContractName NETWORK=NetworkName
+
 CONTRACT = $(word 2, $(MAKECMDGOALS))
 NETWORK = $(if $(word 3,$(MAKECMDGOALS)),$(word 3,$(MAKECMDGOALS)),anvil)
 
@@ -126,6 +128,12 @@ add-consumer:
 		--rpc-url $(ANVIL_RPC_URL) \
 		--private-key $(ANVIL_PRIVATE_KEY) \
 		--broadcast -vvvv
+
+register-upkeep:
+	@forge script script/interactions/AutomationInteractions/RegisterUpkeep.s.sol:RegisterUpkeep \
+		--rpc-url $(ANVIL_RPC_URL) \
+		--private-key $(ANVIL_PRIVATE_KEY) \
+		--broadcast -vvvv	
 
 # VSkillUser
 	
