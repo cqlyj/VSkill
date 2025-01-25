@@ -272,3 +272,13 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 ---
 
 ### 2025/1/25
+
+**What did I do today**
+
+- Refactor those scripts to make them more readable and maintainable.
+
+---
+
+### 2025/1/26
+
+**What did I do today**
