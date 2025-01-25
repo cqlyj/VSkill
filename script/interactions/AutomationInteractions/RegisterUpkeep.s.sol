@@ -5,34 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol";
 import {Vm} from "forge-std/Vm.sol";
-
-struct RegistrationParams {
-    string name;
-    bytes encryptedEmail;
-    address upkeepContract;
-    uint32 gasLimit;
-    address adminAddress;
-    uint8 triggerType;
-    bytes checkData;
-    bytes triggerConfig;
-    bytes offchainConfig;
-    uint96 amount;
-}
-
-struct LogTriggerConfig {
-    address contractAddress;
-    uint8 filterSelector;
-    bytes32 topic0;
-    bytes32 topic1;
-    bytes32 topic2;
-    bytes32 topic3;
-}
-
-interface AutomationRegistrarInterface {
-    function registerUpkeep(
-        RegistrationParams calldata requestParams
-    ) external returns (uint256);
-}
+import {IAutomationRegistrar, RegistrationParams, LogTriggerConfig} from "src/interfaces/IAutomationRegistrar.sol";
 
 contract RegisterUpkeep is Script {
     /*//////////////////////////////////////////////////////////////
@@ -40,7 +13,7 @@ contract RegisterUpkeep is Script {
     //////////////////////////////////////////////////////////////*/
 
     LinkTokenInterface public linkToken;
-    AutomationRegistrarInterface public automationRegistrar;
+    IAutomationRegistrar public automationRegistrar;
     RelayerHelperConfig public helperConfig;
     // Update this to your admin address
     address constant ADMIN_ADDRESS = 0xFB6a372F2F51a002b390D18693075157A459641F;
@@ -121,7 +94,7 @@ contract RegisterUpkeep is Script {
             .getActiveNetworkConfig()
             .registrarAddress;
 
-        automationRegistrar = AutomationRegistrarInterface(registrarAddress);
+        automationRegistrar = IAutomationRegistrar(registrarAddress);
         linkToken = LinkTokenInterface(
             helperConfig.getActiveNetworkConfig().linkTokenAddress
         );
