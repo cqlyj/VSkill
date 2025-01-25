@@ -10,6 +10,7 @@ import {Distribution} from "src/Distribution.sol";
 import {RelayerHelperConfig} from "../helperConfig/RelayerHelperConfig.s.sol";
 import {MockRegistry} from "test/mock/MockRegistry.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {IKeeperRegistryMaster} from "@chainlink/contracts/src/v0.8/automation/interfaces/v2_1/IKeeperRegistryMaster.sol";
 
 // This script will initialize the contracts to be ready for interacting
 contract Initialize is Script {
@@ -101,9 +102,11 @@ contract Initialize is Script {
 
             return forwarder;
         } else {
+            IKeeperRegistryMaster mockRegistry = IKeeperRegistryMaster(
+                registry
+            );
             // here we have the real registry address
             vm.startBroadcast();
-            MockRegistry mockRegistry = MockRegistry(registry);
             address forwarder = mockRegistry.getForwarder(upkeepId);
             relayer.setForwarder(forwarder);
             vm.stopBroadcast();
