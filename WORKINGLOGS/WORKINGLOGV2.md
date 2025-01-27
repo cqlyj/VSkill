@@ -279,6 +279,8 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 
 ---
 
-### 2025/1/26
+### 2025/1/27
 
 **What did I do today**
+
+- Start the gas optimization for the `Relayer` contract.
