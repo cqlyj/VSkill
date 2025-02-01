@@ -174,20 +174,6 @@ else
 		--broadcast -vvvv
 endif
 
-syed-register-upkeep: check-network-config
-ifeq ($(NETWORK),anvil)
-	@forge script script/interactions/AutomationInteractions/SyedRegisterUpkeep.s.sol:SyedRegisterUpkeep \
-		--rpc-url $(ANVIL_RPC_URL) \
-		--private-key $(ANVIL_PRIVATE_KEY) \
-		--broadcast -vvvv
-else
-	@forge script script/interactions/AutomationInteractions/SyedRegisterUpkeep.s.sol:SyedRegisterUpkeep \
-		--rpc-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL) \
-		--account burner \
-		--sender $(BURNER_ADDRESS) \
-		--broadcast -vvvv
-endif
-
 # VSkillUser Interactions
 submit-evidence: check-network-config
 ifeq ($(NETWORK),anvil)
