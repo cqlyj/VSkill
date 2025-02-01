@@ -462,21 +462,45 @@ contract RelayerYul is ILogAutomation, Ownable {
     function _getTheOnlyOneVerifierDifferentFromOtherTwo(
         address[] memory verifiersAssigned,
         address[] memory verifiersWithSameOperation
-    ) private pure returns (address) {
+    ) private pure returns (address resultAddr) {
         // A⊕A=0
         // A⊕0=A
         // XOR all assigned verifiers
-        uint256 xorResult = 0;
-        for (uint256 i = 0; i < verifiersAssigned.length; i++) {
-            xorResult ^= uint256(uint160(verifiersAssigned[i]));
-        }
 
-        // XOR all verifiers who are of the same operation
-        for (uint256 i = 0; i < verifiersWithSameOperation.length; i++) {
-            xorResult ^= uint256(uint160(verifiersWithSameOperation[i]));
-        }
+        assembly {
+            let xorResult := 0
 
-        return address(uint160(xorResult));
+            // XOR all assigned verifiers
+            let assignedLength := mload(verifiersAssigned)
+            let assignedPtr := add(verifiersAssigned, 0x20)
+
+            // lt => less than
+            for {
+                let i := 0
+            } lt(i, assignedLength) {
+                i := add(i, 1)
+            } {
+                xorResult := xor(
+                    xorResult,
+                    mload(add(assignedPtr, mul(i, 0x20)))
+                )
+            }
+
+            // XOR all verifiers with same operation
+            let sameOpLength := mload(verifiersWithSameOperation)
+            let sameOpPtr := add(verifiersWithSameOperation, 0x20)
+
+            for {
+                let i := 0
+            } lt(i, sameOpLength) {
+                i := add(i, 1)
+            } {
+                xorResult := xor(xorResult, mload(add(sameOpPtr, mul(i, 0x20))))
+            }
+
+            // Convert result to address
+            resultAddr := xorResult
+        }
     }
 
     function _punishTheRestTwoVerifierWhoHasNotProvidedFeedback(
