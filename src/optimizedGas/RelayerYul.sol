@@ -156,45 +156,102 @@ contract RelayerYul is ILogAutomation, Ownable {
     // and they can start to provide feedback to the specific evidence
 
     // set the assigned verifiers as the one who can change the evidence status
-    // @audit refactor this function to be more gas efficient!
     function assignEvidenceToVerifiers() external onlyOwner {
-        uint256 length = s_unhandledRequestIds.length;
-        // if there is no unhandled request, we will return so that we don't waste gas
-        if (length == 0) {
-            return;
-        }
-        // update the batch number
-        s_batchToProcessedRequestIds[s_batchProcessed] = s_unhandledRequestIds;
-        s_batchToDeadline[s_batchProcessed] = block.timestamp + DEADLINE;
-        s_batchProcessed++;
+        assembly {
+            // .slot gets storage slot number of a state variable
+            let slot := s_unhandledRequestIds.slot
 
-        // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
+            // Stack input
+            // key: 32-byte key in storage.
+            // Stack output
+            // value: 32-byte value corresponding to that key. 0 if that key was never written before.
+            // The first 32 bytes of the storage slot contain the length of the array.q
+            let length := sload(slot)
+
+            // if there is no unhandled request, we will return so that we don't waste gas
+            if iszero(length) {
+                // Stack input
+                // offset: byte offset in the memory in bytes, to copy what will be the return data of this context.
+                // size: byte size to copy (size of the return data).
+                return(0, 0)
+            }
+
+            // Update batch related storage
+
+            // s_batchToProcessedRequestIds[s_batchProcessed] = s_unhandledRequestIds;
+            // s_batchToDeadline[s_batchProcessed] = block.timestamp + DEADLINE;
+            // s_batchProcessed++;
+
+            let batchSlot := s_batchProcessed.slot
+            let currentBatch := sload(batchSlot)
+
+            // Store batch deadline
+
+            // Stack input
+            // offset: offset in the memory in bytes.
+            // value: 32-byte value to write in the memory.
+
+            // This calculates storage slot for a mapping entry:
+            // For mapping s_batchToDeadline[currentBatch], we need to:
+            // Store the key (currentBatch) at memory position 0
+            // Store the mapping's slot at memory position 32 (0x20)
+            // Take keccak256 hash of these 64 bytes (0x40) to get final storage slot
+            mstore(0x00, currentBatch)
+            mstore(0x20, s_batchToDeadline.slot)
+            let deadlineSlot := keccak256(0x00, 0x40)
+            // timestamp() gets current block timestamp
+            sstore(deadlineSlot, add(timestamp(), DEADLINE))
+
+            // Copy s_unhandledRequestIds to s_batchToProcessedRequestIds
+
+            mstore(0x00, currentBatch)
+            mstore(0x20, s_batchToProcessedRequestIds.slot)
+            let batchRequestsSlot := keccak256(0x00, 0x40)
+            // Copy array length
+            sstore(batchRequestsSlot, length)
+
+            // Copy array elements
+            // keccak(mem[p…(p+n))) computes keccak256 hash of n bytes of memory starting at position p
+            let sourceSlot := keccak256(slot, 0x00) // slot for s_unhandledRequestIds array data
+            let targetSlot := keccak256(batchRequestsSlot, 0x00) // slot for s_batchToProcessedRequestIds array data
+
+            for {
+                let i := 0
+            } lt(i, length) {
+                i := add(i, 1)
+            } {
+                let value := sload(add(sourceSlot, i))
+                sstore(add(targetSlot, i), value)
+            }
+
+            // Increment batch number
+            sstore(batchSlot, add(currentBatch, 1))
+        }
+
+        uint256 length = s_unhandledRequestIds.length;
+        // Handle verifier assignments
         for (uint256 i = 0; i < length; i++) {
             uint256 requestId = s_unhandledRequestIds[i];
-            uint256[]
-                memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
-                    requestId
-                ];
-            address[] memory verifiersWithinSameDomain = i_verifier
-                .getSkillDomainToVerifiersWithinSameDomain(
-                    i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
-                );
-            for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
-                s_requestIdToVerifiersAssigned[requestId].push(
-                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
-                );
-                i_verifier.setVerifierAssignedRequestIds(
-                    requestId,
-                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
-                );
-                i_verifier.addVerifierUnhandledRequestCount(
-                    verifiersWithinSameDomain[randomWordsWithinRange[j]]
-                );
-                // only 7 days allowed for the verifiers to provide feedback
-                i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
+            _assignVerifiersToRequest(requestId);
+        }
+
+        // Clear unhandled requests
+        assembly {
+            // Clear array length
+            sstore(s_unhandledRequestIds.slot, 0)
+
+            // Get array data slot
+            let arrayDataSlot := keccak256(s_unhandledRequestIds.slot, 0x00)
+
+            // Clear array elements
+            for {
+                let i := 0
+            } lt(i, length) {
+                i := add(i, 1)
+            } {
+                sstore(add(arrayDataSlot, i), 0)
             }
         }
-        delete s_unhandledRequestIds;
 
         emit Relayer__EvidenceAssignedToVerifiers();
     }
@@ -325,6 +382,65 @@ contract RelayerYul is ILogAutomation, Ownable {
     /*//////////////////////////////////////////////////////////////
                      INTERNAL AND PRIVATE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    // Helper function to handle verifier assignment for a single request
+    function _assignVerifiersToRequest(uint256 requestId) internal {
+        uint256[]
+            memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
+                requestId
+            ];
+
+        // Get skill domain and verifiers
+        StructDefinition.VSkillUserEvidence memory evidence = i_vSkillUser
+            .getRequestIdToEvidence(requestId);
+        address[] memory verifiersWithinSameDomain = i_verifier
+            .getSkillDomainToVerifiersWithinSameDomain(evidence.skillDomain);
+
+        assembly {
+            let randomWordsLength := mload(randomWordsWithinRange)
+            let randomWordsPtr := add(randomWordsWithinRange, 0x20)
+            let verifiersPtr := add(verifiersWithinSameDomain, 0x20)
+
+            // Calculate storage slot for s_requestIdToVerifiersAssigned[requestId]
+            mstore(0x00, requestId)
+            mstore(0x20, s_requestIdToVerifiersAssigned.slot)
+            let verifiersAssignedSlot := keccak256(0x00, 0x40)
+
+            for {
+                let j := 0
+            } lt(j, randomWordsLength) {
+                j := add(j, 1)
+            } {
+                // Get verifier address using randomWordsWithinRange[j] as index
+                let randomIndex := mload(add(randomWordsPtr, mul(j, 0x20)))
+                let verifierAddr := mload(
+                    add(verifiersPtr, mul(randomIndex, 0x20))
+                )
+
+                // Store verifier address in s_requestIdToVerifiersAssigned
+                // First, update array length if needed
+                let currentLength := sload(verifiersAssignedSlot)
+                sstore(verifiersAssignedSlot, add(currentLength, 1))
+
+                // Calculate slot for array element and store verifier address
+                let elementSlot := add(
+                    keccak256(verifiersAssignedSlot, 0x00),
+                    currentLength
+                )
+                sstore(elementSlot, verifierAddr)
+            }
+        }
+
+        // External contract calls can't be optimized in assembly
+        for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
+            address verifier = verifiersWithinSameDomain[
+                randomWordsWithinRange[j]
+            ];
+            i_verifier.setVerifierAssignedRequestIds(requestId, verifier);
+            i_verifier.addVerifierUnhandledRequestCount(verifier);
+            i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
+        }
+    }
 
     function _makeRandomWordsUnique(
         uint256[] memory randomWords,
