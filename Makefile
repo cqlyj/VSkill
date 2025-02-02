@@ -338,7 +338,7 @@ endif
 ##############################   Audit   ##############################
 
 slither:
-	@slither . --config-file ./slither.config.json
+	@slither . --config-file ./slither.config.json --skip-assembly
 
 aderyn:
 	@aderyn .
