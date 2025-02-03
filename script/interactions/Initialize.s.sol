@@ -74,7 +74,7 @@ contract Initialize is Script {
     function _initializeToForwarder(
         address registry,
         uint256 upkeepId,
-        Relayer relayer
+        address relayerAddressToBeInitialized
     ) public returns (address) {
         // Here we need to think about the Forwarder address setup...
         if (upkeepId == 0 && block.chainid != 31337) {
@@ -92,7 +92,7 @@ contract Initialize is Script {
             vm.startBroadcast();
             MockRegistry mockRegistry = new MockRegistry();
             address forwarder = mockRegistry.getForwarder(upkeepId);
-            relayer.setForwarder(forwarder);
+            Relayer(relayerAddressToBeInitialized).setForwarder(forwarder);
             vm.stopBroadcast();
 
             console.log(
@@ -108,7 +108,7 @@ contract Initialize is Script {
             // here we have the real registry address
             vm.startBroadcast();
             address forwarder = mockRegistry.getForwarder(upkeepId);
-            relayer.setForwarder(forwarder);
+            Relayer(relayerAddressToBeInitialized).setForwarder(forwarder);
             vm.stopBroadcast();
 
             console.log(
@@ -158,7 +158,7 @@ contract Initialize is Script {
             relayerAddress
         );
 
-        _initializeToForwarder(registry, upkeepId, Relayer(relayerAddress));
+        _initializeToForwarder(registry, upkeepId, relayerAddress);
 
         console.log("Initialization completed!!!");
     }
