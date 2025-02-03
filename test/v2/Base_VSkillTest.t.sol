@@ -17,9 +17,10 @@ import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol
 import {Vm} from "forge-std/Vm.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {VerifierHelperConfig} from "script/helperConfig/VerifierHelperConfig.s.sol";
+import {IRelayer} from "src/interfaces/IRelayer.sol";
 
 // We have already tested most of the functions in v1, here we will focus on testing the possible situations that can occur in the v2 version of the contract.
-contract VSkillTest is Test {
+abstract contract Base_VSkillTest is Test {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -29,7 +30,7 @@ contract VSkillTest is Test {
     DeployVSkillUser deployVSkillUser;
     DeployVSkillUserNft deployVSkillUserNft;
 
-    Relayer relayer;
+    IRelayer relayer;
     Verifier verifier;
     VSkillUser vSkillUser;
     VSkillUserNft vSkillUserNft;
@@ -55,7 +56,7 @@ contract VSkillTest is Test {
                                  SET UP
     //////////////////////////////////////////////////////////////*/
 
-    function setUp() external {
+    function setUp() external virtual {
         deployRelayer = new DeployRelayer();
         deployVerifier = new DeployVerifier();
         deployVSkillUser = new DeployVSkillUser();
@@ -93,7 +94,7 @@ contract VSkillTest is Test {
             address(verifier),
             address(vSkillUserNft)
         );
-        relayer = Relayer(relayerAddress);
+        relayer = IRelayer(address(Relayer(relayerAddress)));
 
         // Initialize those contracts
         Initialize initialize = new Initialize();
@@ -110,7 +111,7 @@ contract VSkillTest is Test {
         forwarder = initialize._initializeToForwarder(
             registry,
             upkeepId,
-            relayer
+            address(relayer)
         );
 
         vm.deal(USER, 1000 ether);
