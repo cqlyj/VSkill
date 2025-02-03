@@ -159,17 +159,17 @@ contract RelayerYul is ILogAutomation, Ownable {
     function assignEvidenceToVerifiers() external onlyOwner {
         assembly {
             // .slot gets storage slot number of a state variable
-            let slot := s_unhandledRequestIds.slot
+            let unhandledRequestIdsSlot := s_unhandledRequestIds.slot
 
             // Stack input
             // key: 32-byte key in storage.
             // Stack output
             // value: 32-byte value corresponding to that key. 0 if that key was never written before.
             // The first 32 bytes of the storage slot contain the length of the array.q
-            let length := sload(slot)
+            let unhandledRequestIdsLength := sload(unhandledRequestIdsSlot)
 
             // if there is no unhandled request, we will return so that we don't waste gas
-            if iszero(length) {
+            if iszero(unhandledRequestIdsLength) {
                 // Stack input
                 // offset: byte offset in the memory in bytes, to copy what will be the return data of this context.
                 // size: byte size to copy (size of the return data).
@@ -202,26 +202,37 @@ contract RelayerYul is ILogAutomation, Ownable {
             // timestamp() gets current block timestamp
             sstore(deadlineSlot, add(timestamp(), DEADLINE))
 
-            // Copy s_unhandledRequestIds to s_batchToProcessedRequestIds
+            // Calculate storage slot for s_batchToProcessedRequestIds mapping
+            let batchToRequestsSlot := s_batchToProcessedRequestIds.slot
 
+            // Store the array in the mapping
+            // First, calculate the slot for s_batchToProcessedRequestIds[s_batchProcessed]
+            // Calculate mapping slot for current batch
             mstore(0x00, currentBatch)
-            mstore(0x20, s_batchToProcessedRequestIds.slot)
-            let batchRequestsSlot := keccak256(0x00, 0x40)
-            // Copy array length
-            sstore(batchRequestsSlot, length)
+            mstore(0x20, batchToRequestsSlot)
+            let mappingIndex := keccak256(0x00, 0x40)
 
-            // Copy array elements
-            // keccak(mem[p…(p+n))) computes keccak256 hash of n bytes of memory starting at position p
-            let sourceSlot := keccak256(slot, 0x00) // slot for s_unhandledRequestIds array data
-            let targetSlot := keccak256(batchRequestsSlot, 0x00) // slot for s_batchToProcessedRequestIds array data
+            // Store length in the mapping array
+            sstore(mappingIndex, unhandledRequestIdsLength)
 
+            // Copy the array
             for {
                 let i := 0
-            } lt(i, length) {
+            } lt(i, unhandledRequestIdsLength) {
                 i := add(i, 1)
             } {
-                let value := sload(add(sourceSlot, i))
-                sstore(add(targetSlot, i), value)
+                // Calculate source slot (s_unhandledRequestIds array element)
+                mstore(0x00, unhandledRequestIdsSlot)
+                let sourceSlot := keccak256(0x00, 0x20)
+                sourceSlot := add(sourceSlot, i)
+
+                // Calculate destination slot in the mapping array
+                mstore(0x00, mappingIndex)
+                let destSlot := keccak256(0x00, 0x20)
+                destSlot := add(destSlot, i)
+
+                // Copy the value
+                sstore(destSlot, sload(sourceSlot))
             }
 
             // Increment batch number
