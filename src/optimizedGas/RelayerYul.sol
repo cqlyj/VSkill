@@ -408,14 +408,22 @@ contract RelayerYul is ILogAutomation, Ownable {
             .getSkillDomainToVerifiersWithinSameDomain(evidence.skillDomain);
 
         assembly {
+            // Load array lengths from memory
             let randomWordsLength := mload(randomWordsWithinRange)
+            // Get pointers to the start of the array data (skip length word)
             let randomWordsPtr := add(randomWordsWithinRange, 0x20)
             let verifiersPtr := add(verifiersWithinSameDomain, 0x20)
 
             // Calculate storage slot for s_requestIdToVerifiersAssigned[requestId]
             mstore(0x00, requestId)
             mstore(0x20, s_requestIdToVerifiersAssigned.slot)
-            let verifiersAssignedSlot := keccak256(0x00, 0x40)
+            let mappingSlot := keccak256(0x00, 0x40)
+
+            // Initialize array length in storage if it's not already set
+            let currentLength := sload(mappingSlot)
+            if iszero(currentLength) {
+                sstore(mappingSlot, 0)
+            }
 
             for {
                 let j := 0
@@ -428,16 +436,18 @@ contract RelayerYul is ILogAutomation, Ownable {
                     add(verifiersPtr, mul(randomIndex, 0x20))
                 )
 
-                // Store verifier address in s_requestIdToVerifiersAssigned
-                // First, update array length if needed
-                let currentLength := sload(verifiersAssignedSlot)
-                sstore(verifiersAssignedSlot, add(currentLength, 1))
+                // Update array length
+                currentLength := sload(mappingSlot)
+                sstore(mappingSlot, add(currentLength, 1))
 
-                // Calculate slot for array element and store verifier address
-                let elementSlot := add(
-                    keccak256(verifiersAssignedSlot, 0x00),
-                    currentLength
-                )
+                // Calculate storage slot for array element
+                // Hash the array base slot to get the starting slot for elements
+                mstore(0x00, mappingSlot)
+                let arrayBaseSlot := keccak256(0x00, 0x20)
+                // Add the current index to get the exact slot
+                let elementSlot := add(arrayBaseSlot, currentLength)
+
+                // Store verifier address
                 sstore(elementSlot, verifierAddr)
             }
         }
