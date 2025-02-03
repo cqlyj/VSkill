@@ -49,13 +49,13 @@ contract VSkillYulTest is Base_VSkillTest {
         distribution = Distribution(
             vSkillUser.getDistributionContractAddress()
         );
-        address relayerAddress = deployRelayerYul.deployRelayerYul(
+        address relayerYulAddress = deployRelayerYul.deployRelayerYul(
             address(vSkillUser),
             address(distribution),
             address(verifier),
             address(vSkillUserNft)
         );
-        relayer = IRelayer(address(RelayerYul(relayerAddress)));
+        relayer = IRelayer(address(RelayerYul(relayerYulAddress)));
 
         // Initialize those contracts
         Initialize initialize = new Initialize();
