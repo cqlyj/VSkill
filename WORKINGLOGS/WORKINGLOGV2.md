@@ -309,3 +309,17 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 
 - Finish the gas optimization for the `Relayer` contract.
 - Update the tests to differential testing for the original version of `Relayer` contract and the optimized version of `RelayerYul` contract.
+
+---
+
+### 2025/2/11
+
+**What did I do today**
+
+- Update the codebase and get ready to update the `README.md` file for audit.
+
+---
+
+### 2025/2/12
+
+**What did I do today**
