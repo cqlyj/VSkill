@@ -300,3 +300,12 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 **What did I do today**
 
 - Keep the gas optimization for the `Relayer` contract.
+
+---
+
+### 2025/2/3
+
+**What did I do today**
+
+- Finish the gas optimization for the `Relayer` contract.
+- Update the tests to differential testing for the original version of `Relayer` contract and the optimized version of `RelayerYul` contract.
