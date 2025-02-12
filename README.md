@@ -80,7 +80,7 @@ VSkill (VeriSkill) is a decentralized platform for verifying skills. It leverage
 1. Start a local Ethereum node:
 
    ```javascript
-   anvil;
+   make anvil
    ```
 
 2. Deploy the contracts in the following order:
@@ -185,7 +185,7 @@ In case you want to deploy to the layer 2 zkSync local network, you can follow t
 
 ## Additional Features
 
-# File Management and Lighthouse Integration
+### File Management and Lighthouse Integration
 
 ```javascript
 //Convert files to CAR format
