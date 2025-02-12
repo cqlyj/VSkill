@@ -16,4 +16,4 @@ docs/
 .env
 
 # coverage-report
-coverage-report.md
+/coverage-report.md
