@@ -32,9 +32,9 @@
 
 - [x] **[I-1]** Follow the Checks-Effects-Interactions (CEI) pattern in `Staking::withdrawStake` function.
 - [x] **[I-2]** Solidity pragma should be specific, not wide.
-- [ ] **[I-3]** Public functions not used internally could be marked `external`.
+- [x] **[I-3]** Public functions not used internally could be marked `external`.
 - [x] **[I-4]** Define and use constant variables instead of literals.
-- [ ] **[I-5]** `PUSH0` is not supported by all chains.
+- [x] **[I-5]** `PUSH0` is not supported by all chains.
 - [x] **[I-6]** Modifiers invoked only once could be integrated directly into the function.
 - [x] **[I-7]** Unused custom error definitions.
 - [x] **[I-8]** Avoid costly operations inside loops.
@@ -321,5 +321,16 @@ Whenever test on anvil, we need to modify this line of code to `blockhash(block.
 ---
 
 ### 2025/2/12
+
+**What did I do today**
+
+- Draw the process diagram for the contracts.
+- Update the `README.md` file.
+- Update the `Makefile`.
+- Prepare the audit files.
+
+---
+
+### 2025/2/13
 
 **What did I do today**
