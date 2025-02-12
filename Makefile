@@ -4,6 +4,70 @@
 
 help:
 	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Available targets:"
+	@echo ""
+	@echo "Build and Test:"
+	@echo "  install              Install the necessary dependencies and libraries"
+	@echo "  build                Build the project"
+	@echo "  build-zksync         Build the project for zkSync"
+	@echo "  compile              Compile the project"
+	@echo "  compile-zksync       Compile the project for zkSync"
+	@echo "  snapshot             Create a snapshot"
+	@echo "  coverage-report      Generate a test coverage report"
+	@echo "Testing:"
+	@echo "  test                 Run tests (Usage: make test [NetworkName])"
+	@echo ""
+	@echo "Docker Management:"
+	@echo "  docker-start         Start Docker service"
+	@echo "  docker-stop          Stop Docker service"
+	@echo "  docker-status        Check Docker service status"
+	@echo "  docker-ps            List running Docker containers"
+	@echo ""
+	@echo "zkSync:"
+	@echo "  zksync-start         Start zkSync local node"
+	@echo ""
+	@echo "Deployment:"
+	@echo "  deploy               Deploy contract (Usage: make deploy ContractName NETWORK=[NetworkName])"
+	@echo ""
+	@echo "Interactions:"
+	@echo "  VRF:"
+	@echo "    create-subscription         Create VRF subscription"
+	@echo "    fund-subscription           Fund VRF subscription"
+	@echo "    add-consumer                Add consumer to VRF subscription"
+	@echo "    register-upkeep             Register for automation upkeep"
+	@echo ""
+	@echo "  VSkillUser:"
+	@echo "    submit-evidence             Submit evidence to VSkillUser"
+	@echo "    change-submission-fee       Change the submission fee"
+	@echo "    withdraw-profit             Withdraw profits"
+	@echo ""
+	@echo "  Verifier:"
+	@echo "    stake                       Stake tokens as verifier"
+	@echo "    add-skill-domain            Add a new skill domain"
+	@echo "    withdraw-stake-and-lose-verifier  Withdraw stake and lose verifier status"
+	@echo ""
+	@echo "  Relayer:"
+	@echo "    assign-evidence-to-verifiers     Assign evidence to verifiers"
+	@echo "    process-evidence-status          Process evidence status"
+	@echo "    handle-evidence-after-deadline   Handle evidence after deadline"
+	@echo "    add-more-skill                   Add additional skills"
+	@echo "    transfer-bonus-from-VSkillUser-to-Verifier-contract  Transfer bonus between contracts"
+	@echo ""
+	@echo "Audit:"
+	@echo "  slither              Run Slither analysis"
+	@echo "  aderyn               Run Aderyn analysis"
+	@echo "  scope                Show project structure"
+	@echo "  scopeFile            Generate scope file"
+	@echo ""
+	@echo "File Conversion:"
+	@echo "  packToCar            Convert file to CAR format (Usage: make packToCar evidence=filename)"
+	@echo "  unpackToOrigin       Convert CAR file back to original (Usage: make unpackToOrigin carfile=filename.car output=filename)"
+	@echo ""
+	@echo "Lighthouse:"
+	@echo "  lighthouse-import-wallet      Import wallet to Lighthouse (Usage: make lighthouse-import-wallet private-key=key)"
+	@echo "  lighthouse-generate-api-key   Generate Lighthouse API key"
+	@echo "  lighthouse-upload             Upload file to Lighthouse (Usage: make lighthouse-upload carfile=filename.car)"
 
 install:
 	@forge install OpenZeppelin/openzeppelin-contracts@v5.0.2 --no-commit && forge install foundry-rs/forge-std@v1.9.5 --no-commit && forge install smartcontractkit/chainlink-brownie-contracts@1.3.0 --no-commit
@@ -21,11 +85,19 @@ snapshot:; @forge snapshot
 coverage-report:
 	@forge coverage --report debug > coverage-report.md
 
-test-sepolia:
-	@forge test --fork-url $(SEPOLIA_RPC_URL)
+# Testing
+NETWORK = $(if $(word 2,$(MAKECMDGOALS)),$(word 2,$(MAKECMDGOALS)),anvil)
 
-test-mainnet:
-	@forge test --fork-url $(MAINNET_RPC_URL)
+test: check-network-config
+ifeq ($(NETWORK),anvil)
+	@forge test
+else
+	@forge test --fork-url $($(shell echo $(NETWORK) | tr a-z A-Z)_RPC_URL)
+endif
+
+# Handle unknown arguments
+%:
+	@:
 
 # docker
 
