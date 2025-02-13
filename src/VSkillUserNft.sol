@@ -11,6 +11,7 @@ contract VSkillUserNft is ERC721, AccessControl {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
+    // @audit-gas the visibility can be internal as it's only used in this contract
     uint256 private s_tokenCounter;
     string[] private s_skillDomains;
     string[] private s_userNftImageUris;
@@ -134,6 +135,10 @@ contract VSkillUserNft is ERC721, AccessControl {
 
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
+
+        // abi.encodePacked() should not be used with dynamic types when passing the result to a hash function such as keccak256()
+        // but for this case, it's not a big deal
+        // @audit-info we should use abi.encode() instead of abi.encodePacked() to avoid the hash collision
         return
             string(
                 abi.encodePacked(
