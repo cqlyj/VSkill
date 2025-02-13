@@ -134,7 +134,7 @@ make test
 make test NETWORK=Sepolia
 ```
 
-# Additional Testing Options
+## Additional Testing Options
 
 ```javascript
 //Generate test coverage report
@@ -144,7 +144,7 @@ make coverage-report
 make snapshot
 ```
 
-# Audit Tools
+## Audit Tools
 
 ```javascript
 //Run Slither analysis
