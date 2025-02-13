@@ -21,6 +21,9 @@ library PriceConverter {
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
     ) internal view returns (int) {
+        // @audit-high not using staleCheckLatestRoundData here!
+        // we should call staleCheckLatestRoundData instead of latestRoundData here
+
         // prettier-ignore
         (
             /* uint80 roundID */,
