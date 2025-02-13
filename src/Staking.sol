@@ -61,6 +61,16 @@ contract Staking {
     }
 
     // If you want to add bonus money to the contract, you should send eth to the VSkillUser contract
+
+    // what if someone sends eth to this contract without any data?
+    // it will trigger this receive function, and the eth are locked in this contract
+    // we should not allow this to happen
+    // but this one is just the base contract which will be inherited by the Verifier contract
+    // so we can't just remove this function
+    // do we overwrite this function in the Verifier contract? => No
+    // @audit-high lock eth in contract
+
+    // we should make this virtual and override it in the Verifier contract, and delete that addReward function in the Verifier contract
     receive() external payable {}
 
     fallback() external payable {
@@ -71,8 +81,7 @@ contract Staking {
                      EXTERNAL AND PUBLIC FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // @update we will transfer the stake to Relayer contract and let the Relayer contract handle the stake
-    // The actual become verifier function will be in the Verifier contract
+    // The actual function will be in the Verifier contract
     // This only handles the stake
     function stake() public payable virtual onlyNonVerifier {
         if (msg.value != STAKE_ETH_AMOUNT) {
