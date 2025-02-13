@@ -39,15 +39,15 @@ VSkill (VeriSkill) is a decentralized platform for verifying skills. It leverage
 
 1. User submits evidence for verification.
 
-<img src="./image/user-submit-evidence.svg">
+<img src="../../../image/user-submit-evidence.svg">
 
 2. Verifier check evidence and provide feedback.
 
-<img src="./image/verifier-check-evidence-and-provide-feedback.svg">
+<img src="../../../image/verifier-check-evidence-and-provide-feedback.svg">
 
 3. Relayer coordinates the user and verifier.
 
-<img src="./image/relayer-coordinates-user-and-verifier.svg">
+<img src="../../../image/relayer-coordinates-user-and-verifier.svg">
 
 # Stats
 
