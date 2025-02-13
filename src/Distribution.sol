@@ -16,8 +16,9 @@ contract Distribution is VRFConsumerBaseV2Plus {
     address immutable i_vrfCoordinator;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 3;
+    // @audit-gas the visibility can be internal as it is only used in the contract
     address private i_vSkillUser;
-
+    // @audit-gas the visibility can be internal as it is only used in the contract
     mapping(uint256 requestId => uint256[] randomWords)
         private s_requestIdToRandomWords;
 
@@ -114,8 +115,6 @@ contract Distribution is VRFConsumerBaseV2Plus {
         uint256[] calldata _randomWords
     ) internal override {
         s_requestIdToRandomWords[_requestId] = _randomWords;
-        // _processVerifiers(_requestId);
-        // Since this contract will be inherited by Relayer, the operation of the distribution will be updated later
         emit RequestIdToRandomWordsUpdated(_requestId);
     }
 
