@@ -169,6 +169,9 @@ contract Relayer is ILogAutomation, Ownable {
         // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
         for (uint256 i = 0; i < length; i++) {
             uint256 requestId = s_unhandledRequestIds[i];
+            // What if at the time when calling this function, the verifiers have been removed from the community?
+            // Then the random words will exceed the range and this function will revert
+            // @audit-high If verifier is removed, here we will have out of range random words!
             uint256[]
                 memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
                     requestId
@@ -455,6 +458,9 @@ contract Relayer is ILogAutomation, Ownable {
         // A⊕A=0
         // A⊕0=A
         // XOR all assigned verifiers
+
+        // @audit-info Unsafe Casting => see in aderyn report
+        // This one can be solved by just using the uint160 xorResult
         uint256 xorResult = 0;
         for (uint256 i = 0; i < verifiersAssigned.length; i++) {
             xorResult ^= uint256(uint160(verifiersAssigned[i]));
