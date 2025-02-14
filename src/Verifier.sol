@@ -60,6 +60,7 @@ contract Verifier is Staking, Ownable {
         address indexed verifier,
         uint256 reputation
     );
+    // @audit-info unused event
     event Verifier__LoseVerifier(address indexed verifier);
     event Verifier__Initialized(address indexed relayer);
     event Verifier__RewardAdded(uint256 reward);

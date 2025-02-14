@@ -29,6 +29,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     error VSkillUserNft__InvalidSkillDomain();
     error VSkillUserNft__NotInitialized();
     error VSkillUserNft__AlreadyInitialized();
+    // @audit-info unused error
     error VSkillUserNft__NotSkillHandler();
 
     /*//////////////////////////////////////////////////////////////
