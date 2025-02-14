@@ -32,6 +32,7 @@ contract Verifier is Staking, Ownable {
     uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant MAXIMUM_REWARD = 0.05 ether; // half of the staking amount
 
+    // @audit-info unused variable
     AggregatorV3Interface private immutable i_priceFeed;
 
     mapping(string skillDomain => address[] verifiersWithinSameDomain)
@@ -336,6 +337,9 @@ contract Verifier is Staking, Ownable {
         // No there is the maximum number they can be assigned
         // After reach this number, the verifier needs to withdraw the stake and re-stake to be assigned again
         // about 3000 evidences? But TBH this can usually cannot be a huge number since there are so many verifiers
+
+        // @audit-medium DoS can happen if the verifier is assigned to a lot of requests and thus they are able to provide feedback to assigned evidence
+        // Which result in making them lose their stake
         uint256 length = assignedRequestIds.length;
         for (uint256 i = 0; i < length; i++) {
             if (assignedRequestIds[i] == requestId) {
@@ -386,4 +390,6 @@ contract Verifier is Staking, Ownable {
     function getHighestReputation() external pure returns (uint256) {
         return HIGHEST_REPUTATION;
     }
+
+    // @audit-high lack getter function for verifiers to get their assigned request ids
 }
