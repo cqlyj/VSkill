@@ -388,6 +388,12 @@ contract Verifier is Staking, Ownable {
         return s_verifierToInfo[verifier].reward;
     }
 
+    function getVerifierUnhandledRequestCount(
+        address verifier
+    ) external view returns (uint256) {
+        return s_verifierToInfo[verifier].unhandledRequestCount;
+    }
+
     function getHighestReputation() external pure returns (uint256) {
         return HIGHEST_REPUTATION;
     }
