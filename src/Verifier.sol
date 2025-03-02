@@ -188,6 +188,10 @@ contract Verifier is Staking, Ownable {
             revert Verifier__ExistUnhandledEvidence();
         }
         super.withdrawStake();
+
+        // @audit-high the verifier deletion is not complete!
+        // we need also delete the verifier from the s_skillDomainToVerifiersWithinSameDomain and also decrease the length
+        // Otherwise, even if the verifier is not a verifier anymore, they still can be selected as a verifier
     }
 
     function withdrawReward() public onlyInitialized {
