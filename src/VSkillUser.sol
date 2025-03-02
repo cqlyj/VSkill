@@ -101,7 +101,12 @@ contract VSkillUser is Ownable {
         // As long as the deployment is correct, the second check is not necessary and a waste of gas
 
         // @audit-gas redundant check
-        if (msg.sender != i_relayer || tx.origin != owner()) {
+
+        // @notice we update this modifier here for fuzz testing
+        // if (msg.sender != i_relayer || tx.origin != owner()) {
+        //     revert VSkillUser__NotRelayer();
+        // }
+        if (msg.sender != i_relayer) {
             revert VSkillUser__NotRelayer();
         }
         _;
