@@ -327,6 +327,8 @@ contract VSkillUser is Ownable {
 
     function _calledByVerifierContract() internal view {
         if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
+            // @audit-low error custom error message
+            // it should be not Verifier contract
             revert VSkillUser__NotRelayer();
         }
     }
