@@ -118,10 +118,14 @@ contract ProofOfCodes is Test {
 
     function testVerifierLocksEth() external {
         address ethLocker = makeAddr("ethLocker");
-        deal(ethLocker, 1 ether);
+        deal(ethLocker, 10 ether);
         vm.prank(ethLocker);
         (bool success, ) = address(verifier).call{value: 1 ether}("");
         assertEq(success, true);
+
+        // This will fail because it will trigger the `stake()` function
+        // which will revert if the user has not provided the correct amount of eth
+        // Even if someone send the correct amount of eth, he will be a verifier and can withdraw the eth back
         vm.prank(ethLocker);
         (bool fallbackSuccess, ) = address(verifier).call{value: 1 ether}(
             "Give my Eth back!"
