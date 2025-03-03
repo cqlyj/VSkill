@@ -143,3 +143,33 @@ Modify `PriceConverter::getChainlinkDataFeedLatestAnswer` to use `staleCheckLate
 - ) = priceFeed.latestRoundData();
 + ) = priceFeed.staleCheckLatestRoundData();
 ```
+
+## Informational
+
+### [I-1] Incorrect File Name: `PriceCoverter` Should Be `PriceConverter`
+
+**Description:**
+
+The filename for the `PriceConverter` library is currently **`PriceCoverter.sol`**, which appears to be a typo. The correct spelling should be **`PriceConverter.sol`** to align with the library's actual name declared in the contract.
+
+**Impact:**
+
+- This typo may cause **import errors** or confusion when referencing the library in other contracts.
+- Developers might unintentionally reference the wrong file name, leading to deployment or compilation issues.
+- Consistency across file names and contract/library names is a best practice for maintainability and readability.
+
+**Recommended Mitigation:**
+
+Rename the file from **`PriceCoverter.sol`** to **`PriceConverter.sol`** to match the library name and maintain consistency.
+
+```diff
+- PriceCoverter.sol
++ PriceConverter.sol
+```
+
+Additionally, ensure all import statements in other contracts reflect the correct filename:
+
+```diff
+- import {PriceConverter} from "./PriceCoverter.sol";
++ import {PriceConverter} from "./PriceConverter.sol";
+```
