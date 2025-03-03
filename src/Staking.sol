@@ -68,7 +68,7 @@ contract Staking {
     // but this one is just the base contract which will be inherited by the Verifier contract
     // so we can't just remove this function
     // do we overwrite this function in the Verifier contract? => No
-    // @audit-high lock eth in contract
+    // @audit-written lock eth in contract
 
     // we should make this virtual and override it in the Verifier contract, and delete that addReward function in the Verifier contract
     receive() external payable {}
