@@ -68,6 +68,9 @@ contract VSkillUserNft is ERC721, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     // Later we will set the Relayer contract as the one who can mint the NFT or add more skills
+
+    // @audit-gas since the skillDomains and userNftImageUris are only set once
+    // we can use big data storage to save gas => store in Contract Bytecode
     constructor(
         string[] memory _skillDomains,
         string[] memory _userNftImageUris
