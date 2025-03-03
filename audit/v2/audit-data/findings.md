@@ -21,6 +21,8 @@ The function `PriceConverter::getChainlinkDataFeedLatestAnswer` calls `latestRou
 
 If the `Chainlink` oracle experiences issues and provides outdated or incorrect price data, contracts depending on this function for ETH/USD conversion could process stale prices, potentially leading to severe financial losses.
 
+**Proof of Concept:**
+
 Check the following test case in `test/v2/auditTests/ProofOfCodes.t.sol`:
 
 <details>
@@ -127,8 +129,6 @@ However, using the current function `PriceConverter::convertEthToUsd`, it does n
 
 </details>
 
-**Recommendation:**
-
 **Recommended Mitigation:**
 
 Modify `PriceConverter::getChainlinkDataFeedLatestAnswer` to use `staleCheckLatestRoundData` from `OracleLib` instead of `latestRoundData`. This ensures that stale or invalid price data is not used.
@@ -142,6 +142,137 @@ Modify `PriceConverter::getChainlinkDataFeedLatestAnswer` to use `staleCheckLate
     /*uint80 answeredInRound*/
 - ) = priceFeed.latestRoundData();
 + ) = priceFeed.staleCheckLatestRoundData();
+```
+
+### [H-2] `Verifier` locks Ether without a withdraw function.
+
+**Description:**
+
+The `Verifier` contract does not implement a proper withdrawal function for accidentally sent Ether. Since the contract inherits from `Staking`, which defines a `receive()` function but does not handle unintended Ether deposits, any Ether sent to the contract will be permanently locked.
+
+In `Staking` contract:
+
+```javascript
+@>  receive() external payable {}
+
+    fallback() external payable {
+        stake();
+    }
+```
+
+This issue arises because the `Verifier` contract does not provide a way for the owner or any user to retrieve mistakenly sent Ether.
+The only way to withdraw Ether from the contract is `withdrawStakeAndLoseVerifier()` and `withdrawReward()` which can only withdraw the eth that is either staked or the reward.
+
+In `Verifier` contract:
+
+```javascript
+
+ function withdrawStakeAndLoseVerifier() public onlyInitialized {
+        if (s_verifierToInfo[msg.sender].unhandledRequestCount > 0) {
+            revert Verifier__ExistUnhandledEvidence();
+        }
+@>      super.withdrawStake();
+    }
+
+ function withdrawReward() public onlyInitialized {
+        s_verifierToInfo[msg.sender].reward = 0;
+        (bool success, ) = msg.sender.call{
+@>          value: s_verifierToInfo[msg.sender].reward
+        }("");
+        if (!success) {
+            revert Staking__WithdrawFailed();
+        }
+
+        emit Withdrawn(msg.sender, s_verifierToInfo[msg.sender].reward);
+    }
+```
+
+In `Staking` contract:
+
+```javascript
+function withdrawStake() internal onlyVerifier {
+        s_verifierCount -= 1;
+        s_addressToIsVerifier[msg.sender] = false;
+        delete s_verifierToInfo[msg.sender];
+
+@>      (bool success, ) = msg.sender.call{value: STAKE_ETH_AMOUNT}("");
+        if (!success) {
+            revert Staking__WithdrawFailed();
+        }
+
+        emit LoseVerifier(msg.sender);
+        emit Withdrawn(msg.sender, STAKE_ETH_AMOUNT);
+    }
+```
+
+**Impact:**
+
+- Users who send Ether to the `Verifier` contract by mistake cannot withdraw it.
+- The contract may accumulate unintended funds that are forever locked.
+- If users expect a refund mechanism, they may experience financial loss due to the missing withdrawal functionality.
+
+**Proof of Concept:**
+
+Check the following test case in `test/v2/auditTests/ProofOfCodes.t.sol`:
+
+<details>
+<summary>Proof of Code</summary>
+
+```javascript
+
+function testVerifierLocksEth() external {
+        address ethLocker = makeAddr("ethLocker");
+        deal(ethLocker, 1 ether);
+        vm.prank(ethLocker);
+        (bool success, ) = address(verifier).call{value: 1 ether}("");
+        assertEq(success, true);
+        vm.prank(ethLocker);
+        (bool fallbackSuccess, ) = address(verifier).call{value: 1 ether}(
+            "Give my Eth back!"
+        );
+        assertEq(fallbackSuccess, false);
+    }
+
+```
+
+- This test sends 1 ETH to the `Verifier` contract.
+- There is no function to withdraw this ETH.
+- As a result, the funds are irretrievable.
+
+</details>
+
+**Recommended Mitigation:**
+
+1. Override the `receive()` function in the `Verifier` contract and store the received Ether in a separate variable. And implement a withdrawal function that allows the owner to send the locked Ether back to the sender.
+
+In `Staking` contract:
+
+```diff
+-   receive() external payable {}
++   receive() external payable virtual {}
+```
+
+In `Verifier` contract:
+
+```diff
++   mapping(address accidentLocker => uint256 lockedEth) private s_accidentLockerToEth;
+
++   receive() external payable override {
++        s_accidentLockerToEth[msg.sender] += msg.value;
++    }
+
++   sendAccidentEth(address to) external onlyOwner {
++       if(s_accidentLockerToEth[to] <=0 ) {
++           revert Verifier__NoAccidentEth();
++       }
++       s_accidentLockerToEth[to] = 0;
++       (bool success, ) = to.call{value: s_accidentLockerToEth[to]}("");
++       if (!success) {
++           revert Verifier__SendAccidentEthFailed();
++       }
++       emit AccidentEthSent(to, s_accidentLockerToEth[to]);
++    }
+
 ```
 
 ## Informational
