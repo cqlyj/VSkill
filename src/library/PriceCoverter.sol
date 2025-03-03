@@ -12,7 +12,7 @@ import {OracleLib} from "./OracleLib.sol";
  * @dev This library is used to convert ETH to USD and USD to ETH
  */
 
-// @audit-info the file name is PriceCoverter, did you mean PriceConverter?
+// @audit-written the file name is PriceCoverter, did you mean PriceConverter?
 library PriceConverter {
     using OracleLib for AggregatorV3Interface;
 
@@ -22,7 +22,7 @@ library PriceConverter {
     function getChainlinkDataFeedLatestAnswer(
         AggregatorV3Interface priceFeed
     ) internal view returns (int) {
-        // @audit-high not using staleCheckLatestRoundData here!
+        // @audit-written not using staleCheckLatestRoundData here!
         // we should call staleCheckLatestRoundData instead of latestRoundData here
 
         // prettier-ignore
