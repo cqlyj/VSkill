@@ -93,6 +93,26 @@ contract MockV3Aggregator is AggregatorV3Interface {
         );
     }
 
+    function maliciousLatestRoundData()
+        external
+        view
+        returns (
+            uint80 roundId,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
+        )
+    {
+        return (
+            uint80(latestRound),
+            getAnswer[latestRound],
+            getStartedAt[latestRound],
+            getTimestamp[latestRound],
+            uint80(latestRound) - 1 // Here is the malicious part, we return the previous round as the latest round
+        );
+    }
+
     function description() external pure returns (string memory) {
         return "v0.6/test/mock/MockV3Aggregator.sol";
     }
