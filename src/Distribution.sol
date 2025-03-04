@@ -16,9 +16,7 @@ contract Distribution is VRFConsumerBaseV2Plus {
     address immutable i_vrfCoordinator;
     uint16 constant REQUEST_CONFIRMATIONS = 3;
     uint32 constant NUM_WORDS = 3;
-    // @audit-gas the visibility can be internal as it is only used in the contract
     address private i_vSkillUser;
-    // @audit-gas the visibility can be internal as it is only used in the contract
     mapping(uint256 requestId => uint256[] randomWords)
         private s_requestIdToRandomWords;
 

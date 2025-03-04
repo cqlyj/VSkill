@@ -11,7 +11,6 @@ contract VSkillUserNft is ERC721, AccessControl {
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
 
-    // @audit-gas the visibility can be internal as it's only used in this contract
     uint256 private s_tokenCounter;
     string[] private s_skillDomains;
     string[] private s_userNftImageUris;
