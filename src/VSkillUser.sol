@@ -19,7 +19,7 @@ contract VSkillUser is Ownable {
     error VSkillUser__NotEnoughSubmissionFee();
     error VSkillUser__InvalidSkillDomain();
     error VSkillUser__SkillDomainAlreadyExists();
-    // @audit-gas unused custom errors => see in aderyn report
+    // @audit-written unused custom errors => see in aderyn report
     error VSkillUser__EvidenceNotApprovedYet(
         StructDefinition.VSkillUserSubmissionStatus status
     );
@@ -100,7 +100,7 @@ contract VSkillUser is Ownable {
         // That will be a deployment issue
         // As long as the deployment is correct, the second check is not necessary and a waste of gas
 
-        // @audit-gas redundant check
+        // @audit-written redundant check
 
         // @notice we update this modifier here for fuzz testing
         // if (msg.sender != i_relayer || tx.origin != owner()) {
@@ -139,7 +139,7 @@ contract VSkillUser is Ownable {
 
     // For those unexpected ETH received, we will take them as the bonus for verifiers
     receive() external payable {
-        // @audit-info state variable changes but no event emitted => see in aderyn report
+        // @audit-written in aderyn state variable changes but no event emitted => see in aderyn report
         s_bonus += msg.value;
     }
 
@@ -155,7 +155,7 @@ contract VSkillUser is Ownable {
         // What if the user sends more than the submission fee?
         // Is there a function to withdraw the excess amount? => Yes, withdrawProfit()
         // The excess amount will be taken as the profit for the owner, is that a issue?
-        // @audit-info exceeding submission fee is taken as profit for the owner, is that what we want?
+        // @audit-written exceeding submission fee is taken as profit for the owner, is that what we want?
         // Perhaps yes, cause the owner can withdraw it and possibly return it to the user
         if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee();
@@ -224,7 +224,7 @@ contract VSkillUser is Ownable {
                 evidence.statusApproveOrNot[i] = true;
                 s_requestIdToVerifiersApprovedEvidence[requestId].push(
                     // the tx.origin is the one who initiated the transaction
-                    // @audit test this!
+                    // @audit-tested test this!
                     tx.origin
                 );
                 evidence.feedbackCids.push(feedbackCid);
@@ -332,8 +332,9 @@ contract VSkillUser is Ownable {
 
     function _calledByVerifierContract() internal view {
         if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
-            // @audit-low error custom error message
+            // @audit-written error custom error message
             // it should be not Verifier contract
+            // VSkillUser__NotVerifierContract()
             revert VSkillUser__NotRelayer();
         }
     }
