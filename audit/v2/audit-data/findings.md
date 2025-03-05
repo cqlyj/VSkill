@@ -308,3 +308,56 @@ Additionally, ensure all import statements in other contracts reflect the correc
 - import {PriceConverter} from "./PriceCoverter.sol";
 + import {PriceConverter} from "./PriceConverter.sol";
 ```
+
+### [I-2] Unused Custom Error
+
+**Description:**
+
+it is recommended that the definition be removed when custom error is unused
+
+- Found in src/VSkillUser.sol [Line: 22](src/VSkillUser.sol#L22)
+
+  ```solidity
+      error VSkillUser__EvidenceNotApprovedYet(
+  ```
+
+- Found in src/VSkillUserNft.sol [Line: 31](src/VSkillUserNft.sol#L31)
+
+  ```solidity
+      error VSkillUserNft__NotSkillHandler();
+  ```
+
+</details>
+
+### [I-3] `abi.encodePacked()` should not be used with dynamic types when passing the result to a hash function such as `keccak256()`
+
+**Description:**
+
+Use `abi.encode()` instead which will pad items to 32 bytes, which will [prevent hash collisions](https://docs.soliditylang.org/en/v0.8.13/abi-spec.html#non-standard-packed-mode) (e.g. `abi.encodePacked(0x123,0x456)` => `0x123456` => `abi.encodePacked(0x1,0x23456)`, but `abi.encode(0x123,0x456)` => `0x0...1230...456`). Unless there is a compelling reason, `abi.encode` should be preferred. If there is only one argument to `abi.encodePacked()` it can often be cast to `bytes()` or `bytes32()` [instead](https://ethereum.stackexchange.com/questions/30912/how-to-compare-strings-in-solidity#answer-82739).
+If all arguments are strings and or bytes, `bytes.concat()` should be used instead.
+
+<details><summary>2 Found Instances</summary>
+
+- Found in src/VSkillUserNft.sol [Line: 139](src/VSkillUserNft.sol#L139)
+
+  ```solidity
+                  abi.encodePacked(
+  ```
+
+- Found in src/VSkillUserNft.sol [Line: 143](src/VSkillUserNft.sol#L143)
+
+  ```solidity
+                              abi.encodePacked(
+  ```
+
+</details>
+
+## Gas
+
+### [G-1] Use big data storage(Contract bytecode) to store the NFT image uris
+
+**Description:**
+
+In `VSkillUserNft` contract, the NFT image URIs are stored in storage slot, which is expensive in terms of gas costs. It is recommended to store the image URIs in contract bytecode, which is cheaper and more efficient.
+
+For more information head to [simple-big-data-storage](https://github.com/cqlyj/simple-big-data-storage).
