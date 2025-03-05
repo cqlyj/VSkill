@@ -142,4 +142,35 @@ contract ProofOfCodes is Test {
         uint256 evidenceLength = vSkillUser.getEvidences().length;
         assertEq(evidenceLength, 1);
     }
+
+    function testVerifierDeletionIsNotComplete() external {
+        address verifierAddress = makeAddr("verifier");
+        deal(verifierAddress, 1 ether);
+
+        vm.startPrank(verifierAddress);
+        verifier.stake{value: verifier.getStakeEthAmount()}();
+        verifier.addSkillDomain("Blockchain");
+
+        uint256 verifierWithinSameDomainLength = verifier
+            .getSkillDomainToVerifiersWithinSameDomainLength("Blockchain");
+
+        verifier.withdrawStakeAndLoseVerifier();
+        uint256 verifierWithinSameDomainLengthAfterDeletion = verifier
+            .getSkillDomainToVerifiersWithinSameDomainLength("Blockchain");
+
+        vm.stopPrank();
+
+        console.log(
+            "Verifier within same domain length before deletion: ",
+            verifierWithinSameDomainLength
+        );
+        console.log(
+            "Verifier within same domain length after deletion: ",
+            verifierWithinSameDomainLengthAfterDeletion
+        );
+        console.log("You can find that the deletion is not complete!");
+        console.log(
+            "Thus, even if the verifier is deleted, he can still be selected!!!"
+        );
+    }
 }
