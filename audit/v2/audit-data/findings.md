@@ -279,6 +279,42 @@ In `Verifier` contract:
 
 ```
 
+## Low
+
+### [L-1] Incorrect Custom Error in `VSkillUser::_calledByVerifierContract`
+
+**Description:**
+The `_calledByVerifierContract` function incorrectly uses the `VSkillUser__NotRelayer` error when reverting. The intended check is for the `Verifier` contract, not the `Relayer`.
+
+```javascript
+ function _calledByVerifierContract() internal view {
+@>      if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
+@>          revert VSkillUser__NotRelayer();
+        }
+    }
+```
+
+The error message should clearly indicate that the caller is not the `Verifier` contract, not that it's not the `Relayer`.
+
+**Impact:**
+
+- Misleading error message: Developers debugging contract interactions may misunderstand the issue.
+- Harder troubleshooting: Incorrect error messages can make it difficult to determine the real cause of a failed transaction.
+
+**Recommended Mitigation:**
+
+Replace the incorrect error message with a more appropriate one:
+
+```diff
++   error VSkillUser__NotVerifierContract();
+function _calledByVerifierContract() internal view {
+    if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
+-       revert VSkillUser__NotRelayer(); // Incorrect
++       revert VSkillUser__NotVerifierContract(); // Correct
+    }
+}
+```
+
 ## Informational
 
 ### [I-1] Incorrect File Name: `PriceCoverter` Should Be `PriceConverter`
@@ -352,6 +388,111 @@ If all arguments are strings and or bytes, `bytes.concat()` should be used inste
 
 </details>
 
+### [I-4] Excess Submission Fee Taken
+
+**Description:**
+
+In the `VSkillUser::submitEvidence` function, if a user submits more than the required `s_submissionFeeInUsd`, the excess amount is not refunded.
+
+```javascript
+ function submitEvidence(
+        string memory cid,
+        string memory skillDomain
+    ) public payable onlyInitialized {
+@>      if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
+            revert VSkillUser__NotEnoughSubmissionFee();
+        }
+        .
+        .
+        .
+```
+
+This behavior may be intentional, allowing the contract owner to use the excess funds at their discretion. However, users may expect a refund instead of their excess payment being treated as profit.
+
+**Impact:**
+
+- Unexpected fund retention: Users might not realize that excess ETH is not refunded.
+- Potential user dissatisfaction: Some users might assume they will only pay the exact required submission fee.
+- Owner discretion: While the owner can withdraw the funds and possibly return them, this is not guaranteed by the contract.
+
+**Proof of Concept:**
+
+Check the following test case in `test/v2/auditTests/ProofOfCodes.t.sol`:
+
+<details>
+<summary>Proof of Code</summary>
+
+If a user sends more than the required submission fee:
+
+```javascript
+ function testUserCanSendMoreThanRequiredForSubmission() external {
+        vm.prank(USER);
+        vSkillUser.submitEvidence{
+            value: vSkillUser.getSubmissionFeeInEth() + 1e18
+        }("cid", "Blockchain"); // We know that Blockchain is a valid skill domain from the config
+
+        uint256 evidenceLength = vSkillUser.getEvidences().length;
+        assertEq(evidenceLength, 1);
+    }
+```
+
+Here is the log:
+
+```bash
+ ├─ [15010] VSkillUser::getSubmissionFeeInEth() [staticcall]
+    │   ├─ [8991] MockV3Aggregator::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 1, 200000000000 [2e11], 1, 1, 1
+    │   └─ ← [Return] 2500000000000000 [2.5e15]
+    ├─ [532533] VSkillUser::submitEvidence{value: 1002500000000000000}("cid", "Blockchain")
+    │   ├─ [991] MockV3Aggregator::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 1, 200000000000 [2e11], 1, 1, 1
+    │   ├─ [124693] Distribution::distributionRandomNumberForVerifiers()
+    │   │   ├─ [115438] VRFCoordinatorV2_5Mock::requestRandomWords(RandomWordsRequest({ keyHash: 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc, subId: 71559651348530707092126447838144209774845187901096159534269265783461099618592 [7.155e76], requestConfirmations: 3, callbackGasLimit: 500000 [5e5], numWords: 3, extraArgs: 0x92fd13380000000000000000000000000000000000000000000000000000000000000000 }))
+    │   │   │   ├─ emit RandomWordsRequested(keyHash: 0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc, requestId: 1, preSeed: 100, subId: 71559651348530707092126447838144209774845187901096159534269265783461099618592 [7.155e76], minimumRequestConfirmations: 3, callbackGasLimit: 500000 [5e5], numWords: 3, extraArgs: 0x92fd13380000000000000000000000000000000000000000000000000000000000000000, sender: Distribution: [0x50EEf481cae4250d252Ae577A09bF514f224C6C4])
+    │   │   │   └─ ← [Return] 1
+    │   │   ├─ emit VerifierDistributionRequested(requestId: 1)
+    │   │   └─ ← [Return] 1
+    │   ├─ emit VSkillUser__EvidenceSubmitted(submitter: ProofOfCodes: [0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496])
+```
+
+- The contract does not refund the extra ETH.
+- Instead, the excess amount is retained for the owner.
+- Users have no way to retrieve the excess funds themselves.
+
+</details>
+
+**Recommended Mitigation:**
+
+If the intention is only charge the exact amount of ETH, modify the function to check for `!=` instead of `<`, also modify the error message to reflect the new condition.
+
+```diff
+ function submitEvidence(
+        string memory cid,
+        string memory skillDomain
+    ) public payable onlyInitialized {
+-        if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
++        if (msg.value.convertEthToUsd(i_priceFeed) != s_submissionFeeInUsd) {
+-            revert VSkillUser__NotEnoughSubmissionFee();
++            revert VSkillUser__IncorrectSubmissionFee();
+        }
+        .
+        .
+        .
+```
+
+If the current behavior is intended, add a clear comment and update documentation to inform users:
+
+```diff
+ function submitEvidence(
+        string memory cid,
+        string memory skillDomain
+    ) public payable onlyInitialized {
++       // The submission fee is fixed and any excess amount will be retained by the contract owner as profit.
+        if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
+            revert VSkillUser__NotEnoughSubmissionFee();
+        }
+```
+
 ## Gas
 
 ### [G-1] Use big data storage(Contract bytecode) to store the NFT image uris
@@ -361,3 +502,32 @@ If all arguments are strings and or bytes, `bytes.concat()` should be used inste
 In `VSkillUserNft` contract, the NFT image URIs are stored in storage slot, which is expensive in terms of gas costs. It is recommended to store the image URIs in contract bytecode, which is cheaper and more efficient.
 
 For more information head to [simple-big-data-storage](https://github.com/cqlyj/simple-big-data-storage).
+
+### [G-2] Redundant `tx.origin` Check in `onlyRelayer` Modifier
+
+**Description:**
+
+The `VSkillUser::onlyRelayer` modifier includes a redundant check:
+
+```javascript
+@>  if (msg.sender != i_relayer || tx.origin != owner()) {
+        revert VSkillUser__NotRelayer();
+    }
+    _;
+```
+
+Since the contract's design ensures that only the relayer contract can call certain functions by owner which is set at the deployment, checking `tx.origin` against `owner()` is unnecessary. Even if the `tx.origin` is not the owner, it's a deployment issue, not a security issue. The second check adds unnecessary gas costs without providing additional security.
+
+**Recommended Mitigation:**
+
+Remove the redundant `tx.origin` check to optimize gas usage:
+
+```diff
+modifier onlyRelayer() {
+-   if (msg.sender != i_relayer || tx.origin != owner()) {
++   if (msg.sender != i_relayer) {
+        revert VSkillUser__NotRelayer();
+    }
+    _;
+}
+```
