@@ -132,4 +132,14 @@ contract ProofOfCodes is Test {
         );
         assertEq(fallbackSuccess, false);
     }
+
+    function testUserCanSendMoreThanRequiredForSubmission() external {
+        vm.prank(USER);
+        vSkillUser.submitEvidence{
+            value: vSkillUser.getSubmissionFeeInEth() + 1e18
+        }("cid", "Blockchain"); // We know that Blockchain is a valid skill domain from the config
+
+        uint256 evidenceLength = vSkillUser.getEvidences().length;
+        assertEq(evidenceLength, 1);
+    }
 }
