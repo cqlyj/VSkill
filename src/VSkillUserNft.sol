@@ -28,7 +28,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     error VSkillUserNft__InvalidSkillDomain();
     error VSkillUserNft__NotInitialized();
     error VSkillUserNft__AlreadyInitialized();
-    // @audit-info unused error
+    // @audit-written unused error
     error VSkillUserNft__NotSkillHandler();
 
     /*//////////////////////////////////////////////////////////////
@@ -141,7 +141,7 @@ contract VSkillUserNft is ERC721, AccessControl {
 
         // abi.encodePacked() should not be used with dynamic types when passing the result to a hash function such as keccak256()
         // but for this case, it's not a big deal
-        // @audit-info we should use abi.encode() instead of abi.encodePacked() to avoid the hash collision
+        // @audit-written we should use abi.encode() instead of abi.encodePacked() to avoid the hash collision
         return
             string(
                 abi.encodePacked(
