@@ -493,6 +493,53 @@ If the current behavior is intended, add a clear comment and update documentatio
         }
 ```
 
+### [I-5] Unused Variable `Verifier::i_priceFeed`
+
+**Description:**
+
+The `Verifier` contract declares an variable `i_priceFeed` which is never used in the contract.:
+
+```javascript
+AggregatorV3Interface private immutable i_priceFeed;
+```
+
+**Impact:**
+
+- Wasted deployment gas: Assigning an immutable variable consumes gas at deployment.
+- Increased bytecode size: Keeping unused variables increases contract size without providing functionality.
+- Code maintainability: Unused variables can cause confusion and reduce code clarity.
+
+**Recommended Mitigation:**
+
+Remove it to optimize gas usage and contract size:
+
+```diff
+- AggregatorV3Interface private immutable i_priceFeed;
+```
+
+### [I-6] Unused Event `Verifier::Verifier__LoseVerifier`
+
+**Description:**
+
+The `Verifier` contract defines an event `Verifier__LoseVerifier`, but it is never emitted anywhere in the contract:
+
+```javascript
+event Verifier__LoseVerifier(address indexed verifier);
+```
+
+**Impact:**
+
+- Wasted gas on deployment: Declaring an unused event increases contract size and deployment costs.
+- Reduces code clarity: Unused events may mislead developers into thinking they are relevant when they are not.
+
+**Recommended Mitigation:**
+
+Remove the unused event
+
+```diff
+- event Verifier__LoseVerifier(address indexed verifier);
+```
+
 ## Gas
 
 ### [G-1] Use big data storage(Contract bytecode) to store the NFT image uris
