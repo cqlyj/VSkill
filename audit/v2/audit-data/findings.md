@@ -279,6 +279,142 @@ In `Verifier` contract:
 
 ```
 
+### [H-3] Incomplete Verifier Deletion Allows Removed Verifiers to Be Selected
+
+**Description:**
+
+In the `Verifier::withdrawStakeAndLoseVerifier` function, the current implementation does not fully remove a verifier from all relevant mappings and arrays. Specifically, while the verifier is removed from `s_verifierToInfo`, they are still present in `s_skillDomainToVerifiersWithinSameDomain`. As a result, they can still be selected as verifiers even after withdrawing their stake as in `Relayer` contract, the `Relayer::assignEvidenceToVerifiers` function selects the verifiers based on this `s_skillDomainToVerifiersWithinSameDomain` mapping:
+
+In `Verifier` contract:
+
+```javascript
+
+    function withdrawStakeAndLoseVerifier() public onlyInitialized {
+        if (s_verifierToInfo[msg.sender].unhandledRequestCount > 0) {
+            revert Verifier__ExistUnhandledEvidence();
+        }
+@>      super.withdrawStake();
+    }
+
+```
+
+We only called the `withdrawStake()` function as below:
+
+```javascript
+ function withdrawStake() internal onlyVerifier {
+@>      s_verifierCount -= 1;
+@>      s_addressToIsVerifier[msg.sender] = false;
+@>      delete s_verifierToInfo[msg.sender];
+
+        (bool success, ) = msg.sender.call{value: STAKE_ETH_AMOUNT}("");
+        if (!success) {
+            revert Staking__WithdrawFailed();
+        }
+
+        emit LoseVerifier(msg.sender);
+        emit Withdrawn(msg.sender, STAKE_ETH_AMOUNT);
+    }
+```
+
+As we can find, the `s_skillDomainToVerifiersWithinSameDomain` mapping is not updated in the `withdrawStakeAndLoseVerifier` function.
+
+However, in `Relayer` contract, which handles the verifier selection, the `assignEvidenceToVerifiers` function selects verifiers based on the `s_skillDomainToVerifiersWithinSameDomain` mapping:
+
+```javascript
+ function assignEvidenceToVerifiers() external onlyOwner {
+        .
+        .
+        .
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = s_unhandledRequestIds[i];
+            uint256[]
+                memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
+                    requestId
+                ];
+@>          address[] memory verifiersWithinSameDomain = i_verifier
+@>              .getSkillDomainToVerifiersWithinSameDomain(
+@>                  i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
+@>              );
+        .
+        .
+        .
+    }
+```
+
+**Impact:**
+
+- Even though the verifier is no longer active, they can still be randomly assigned new verification tasks.
+- This can disrupt the verification process and potentially allow an unqualified verifier to be assigned tasks.
+- It introduces inconsistencies in the system, where the internal state does not accurately reflect the verifier’s status.
+
+**Proof of Concept:**
+
+1. A verifier calls `withdrawStakeAndLoseVerifier()`.
+2. The contract removes them from `s_verifierToInfo` but does not remove them from `s_skillDomainToVerifiersWithinSameDomain`.
+3. The function `assignEvidenceToVerifiers` still selects verifiers based on `s_skillDomainToVerifiersWithinSameDomain`, which includes the removed verifier.
+4. The removed verifier may still be assigned verification tasks and ruin this protocol.
+
+Check the following test case in `test/v2/auditTests/ProofOfCodes.t.sol`:
+
+<details>
+
+<summary>Proof of Code</summary>
+
+```javascript
+function testVerifierDeletionIsNotComplete() external {
+        address verifierAddress = makeAddr("verifier");
+        deal(verifierAddress, 1 ether);
+
+        vm.startPrank(verifierAddress);
+        verifier.stake{value: verifier.getStakeEthAmount()}();
+        verifier.addSkillDomain("Blockchain");
+
+        uint256 verifierWithinSameDomainLength = verifier
+            .getSkillDomainToVerifiersWithinSameDomainLength("Blockchain");
+
+        verifier.withdrawStakeAndLoseVerifier();
+        uint256 verifierWithinSameDomainLengthAfterDeletion = verifier
+            .getSkillDomainToVerifiersWithinSameDomainLength("Blockchain");
+
+        vm.stopPrank();
+
+        console.log(
+            "Verifier within same domain length before deletion: ",
+            verifierWithinSameDomainLength
+        );
+        console.log(
+            "Verifier within same domain length after deletion: ",
+            verifierWithinSameDomainLengthAfterDeletion
+        );
+        console.log("You can find that the deletion is not complete!");
+        console.log(
+            "Thus, even if the verifier is deleted, he can still be selected!!!"
+        );
+    }
+```
+
+</details>
+
+**Recommended Mitigation:**
+
+Ensure that when a verifier withdraws their stake, they are also removed from `s_skillDomainToVerifiersWithinSameDomain`. Modify `withdrawStakeAndLoseVerifier()` as follows:
+
+```diff
+function withdrawStakeAndLoseVerifier() public onlyInitialized {
+        if (s_verifierToInfo[msg.sender].unhandledRequestCount > 0) {
+            revert Verifier__ExistUnhandledEvidence();
+        }
+        super.withdrawStake();
+
++        string[] memory skillDomains = s_verifierToInfo[msg.sender].skillDomains;
++        uint256 length = skillDomains.length;
++        _removeVerifierFromSkillDomain(skillDomains, length, msg.sender);
+    }
+
+```
+
+Where this `_removeVerifierFromSkillDomain` function can be designed as you wish, but it will be better create another variable like a mapping from the skill domain to the verifiers and remove the verifier from this mapping as this will be much gas efficient.
+
 ## Low
 
 ### [L-1] Incorrect Custom Error in `VSkillUser::_calledByVerifierContract`
