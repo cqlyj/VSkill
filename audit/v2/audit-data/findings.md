@@ -451,6 +451,98 @@ function _calledByVerifierContract() internal view {
 }
 ```
 
+### [L-2] Potential DoS Risk Due to Excessive Assignments in `Relayer::assignEvidenceToVerifiers`
+
+**Description:**
+
+The `assignEvidenceToVerifiers` function assigns verifiers to evidence requests by randomly selecting verifiers from `verifiersWithinSameDomain`. However, the function does not impose a cap on the number of assignments a single verifier can receive, leading to potential overload.
+
+In `Relayer` contract:
+
+```javascript
+ function assignEvidenceToVerifiers() external onlyOwner {
+        .
+        .
+        .
+        for (uint256 i = 0; i < length; i++) {
+            uint256 requestId = s_unhandledRequestIds[i];
+            uint256[]
+                memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
+                    requestId
+                ];
+@>          address[] memory verifiersWithinSameDomain = i_verifier
+@>              .getSkillDomainToVerifiersWithinSameDomain(
+@>                  i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
+@>              );
+@>          for (uint8 j = 0; j < randomWordsWithinRange.length; j++) {
+@>              s_requestIdToVerifiersAssigned[requestId].push(
+@>                  verifiersWithinSameDomain[randomWordsWithinRange[j]]
+@>              );
+@>              i_verifier.setVerifierAssignedRequestIds(
+@>                  requestId,
+@>                  verifiersWithinSameDomain[randomWordsWithinRange[j]]
+@>              );
+@>              i_verifier.addVerifierUnhandledRequestCount(
+@>                  verifiersWithinSameDomain[randomWordsWithinRange[j]]
+@>              );
+@>              // only 7 days allowed for the verifiers to provide feedback
+@>              i_vSkillUser.setDeadline(requestId, block.timestamp + DEADLINE);
+@>          }
+@>      }
+        .
+        .
+        .
+    }
+
+```
+
+And if verifier cannot provide the feedback within deadline, they will be a punishment for verifiers:
+
+```javascript
+ // punish is lose the verifier, not the same as penalize
+    function punishVerifier(
+        address verifier
+    ) public onlyInitialized onlyRelayer {
+        // take all the stake out and remove the verifier
+        s_addressToIsVerifier[verifier] = false;
+        s_verifierCount -= 1;
+        // what about the stake money? The money will be collected by the staking contract and will be used to reward the verifiers who provide feedback
+        // also those rewards will be used to reward the verifiers who provide feedback
+        s_reward += super.getStakeEthAmount();
+        s_reward += s_verifierToInfo[verifier].reward;
+        delete s_verifierToInfo[verifier];
+
+        emit LoseVerifier(verifier);
+    }
+```
+
+There is a risk that a verifier is overloaded with too many requests, preventing them from providing timely feedback. This can lead to:
+
+1. Denial of Service (DoS): If a verifier has an excessive number of pending requests, they might be unable to process all of them before deadlines expire.
+2. Unfair Stake Loss: Since verifiers must provide feedback before a deadline, failing to do so results in penalties, potentially leading to the loss of their stake.
+3. Imbalanced Workload: If certain domains have fewer verifiers, some might receive significantly more requests than others, worsening the issue.
+
+**Impact:**
+
+- A single verifier could be assigned an excessive number of requests.
+- If they cannot provide feedback on all requests before deadlines, they will be penalized unfairly.
+- If a skill domain has too few verifiers, they could be overloaded, creating a bottleneck in the verification process.
+- This may lead to unintended stake losses and discourage participation.
+
+**Proof of Concept:**
+
+1. Deploy the contract and register a small number of verifiers in a specific domain.
+2. Submit a large number of evidence requests.
+3. Observe that the few available verifiers receive an excessive number of assignments.
+4. If verifiers fail to meet deadlines, they are penalized, even if the workload is too high.
+
+**Recommended Mitigation:**
+
+1. Enforce an Assignment Cap: Before assigning a request, check if a verifier is already handling too many requests.
+2. Ensure Fair Distribution:
+   - If a verifier is overloaded, select another one from the pool.
+   - If all verifiers in a domain are overloaded, prioritize those with the fewest assignments.
+
 ## Informational
 
 ### [I-1] Incorrect File Name: `PriceCoverter` Should Be `PriceConverter`
