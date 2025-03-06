@@ -176,6 +176,15 @@ contract Relayer is ILogAutomation, Ownable {
                 memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
                     requestId
                 ];
+
+            // @audit-written DoS can happen if the verifier is assigned to a lot of requests and thus they are not able to provide feedback to assigned evidence in timely manner
+            // Which result in making them lose their stake
+            // But since the evidence is assigned randomly, as long as there are enough verifiers, this should not be a problem
+            // But there are cases where the verifier is assigned to a lot of requests and they are not able to provide feedback to all of them
+            // And this specific domain does not hold a lot of verifiers, this can be a problem
+
+            // maybe after the whole process is done, delete this requestId from the assignedRequestIds? => This might be a bit complicated
+            // or perhaps limit the length of the assignedRequestIds?
             address[] memory verifiersWithinSameDomain = i_verifier
                 .getSkillDomainToVerifiersWithinSameDomain(
                     i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
