@@ -32,7 +32,7 @@ contract Verifier is Staking, Ownable {
     uint256 private constant HIGHEST_REPUTATION = 10;
     uint256 private constant MAXIMUM_REWARD = 0.05 ether; // half of the staking amount
 
-    // @audit-info unused variable
+    // @audit-written unused variable
     AggregatorV3Interface private immutable i_priceFeed;
 
     mapping(string skillDomain => address[] verifiersWithinSameDomain)
@@ -60,7 +60,7 @@ contract Verifier is Staking, Ownable {
         address indexed verifier,
         uint256 reputation
     );
-    // @audit-info unused event
+    // @audit-written unused event
     event Verifier__LoseVerifier(address indexed verifier);
     event Verifier__Initialized(address indexed relayer);
     event Verifier__RewardAdded(uint256 reward);
@@ -189,7 +189,7 @@ contract Verifier is Staking, Ownable {
         }
         super.withdrawStake();
 
-        // @audit-high the verifier deletion is not complete!
+        // @audit-written the verifier deletion is not complete!
         // we need also delete the verifier from the s_skillDomainToVerifiersWithinSameDomain and also decrease the length
         // Otherwise, even if the verifier is not a verifier anymore, they still can be selected as a verifier
     }
@@ -342,9 +342,6 @@ contract Verifier is Staking, Ownable {
         // No there is the maximum number they can be assigned
         // After reach this number, the verifier needs to withdraw the stake and re-stake to be assigned again
         // about 3000 evidences? But TBH this can usually cannot be a huge number since there are so many verifiers
-
-        // @audit-medium DoS can happen if the verifier is assigned to a lot of requests and thus they are able to provide feedback to assigned evidence
-        // Which result in making them lose their stake
         uint256 length = assignedRequestIds.length;
         for (uint256 i = 0; i < length; i++) {
             if (assignedRequestIds[i] == requestId) {
@@ -402,5 +399,5 @@ contract Verifier is Staking, Ownable {
         return HIGHEST_REPUTATION;
     }
 
-    // @audit-high lack getter function for verifiers to get their assigned request ids
+    // @audit-written lack getter function for verifiers to get their assigned request ids
 }
