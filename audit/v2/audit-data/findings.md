@@ -415,6 +415,34 @@ function withdrawStakeAndLoseVerifier() public onlyInitialized {
 
 Where this `_removeVerifierFromSkillDomain` function can be designed as you wish, but it will be better create another variable like a mapping from the skill domain to the verifiers and remove the verifier from this mapping as this will be much gas efficient.
 
+## Medium
+
+### [M-1] Lack of Getter Function for Verifiers to Retrieve Their Assigned Request IDs
+
+**Description:**
+
+The `Verifier` contract assigns verifiers to evidence requests but does not provide a way for them to retrieve their assigned request IDs. This omission forces verifiers to rely on off-chain tracking or event logs, which may be inefficient or unreliable.
+
+Currently, assigned request IDs are stored in `s_verifierToInfo[msg.sender].assignedRequestIds` but cannot be accessed through a public or external function.
+
+**Impact:**
+
+- Verifiers cannot directly check which requests they have been assigned.
+- This forces reliance on event logs, which may not be accessible in some cases.
+- Makes it harder for verifiers to track pending tasks, increasing the likelihood of missing deadlines and penalties.
+
+**Recommended Mitigation:**
+
+Implement a public getter function for verifiers to check their assigned request IDs.
+
+```diff
++ function getVerifierAssignedRequestIds(
++        address verifier
++    ) external view returns (uint256[] memory) {
++        return s_verifierToInfo[verifier].assignedRequestIds;
++    }
+```
+
 ## Low
 
 ### [L-1] Incorrect Custom Error in `VSkillUser::_calledByVerifierContract`
