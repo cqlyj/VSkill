@@ -559,6 +559,53 @@ function testVerifierLeavesBeforeAssignedWillRevert() external {
     }
 ```
 
+And here is the log:
+
+```bash
+ ├─ [0] VM::startPrank(ECRecover: [0x0000000000000000000000000000000000000001])
+    │   └─ ← [Return]
+    ├─ [40437] Verifier::withdrawStakeAndLoseVerifier()
+    │   ├─ [3000] ECRecover::fallback{value: 100000000000000000}()
+    │   │   └─ ← [Return]
+    │   ├─ emit LoseVerifier(verifier: ECRecover: [0x0000000000000000000000000000000000000001])
+    │   ├─ emit Withdrawn(staker: ECRecover: [0x0000000000000000000000000000000000000001], amount: 100000000000000000 [1e17])
+    │   └─ ← [Stop]
+    ├─ [0] VM::stopPrank()
+    │   └─ ← [Return]
+    ├─ [2363] Relayer::owner() [staticcall]
+    │   └─ ← [Return] DefaultSender: [0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38]
+    ├─ [0] VM::startPrank(DefaultSender: [0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38])
+    │   └─ ← [Return]
+    ├─ [392915] Relayer::assignEvidenceToVerifiers()
+    │   ├─ [5065] VSkillUser::getRequestIdToEvidence(1) [staticcall]
+    │   │   └─ ← [Return] VSkillUserEvidence({ submitter: 0x6CA6d1e2D5347Bfab1d91e883F1915560e09129D, cid: "cid", skillDomain: "Blockchain", status: 0, statusApproveOrNot: [false, false, false], feedbackCids: [], deadline: 1 })
+    │   ├─ [2102] Verifier::getSkillDomainToVerifiersWithinSameDomain("Blockchain") [staticcall]
+    │   │   └─ ← [Return] [0x0000000000000000000000000000000000000001, 0x0000000000000000000000000000000000000002, 0x0000000000000000000000000000000000000003]
+    │   ├─ [43017] Verifier::setVerifierAssignedRequestIds(1, RIPEMD-160: [0x0000000000000000000000000000000000000003])
+    │   │   └─ ← [Stop]
+    │   ├─ [20901] Verifier::addVerifierUnhandledRequestCount(RIPEMD-160: [0x0000000000000000000000000000000000000003])
+    │   │   └─ ← [Stop]
+    │   ├─ [746] VSkillUser::setDeadline(1, 604801 [6.048e5])
+    │   │   └─ ← [Stop]
+    │   ├─ [43017] Verifier::setVerifierAssignedRequestIds(1, ECRecover: [0x0000000000000000000000000000000000000001])
+    │   │   └─ ← [Stop]
+    │   ├─ [20901] Verifier::addVerifierUnhandledRequestCount(ECRecover: [0x0000000000000000000000000000000000000001])
+    │   │   └─ ← [Stop]
+    │   ├─ [746] VSkillUser::setDeadline(1, 604801 [6.048e5])
+    │   │   └─ ← [Stop]
+    │   ├─ [43017] Verifier::setVerifierAssignedRequestIds(1, SHA-256: [0x0000000000000000000000000000000000000002])
+    │   │   └─ ← [Stop]
+    │   ├─ [20901] Verifier::addVerifierUnhandledRequestCount(SHA-256: [0x0000000000000000000000000000000000000002])
+    │   │   └─ ← [Stop]
+    │   ├─ [746] VSkillUser::setDeadline(1, 604801 [6.048e5])
+    │   │   └─ ← [Stop]
+    │   ├─ emit Relayer__EvidenceAssignedToVerifiers()
+    │   └─ ← [Stop]
+    ├─ [0] VM::stopPrank()
+```
+
+We can find that the verifier with the address `0x000...1` has left the system, but he can still be selected for the assignment.
+
 </details>
 
 **Recommended Mitigation:**
@@ -1040,6 +1087,22 @@ Remove the unused event
 ```diff
 - event Verifier__LoseVerifier(address indexed verifier);
 ```
+
+### [I-7]: Unsafe Casting
+
+**Description:**
+
+Downcasting int/uints in Solidity can be unsafe due to the potential for data loss and unintended behavior.When downcasting a larger integer type to a smaller one (e.g., uint256 to uint128), the value may exceed the range of the target type,leading to truncation and loss of significant digits. Use OpenZeppelin's SafeCast library to safely downcast integers.
+
+<details><summary>1 Found Instances</summary>
+
+- Found in src/Relayer.sol [Line: 468](src/Relayer.sol#L468)
+
+  ```solidity
+          return address(uint160(xorResult));
+  ```
+
+</details>
 
 ## Gas
 
