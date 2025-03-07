@@ -18,6 +18,8 @@ import {Initialize} from "script/interactions/Initialize.s.sol";
 import {RelayerHelperConfig} from "script/helperConfig/RelayerHelperConfig.s.sol";
 import {VerifierHelperConfig} from "script/helperConfig/VerifierHelperConfig.s.sol";
 import {IRelayer} from "src/interfaces/IRelayer.sol";
+import {Vm} from "forge-std/Vm.sol";
+import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract ProofOfCodes is Test {
     using PriceConverter for uint256;
@@ -172,5 +174,88 @@ contract ProofOfCodes is Test {
         console.log(
             "Thus, even if the verifier is deleted, he can still be selected!!!"
         );
+    }
+
+    function testVerifierLeavesBeforeAssignedWillRevert() external {
+        (address[] memory selectedVerifiers, ) = _setUpForRelayer();
+
+        // Before assigning the evidence to the verifiers, one of them leaves
+        vm.startPrank(selectedVerifiers[0]);
+        verifier.withdrawStakeAndLoseVerifier();
+        vm.stopPrank();
+
+        vm.startPrank(relayer.owner());
+        // Here it will not revert because the verifier deletion process is not complete
+        // But if we complete this process, it will revert
+        relayer.assignEvidenceToVerifiers();
+        vm.stopPrank();
+
+        console.log("Current verifiers length: ", verifier.getVerifierCount());
+        console.log(
+            "But we can find that even though the verifier has left, he can still be selected!"
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _setUpForRelayer() internal returns (address[] memory, uint256) {
+        // 0. before starting the test, we need to add verifiers
+        address[] memory selectedVerifiers = _addVerifiers("Blockchain", 3);
+
+        // 1. submit evidence
+        vm.startPrank(USER);
+        vm.recordLogs();
+        vSkillUser.submitEvidence{value: 0.0025e18}("cid", "Blockchain"); // We know these values from the config
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        bytes32 requestId = entries[1].topics[1];
+        vm.stopPrank();
+
+        string memory skillDomain = vSkillUser
+            .getRequestIdToEvidenceSkillDomain(uint256(requestId));
+        assertEq(skillDomain, "Blockchain");
+        // 2. Distribution contract will give the random words
+        VRFCoordinatorV2_5Mock vrfCoordinator = VRFCoordinatorV2_5Mock(
+            distribution.getVrfCoordinator()
+        );
+
+        vrfCoordinator.fulfillRandomWords(
+            uint256(requestId),
+            address(distribution)
+        );
+
+        uint256[] memory randomWords = distribution.getRandomWords(
+            uint256(requestId)
+        );
+
+        assertEq(randomWords.length, distribution.getNumWords());
+
+        // 3. Relayer catch the event and perform the upkeep
+        vm.startPrank(forwarder);
+
+        bytes memory performData = abi.encode(uint256(requestId));
+        relayer.performUpkeep(performData);
+
+        vm.stopPrank();
+
+        return (selectedVerifiers, uint256(requestId));
+    }
+
+    function _addVerifiers(
+        string memory skillDomain,
+        uint256 amount
+    ) internal returns (address[] memory) {
+        address[] memory verifiers = new address[](amount);
+        for (uint160 i = 0; i < amount; i++) {
+            address verifierAddress = address(i + 1); // i + 1 to avoid address(0)
+            vm.deal(verifierAddress, verifier.getStakeEthAmount());
+            vm.startPrank(verifierAddress);
+            verifier.stake{value: verifier.getStakeEthAmount()}();
+            verifier.addSkillDomain(skillDomain);
+            vm.stopPrank();
+            verifiers[i] = verifierAddress;
+        }
+        return verifiers;
     }
 }
