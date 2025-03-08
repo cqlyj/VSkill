@@ -123,5 +123,9 @@ contract Invariant is StdInvariant, Test {
         targetContract(address(handler));
     }
 
-    function statefulFuzz_testVerifierShouldWithdrawSuccessfully() external {}
+    // function statefulFuzz_testVerifierShouldWithdrawSuccessfully() external {
+    //     // We have found one issue => the verifier deletion process is not complete!
+    //     // Thus, we use a mock version of verifier contract which handles the deletion process correctly to test the invariant.
+    //     // Check that in the InvariantWithMockVerifier contract.
+    // }
 }
