@@ -28,6 +28,7 @@ contract VSkillUserNft is ERC721, AccessControl {
     error VSkillUserNft__InvalidSkillDomain();
     error VSkillUserNft__NotInitialized();
     error VSkillUserNft__AlreadyInitialized();
+    // @audit-written unused error
     error VSkillUserNft__NotSkillHandler();
 
     /*//////////////////////////////////////////////////////////////
@@ -66,6 +67,9 @@ contract VSkillUserNft is ERC721, AccessControl {
     //////////////////////////////////////////////////////////////*/
 
     // Later we will set the Relayer contract as the one who can mint the NFT or add more skills
+
+    // @audit-gas since the skillDomains and userNftImageUris are only set once
+    // we can use big data storage to save gas => store in Contract Bytecode
     constructor(
         string[] memory _skillDomains,
         string[] memory _userNftImageUris
@@ -134,6 +138,10 @@ contract VSkillUserNft is ERC721, AccessControl {
 
         string memory skillDomain = s_tokenIdToSkillDomain[tokenId];
         string memory imageUri = s_skillDomainToUserNftImageUri[skillDomain];
+
+        // abi.encodePacked() should not be used with dynamic types when passing the result to a hash function such as keccak256()
+        // but for this case, it's not a big deal
+        // @audit-written we should use abi.encode() instead of abi.encodePacked() to avoid the hash collision
         return
             string(
                 abi.encodePacked(

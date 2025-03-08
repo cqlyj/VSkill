@@ -154,7 +154,7 @@ contract Relayer is ILogAutomation, Ownable {
     // and they can start to provide feedback to the specific evidence
 
     // set the assigned verifiers as the one who can change the evidence status
-    // @audit refactor this function to be more gas efficient!
+    // @audit-done in Yul version refactor this function to be more gas efficient!
     function assignEvidenceToVerifiers() external onlyOwner {
         uint256 length = s_unhandledRequestIds.length;
         // if there is no unhandled request, we will return so that we don't waste gas
@@ -169,10 +169,22 @@ contract Relayer is ILogAutomation, Ownable {
         // the length can be very large, but we will monitor the event to track the length and avoid DoS attack
         for (uint256 i = 0; i < length; i++) {
             uint256 requestId = s_unhandledRequestIds[i];
+            // What if at the time when calling this function, the verifiers have been removed from the community?
+            // Then the random words will exceed the range and this function will revert
+            // @audit-written If verifier is removed, here we will have out of range random words!
             uint256[]
                 memory randomWordsWithinRange = s_requestIdToRandomWordsWithinRange[
                     requestId
                 ];
+
+            // @audit-written DoS can happen if the verifier is assigned to a lot of requests and thus they are not able to provide feedback to assigned evidence in timely manner
+            // Which result in making them lose their stake
+            // But since the evidence is assigned randomly, as long as there are enough verifiers, this should not be a problem
+            // But there are cases where the verifier is assigned to a lot of requests and they are not able to provide feedback to all of them
+            // And this specific domain does not hold a lot of verifiers, this can be a problem
+
+            // maybe after the whole process is done, delete this requestId from the assignedRequestIds? => This might be a bit complicated
+            // or perhaps limit the length of the assignedRequestIds?
             address[] memory verifiersWithinSameDomain = i_verifier
                 .getSkillDomainToVerifiersWithinSameDomain(
                     i_vSkillUser.getRequestIdToEvidence(requestId).skillDomain
@@ -455,6 +467,9 @@ contract Relayer is ILogAutomation, Ownable {
         // A⊕A=0
         // A⊕0=A
         // XOR all assigned verifiers
+
+        // @audit-written Unsafe Casting => see in aderyn report
+        // This one can be solved by just using the uint160 xorResult
         uint256 xorResult = 0;
         for (uint256 i = 0; i < verifiersAssigned.length; i++) {
             xorResult ^= uint256(uint160(verifiersAssigned[i]));

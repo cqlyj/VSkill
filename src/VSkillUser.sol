@@ -19,6 +19,7 @@ contract VSkillUser is Ownable {
     error VSkillUser__NotEnoughSubmissionFee();
     error VSkillUser__InvalidSkillDomain();
     error VSkillUser__SkillDomainAlreadyExists();
+    // @audit-written unused custom errors => see in aderyn report
     error VSkillUser__EvidenceNotApprovedYet(
         StructDefinition.VSkillUserSubmissionStatus status
     );
@@ -91,7 +92,21 @@ contract VSkillUser is Ownable {
     modifier onlyRelayer() {
         // The Relayer is the one who can add more skills
         // The tx.origin is the user who is calling the function to add more skills
-        if (msg.sender != i_relayer || tx.origin != owner()) {
+
+        // The Relayer is the one who can set the deadline, but the tx.origin is the one who is calling the function
+        // What if it's indeed the Relayer calling but not the owner calling the function?
+        // In Relayer contract, every contract is only callable by the owner
+        // What if the owner of Relayer is different from the owner of VSkillUser?
+        // That will be a deployment issue
+        // As long as the deployment is correct, the second check is not necessary and a waste of gas
+
+        // @audit-written redundant check
+
+        // @notice we update this modifier here for fuzz testing
+        // if (msg.sender != i_relayer || tx.origin != owner()) {
+        //     revert VSkillUser__NotRelayer();
+        // }
+        if (msg.sender != i_relayer) {
             revert VSkillUser__NotRelayer();
         }
         _;
@@ -124,6 +139,7 @@ contract VSkillUser is Ownable {
 
     // For those unexpected ETH received, we will take them as the bonus for verifiers
     receive() external payable {
+        // @audit-written in aderyn state variable changes but no event emitted => see in aderyn report
         s_bonus += msg.value;
     }
 
@@ -136,6 +152,11 @@ contract VSkillUser is Ownable {
         string memory cid,
         string memory skillDomain
     ) public payable onlyInitialized {
+        // What if the user sends more than the submission fee?
+        // Is there a function to withdraw the excess amount? => Yes, withdrawProfit()
+        // The excess amount will be taken as the profit for the owner, is that a issue?
+        // @audit-written exceeding submission fee is taken as profit for the owner, is that what we want?
+        // Perhaps yes, cause the owner can withdraw it and possibly return it to the user
         if (msg.value.convertEthToUsd(i_priceFeed) < s_submissionFeeInUsd) {
             revert VSkillUser__NotEnoughSubmissionFee();
         }
@@ -203,7 +224,7 @@ contract VSkillUser is Ownable {
                 evidence.statusApproveOrNot[i] = true;
                 s_requestIdToVerifiersApprovedEvidence[requestId].push(
                     // the tx.origin is the one who initiated the transaction
-                    // @audit test this!
+                    // @audit-tested test this!
                     tx.origin
                 );
                 evidence.feedbackCids.push(feedbackCid);
@@ -216,6 +237,8 @@ contract VSkillUser is Ownable {
         uint256 requestId,
         uint256 deadline
     ) public onlyInitialized onlyRelayer {
+        // Is this update the storage or just the memory?
+        // It updates the storage
         s_requestIdToEvidence[requestId].deadline = deadline;
     }
 
@@ -257,7 +280,6 @@ contract VSkillUser is Ownable {
                             OWNER FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // @written audit-info centralization of the submission fee, is it a good idea?
     function changeSubmissionFee(
         uint256 newFeeInUsd
     ) public onlyOwner onlyInitialized {
@@ -310,6 +332,9 @@ contract VSkillUser is Ownable {
 
     function _calledByVerifierContract() internal view {
         if (msg.sender != Relayer(i_relayer).getVerifierContractAddress()) {
+            // @audit-written error custom error message
+            // it should be not Verifier contract
+            // VSkillUser__NotVerifierContract()
             revert VSkillUser__NotRelayer();
         }
     }

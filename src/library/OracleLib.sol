@@ -10,6 +10,9 @@ library OracleLib {
     uint256 private constant TIMEOUT = 3 hours;
 
     // @audit we are not checking any sequencers here
+    // only checking if the price is outdated but not verifying if a Layer 2 sequencer (e.g., for Zksync, Polygon) is down.
+    // we should integrate Chainlink's L2 Sequencer Uptime Feed to verify the sequencer's status before using the price.
+
     // @audit we are also not checking for a min or max price
     function staleCheckLatestRoundData(
         AggregatorV3Interface chainlinkFeed
